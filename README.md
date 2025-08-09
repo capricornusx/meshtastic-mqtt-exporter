@@ -98,6 +98,11 @@ mqtt:
 prometheus:
   enabled: true
   port: 8100
+  metrics_ttl: "30m"  # Clean up stale metrics after 30 minutes
+
+state:
+  enabled: true
+  file: "meshtastic_state.json"
 ```
 
 ## Metrics

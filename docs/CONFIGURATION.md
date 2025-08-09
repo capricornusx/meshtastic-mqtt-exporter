@@ -12,6 +12,11 @@ prometheus:
   enabled: true
   host: 0.0.0.0
   port: 8100
+  metrics_ttl: "30m"  # Clean up inactive node metrics
+
+state:
+  enabled: true
+  file: "meshtastic_state.json"
 ```
 
 ## Secure Configuration
@@ -29,6 +34,7 @@ prometheus:
   enabled: true
   host: 127.0.0.1
   port: 8100
+  metrics_ttl: "1h"  # Keep metrics for 1 hour
 
 state:
   enabled: true
@@ -54,6 +60,7 @@ state:
 - `enabled` - Enable Prometheus metrics
 - `host` - Metrics server host
 - `port` - Metrics server port
+- `metrics_ttl` - Time to keep inactive node metrics (e.g., "30m", "1h", "24h")
 
 ### State Section
 - `enabled` - Enable state persistence
