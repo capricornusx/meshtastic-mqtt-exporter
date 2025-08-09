@@ -17,10 +17,26 @@ A mochi-mqtt server plugin that exports Meshtastic device telemetry to Prometheu
 
 ## Installation
 
+### Pre-built Binaries
+
+Download the latest release for your platform from [GitHub Releases](https://github.com/capricornusx/meshtastic-mqtt-exporter/releases).
+
+### Build from Source
+
 ```bash
 git clone https://github.com/capricornusx/meshtastic-mqtt-exporter
 cd meshtastic-mqtt-exporter
 go mod download
+```
+
+### Building for Raspberry Pi
+
+```bash
+# For Raspberry Pi 4/5 (64-bit)
+GOOS=linux GOARCH=arm64 go build -o meshtastic-exporter-embedded ./cmd/embedded-hook
+
+# For older Raspberry Pi (32-bit)
+GOOS=linux GOARCH=arm GOARM=7 go build -o meshtastic-exporter-embedded ./cmd/embedded-hook
 ```
 
 ## Usage
@@ -107,6 +123,13 @@ Meshtastic Devices → Built-in MQTT Broker → Prometheus Hook → Metrics
 ```
 Meshtastic Devices → External MQTT Broker → MQTT Client → Exporter → Prometheus
 ```
+
+
+### TODO:
+ - [ ] 💯 Add support for all sensor types from [telemetry.proto](https://github.com/meshtastic/protobufs/blob/master/meshtastic/telemetry.proto)
+ - [ ] ♻ Auto-release (sync) on upstream .proto 👆 changes 
+ - [ ] 📊 Create an example Grafana dashboard
+ - [ ] 🔥 Create basic AlertManager rules
 
 ## License
 

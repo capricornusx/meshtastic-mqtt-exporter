@@ -19,49 +19,60 @@ release:
     - Read the [Documentation](https://github.com/capricornusx/meshtastic-mqtt-exporter)
   draft: false
 builds:
-  - goos:
+  - id: embedded
+    dir: ./cmd/embedded-hook
+    goos:
       - linux
       - darwin
     goarch:
       - amd64
-      - "386"
-      - arm
       - arm64
+      - arm
+    goarm:
+      - "7"
     ignore:
       - goos: darwin
-        goarch: "386"
-      - goos: windows
-        goarch: "386"
-      - goos: freebsd
-        goarch: "386"
+        goarch: arm
+    ldflags: -s -w -X main.version={{.Version}}
+    binary: meshtastic-exporter-embedded
+    env:
+      - CGO_ENABLED=0
+  - id: standalone
+    dir: ./cmd/standalone
+    goos:
+      - linux
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+      - arm
+    goarm:
+      - "7"
+    ignore:
       - goos: darwin
         goarch: arm
-      - goos: windows
-        goarch: arm
-      - goos: freebsd
-        goarch: arm
-      - goos: windows
-        goarch: arm64
-      - goos: freebsd
-        goarch: arm64
-    main: .
-
-    ldflags: -s -w -X meshtastic-mqtt-exporter/internal/build.Version={{.Version}}
-    binary: meshtastic-mqtt-exporter
+    ldflags: -s -w -X main.version={{.Version}}
+    binary: meshtastic-exporter-standalone
     env:
-      # https://github.com/goreleaser/goreleaser/issues/225
       - CGO_ENABLED=0
 archives:
-  - id: meshtastic-mqtt-exporter
-    name_template: '{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}'
+  - id: embedded
+    builds:
+      - embedded
+    name_template: '{{ .ProjectName }}-embedded_{{ .Version }}_{{ .Os }}_{{ .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}'
     formats: [ 'tar.gz' ]
     files:
-      # - LICENSE*
       - README*
-      - CHANGELOG*
-    format_overrides:
-      - goos: windows
-        formats: [ 'zip' ]
+      - docs/mqtt-exporter-embedded.service
+      - config.yaml
+  - id: standalone
+    builds:
+      - standalone
+    name_template: '{{ .ProjectName }}-standalone_{{ .Version }}_{{ .Os }}_{{ .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}'
+    formats: [ 'tar.gz' ]
+    files:
+      - README*
+      - config.yaml
 checksum:
   name_template: '{{ .ProjectName }}_{{ .Version }}_checksums.txt'
 
