@@ -130,7 +130,11 @@ func TestHealthCheck(t *testing.T) {
 		})
 	})
 
-	server := &http.Server{Addr: ":8100", Handler: mux}
+	server := &http.Server{
+		Addr:              ":8100",
+		Handler:           mux,
+		ReadHeaderTimeout: 10 * time.Second,
+	}
 	go func() {
 		server.ListenAndServe()
 	}()

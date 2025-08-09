@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	mqtt "github.com/mochi-mqtt/server/v2"
 	"github.com/mochi-mqtt/server/v2/packets"
@@ -223,7 +224,12 @@ func (h *MeshtasticHook) startServer() {
 	}
 
 	log.Printf("Meshtastic hook: Prometheus server starting on %s", h.config.PrometheusAddr)
-	if err := http.ListenAndServe(h.config.PrometheusAddr, mux); err != nil {
+	server := &http.Server{
+		Addr:              h.config.PrometheusAddr,
+		Handler:           mux,
+		ReadHeaderTimeout: 10 * time.Second,
+	}
+	if err := server.ListenAndServe(); err != nil {
 		log.Printf("Meshtastic hook: Failed to start server: %v", err)
 	}
 }
