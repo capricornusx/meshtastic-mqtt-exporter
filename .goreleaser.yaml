@@ -1,0 +1,188 @@
+project_name: meshtastic-mqtt-exporter
+
+before:
+  hooks:
+    - go mod tidy
+
+release:
+  github:
+    owner: capricornusx
+    name: meshtastic-mqtt-exporter
+  name_template: '{{.Tag}}'
+  prerelease: auto
+  make_latest: true
+  footer: |
+    **Full Changelog**: https://github.com/capricornusx/meshtastic-mqtt-exporter/compare/{{ .PreviousTag }}...{{ .Tag }}
+
+    ## What to do next?
+
+    - Read the [Documentation](https://github.com/capricornusx/meshtastic-mqtt-exporter)
+  draft: false
+builds:
+  - goos:
+      - linux
+      - darwin
+    goarch:
+      - amd64
+      - "386"
+      - arm
+      - arm64
+    ignore:
+      - goos: darwin
+        goarch: "386"
+      - goos: windows
+        goarch: "386"
+      - goos: freebsd
+        goarch: "386"
+      - goos: darwin
+        goarch: arm
+      - goos: windows
+        goarch: arm
+      - goos: freebsd
+        goarch: arm
+      - goos: windows
+        goarch: arm64
+      - goos: freebsd
+        goarch: arm64
+    main: .
+
+    ldflags: -s -w -X meshtastic-mqtt-exporter/internal/build.Version={{.Version}}
+    binary: meshtastic-mqtt-exporter
+    env:
+      # https://github.com/goreleaser/goreleaser/issues/225
+      - CGO_ENABLED=0
+archives:
+  - id: meshtastic-mqtt-exporter
+    name_template: '{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}'
+    formats: [ 'tar.gz' ]
+    files:
+      # - LICENSE*
+      - README*
+      - CHANGELOG*
+    format_overrides:
+      - goos: windows
+        formats: [ 'zip' ]
+checksum:
+  name_template: '{{ .ProjectName }}_{{ .Version }}_checksums.txt'
+
+changelog:
+  sort: asc
+  use: github
+  filters:
+    exclude:
+      - Merge pull request
+      - Merge remote-tracking branch
+      - Merge branch
+  groups:
+    - title: 'New Features'
+      regexp: "^.*feat[(\\w)]*:+.*$"
+      order: 0
+    - title: 'Bug fixes'
+      regexp: "^.*fix[(\\w)]*:+.*$"
+      order: 10
+    - title: Other work
+      order: 999
+
+dist: dist
+signs:
+  - cmd: gpg
+    args:
+      - --batch
+      - -u
+      - "{{ .Env.GPG_FINGERPRINT }}"
+      - --output
+      - $signature
+      - --clear-sign
+      - --detach-sig
+      - $artifact
+    signature: ${artifact}.asc
+    artifacts: checksum
+
+dockers:
+  # You can have multiple Docker images.
+  - #
+    # ID of the image, needed if you want to filter by it later on (e.g. on custom publishers).
+    id: meshtastic-mqtt-exporter
+    goos: linux
+    goarch: amd64
+    goamd64: "v1"
+
+    # IDs to filter the binaries/packages.
+    ids:
+      - meshtastic-mqtt-exporter
+
+    # Templates of the Docker image names.
+    image_templates:
+      - "ghcr.io/capricornusx/meshtastic-mqtt-exporter:{{ .Tag }}"
+      - "ghcr.io/capricornusx/meshtastic-mqtt-exporter:v{{ .Major }}"
+      - "ghcr.io/capricornusx/meshtastic-mqtt-exporter:v{{ .Major }}.{{ .Minor }}"
+      - "ghcr.io/capricornusx/meshtastic-mqtt-exporter:latest"
+
+    # Skips the docker push.
+    # Could be useful if you also do draft releases.
+    #
+    # If set to auto, the release will not be pushed to the Docker repository
+    #  in case there is an indicator of a prerelease in the tag, e.g. v1.0.0-rc1.
+    #
+    # Templates: allowed (since v1.19)
+    skip_push: false
+
+    # Path to the Dockerfile (from the project root).
+    # Default: 'Dockerfile'
+    # "{{ .Env.DOCKERFILE }}"
+    dockerfile: docs/Dockerfile
+
+    # Set the "backend" for the Docker pipe.
+    # Valid options are: docker, buildx, podman.
+    # Podman is a GoReleaser Pro feature and is only available on Linux.
+    # Default: 'docker'
+    use: buildx
+
+    # Docker build flags. Templates: allowed
+    build_flag_templates:
+      # - --pull
+      - --label=org.opencontainers.image.title={{.ProjectName}}
+      - --label=org.opencontainers.image.version={{.Version }}
+      - --label=org.opencontainers.image.description="MQTT telemetry data exporter for Meshtastic"
+      - --label=org.opencontainers.image.url=https://github.com/capricornusx/meshtastic-mqtt-exporter
+      - --label=org.opencontainers.image.source=https://github.com/capricornusx/meshtastic-mqtt-exporter
+      - --label=org.opencontainers.image.revision={{.FullCommit}}
+      - --label=org.opencontainers.image.created={{.Date}}
+      - --label=org.opencontainers.image.licenses=MIT
+      # - "--platform=linux/amd64/v3"
+
+    # Extra flags to be passed down to the push command.
+    push_flags:
+      - --tls-verify=false
+
+# https://goreleaser.com/customization/nfpm/
+nfpms:
+  - package_name: meshtastic-mqtt-exporter
+    homepage: https://github.com/capricornusx/meshtastic-mqtt-exporter
+    maintainer: Dmitry Dubinin <capricornusx@gmail.com>
+    description: |-
+      MQTT telemetry data exporter for Meshtastic
+    license: MIT
+    formats:
+      - apk
+      - deb
+      - rpm
+      - archlinux
+#    rpm:
+#      signature:
+#        key_file: "{{ .Env.GPG_FINGERPRINT }}"
+#    deb:
+#      signature:
+#        key_file: "{{ .Env.GPG_FINGERPRINT }}"
+#    apk:
+#      signature:
+#        key_file: "{{ .Env.GPG_FINGERPRINT }}"
+#    archlinux:
+#      # https://wiki.archlinux.org/title/PKGBUILD#pkgbase
+#      # https://dev-gang.ru/article/rukovodstvo-po-upakovke-go-dlja-arch-linux-lk5qokhan5/
+#      scripts:
+#        preupgrade: ./scripts/packaging/arch/preupgrade.sh
+#        postupgrade: ./scripts/packaging/arch/postupgrade.sh
+#
+#      pkgbase: meshtastic-mqtt-exporter
+#      packager: Dmitry Dubinin <capricornusx@gmail.com>
