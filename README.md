@@ -32,11 +32,12 @@ go mod download
 ### Building for Raspberry Pi
 
 ```bash
-# For Raspberry Pi 4/5 (64-bit)
-GOOS=linux GOARCH=arm64 go build -o meshtastic-exporter-embedded ./cmd/embedded-hook
+# Build for all Raspberry Pi variants
+make build-rpi
 
-# For older Raspberry Pi (32-bit)
-GOOS=linux GOARCH=arm GOARM=7 go build -o meshtastic-exporter-embedded ./cmd/embedded-hook
+# Or build specific versions:
+make build-rpi-arm64  # Pi 4/5 (64-bit)
+make build-rpi-arm32  # Older Pi (32-bit)
 ```
 
 ## Usage

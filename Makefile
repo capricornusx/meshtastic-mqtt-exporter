@@ -1,7 +1,7 @@
 BINARY_NAME=meshtastic-exporter
 EMBEDDED_BINARY=meshtastic-exporter-embedded
 
-.PHONY: build build-hook clean deps lint test docker run
+.PHONY: build build-hook clean deps lint test docker run build-rpi build-rpi-arm64 build-rpi-arm32
 
 build: build-standalone build-hook
 
@@ -42,3 +42,12 @@ docker:
 
 run:
 	docker-compose up -d
+
+# Raspberry Pi builds
+build-rpi: build-rpi-arm64 build-rpi-arm32
+
+build-rpi-arm64:
+	GOOS=linux GOARCH=arm64 go build -o $(EMBEDDED_BINARY)-rpi-arm64 ./cmd/embedded-hook
+
+build-rpi-arm32:
+	GOOS=linux GOARCH=arm GOARM=7 go build -o $(EMBEDDED_BINARY)-rpi-arm32 ./cmd/embedded-hook
