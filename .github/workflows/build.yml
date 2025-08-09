@@ -25,16 +25,9 @@ jobs:
         with:
           go-version: '1.24.5'
 
-      - name: Build standalone
-        run: go build -v -o meshtastic-exporter ./cmd/standalone
-
-      - name: Build embedded with hook
-        run: go build -v -o meshtastic-exporter-embedded ./cmd/embedded-hook
-
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v8
         with:
-          # Optional: show only new issues if it's a pull request. The default value is `false`.
           only-new-issues: true
 
       - name: Test with coverage
@@ -46,10 +39,7 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
           slug: capricornusx/meshtastic-mqtt-exporter
 
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: binaries
-          path: |
-            meshtastic-exporter
-            meshtastic-exporter-embedded
+      - name: Check GoReleaser config
+        run: |
+          go install github.com/goreleaser/goreleaser@latest
+          goreleaser check
