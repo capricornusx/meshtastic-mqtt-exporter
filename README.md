@@ -132,6 +132,10 @@ Meshtastic Devices → External MQTT Broker → MQTT Client → Exporter → Pro
  - [ ] 📊 Create an example Grafana dashboard
  - [ ] 🔥 Create basic AlertManager rules
 
+## Acknowledgments
+
+Built using the excellent [mochi-mqtt](https://github.com/mochi-mqtt/server) MQTT broker by [@mochi-co](https://github.com/mochi-co).
+
 ## License
 
 MIT License

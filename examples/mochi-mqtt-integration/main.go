@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: MIT
+// SPDX-FileCopyrightText: 2023 mochi-mqtt
+// SPDX-FileContributor: capricornusx
+
 package main
 
 import (
@@ -24,7 +28,7 @@ func main() {
 		PrometheusAddr: ":8100",
 		EnableHealth:   true,
 	})
-	
+
 	if err := server.AddHook(meshtasticHook, nil); err != nil {
 		log.Fatalf("Failed to add Meshtastic hook: %v", err)
 	}

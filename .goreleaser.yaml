@@ -1,5 +1,8 @@
 project_name: meshtastic-mqtt-exporter
 
+env:
+  - SHORT_NAME=mqtt-exporter
+
 before:
   hooks:
     - go mod tidy
@@ -7,32 +10,28 @@ before:
 release:
   github:
     owner: capricornusx
-    name: meshtastic-mqtt-exporter
+    name: '{{ .ProjectName }}'
   name_template: '{{.Tag}}'
   prerelease: auto
   make_latest: true
   footer: |
-    **Full Changelog**: https://github.com/capricornusx/meshtastic-mqtt-exporter/compare/{{ .PreviousTag }}...{{ .Tag }}
+    **Full Changelog**: https://github.com/capricornusx/{{ .ProjectName }}/compare/{{ .PreviousTag }}...{{ .Tag }}
 
     ## What to do next?
 
-    - Read the [Documentation](https://github.com/capricornusx/meshtastic-mqtt-exporter)
+    - Read the [Documentation](https://github.com/capricornusx/{{ .ProjectName }})
   draft: false
 builds:
   - id: embedded
     dir: ./cmd/embedded-hook
     goos:
       - linux
-      - darwin
     goarch:
       - amd64
       - arm64
       - arm
     goarm:
       - "7"
-    ignore:
-      - goos: darwin
-        goarch: arm
     ldflags: -s -w -X main.version={{.Version}}
     binary: meshtastic-exporter-embedded
     env:
@@ -41,16 +40,12 @@ builds:
     dir: ./cmd/standalone
     goos:
       - linux
-      - darwin
     goarch:
       - amd64
       - arm64
       - arm
     goarm:
       - "7"
-    ignore:
-      - goos: darwin
-        goarch: arm
     ldflags: -s -w -X main.version={{.Version}}
     binary: meshtastic-exporter-standalone
     env:
@@ -59,7 +54,7 @@ archives:
   - id: embedded
     builds:
       - embedded
-    name_template: '{{ .ProjectName }}-embedded_{{ .Version }}_{{ .Os }}_{{ .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}'
+    name_template: '{{ .Env.SHORT_NAME }}-embedded_{{ .Version }}_{{ .Os }}_{{ .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}'
     format: tar.gz
     files:
       - README*
@@ -68,13 +63,13 @@ archives:
   - id: standalone
     builds:
       - standalone
-    name_template: '{{ .ProjectName }}-standalone_{{ .Version }}_{{ .Os }}_{{ .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}'
+    name_template: '{{ .Env.SHORT_NAME }}-standalone_{{ .Version }}_{{ .Os }}_{{ .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}'
     format: tar.gz
     files:
       - README*
       - config.yaml
 checksum:
-  name_template: '{{ .ProjectName }}_{{ .Version }}_checksums.txt'
+  name_template: '{{ .Env.SHORT_NAME }}_{{ .Version }}_checksums.txt'
 
 changelog:
   sort: asc
@@ -123,10 +118,10 @@ dockers:
 
     # Templates of the Docker image names.
     image_templates:
-      - "ghcr.io/capricornusx/meshtastic-mqtt-exporter:{{ .Tag }}"
-      - "ghcr.io/capricornusx/meshtastic-mqtt-exporter:v{{ .Major }}"
-      - "ghcr.io/capricornusx/meshtastic-mqtt-exporter:v{{ .Major }}.{{ .Minor }}"
-      - "ghcr.io/capricornusx/meshtastic-mqtt-exporter:latest"
+      - "ghcr.io/capricornusx/{{ .ProjectName }}:{{ .Tag }}"
+      - "ghcr.io/capricornusx/{{ .ProjectName }}:v{{ .Major }}"
+      - "ghcr.io/capricornusx/{{ .ProjectName }}:v{{ .Major }}.{{ .Minor }}"
+      - "ghcr.io/capricornusx/{{ .ProjectName }}:latest"
 
     # Skips the docker push.
     # Could be useful if you also do draft releases.
@@ -154,8 +149,8 @@ dockers:
       - --label=org.opencontainers.image.title={{.ProjectName}}
       - --label=org.opencontainers.image.version={{.Version }}
       - --label=org.opencontainers.image.description="MQTT telemetry data exporter for Meshtastic"
-      - --label=org.opencontainers.image.url=https://github.com/capricornusx/meshtastic-mqtt-exporter
-      - --label=org.opencontainers.image.source=https://github.com/capricornusx/meshtastic-mqtt-exporter
+      - --label=org.opencontainers.image.url=https://github.com/capricornusx/{{ .ProjectName }}
+      - --label=org.opencontainers.image.source=https://github.com/capricornusx/{{ .ProjectName }}
       - --label=org.opencontainers.image.revision={{.FullCommit}}
       - --label=org.opencontainers.image.created={{.Date}}
       - --label=org.opencontainers.image.licenses=MIT
@@ -167,8 +162,8 @@ dockers:
 
 # https://goreleaser.com/customization/nfpm/
 nfpms:
-  - package_name: meshtastic-mqtt-exporter
-    homepage: https://github.com/capricornusx/meshtastic-mqtt-exporter
+  - package_name: '{{ .ProjectName }}'
+    homepage: https://github.com/capricornusx/{{ .ProjectName }}
     maintainer: Dmitry Dubinin <capricornusx@gmail.com>
     description: |-
       MQTT telemetry data exporter for Meshtastic
