@@ -60,7 +60,7 @@ archives:
     builds:
       - embedded
     name_template: '{{ .ProjectName }}-embedded_{{ .Version }}_{{ .Os }}_{{ .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}'
-    formats: [ 'tar.gz' ]
+    format: tar.gz
     files:
       - README*
       - docs/mqtt-exporter-embedded.service
@@ -69,7 +69,7 @@ archives:
     builds:
       - standalone
     name_template: '{{ .ProjectName }}-standalone_{{ .Version }}_{{ .Os }}_{{ .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}'
-    formats: [ 'tar.gz' ]
+    format: tar.gz
     files:
       - README*
       - config.yaml
@@ -95,18 +95,13 @@ changelog:
       order: 999
 
 dist: dist
+
 signs:
-  - cmd: gpg
+  - cmd: sh
     args:
-      - --batch
-      - -u
-      - "{{ .Env.GPG_FINGERPRINT }}"
-      - --output
-      - $signature
-      - --clear-sign
-      - --detach-sig
-      - $artifact
-    signature: ${artifact}.asc
+      - "-c"
+      - "echo '{{ .Env.SSH_PRIVATE_KEY }}' > /tmp/ssh_key && chmod 600 /tmp/ssh_key && ssh-keygen -Y sign -n file -f /tmp/ssh_key $artifact && rm /tmp/ssh_key"
+    signature: "${artifact}.sig"
     artifacts: checksum
 
 dockers:
@@ -120,7 +115,11 @@ dockers:
 
     # IDs to filter the binaries/packages.
     ids:
-      - meshtastic-mqtt-exporter
+      - embedded
+    
+    # Extra files to add to the Docker build context
+    extra_files:
+      - config.yaml
 
     # Templates of the Docker image names.
     image_templates:
@@ -179,21 +178,3 @@ nfpms:
       - deb
       - rpm
       - archlinux
-#    rpm:
-#      signature:
-#        key_file: "{{ .Env.GPG_FINGERPRINT }}"
-#    deb:
-#      signature:
-#        key_file: "{{ .Env.GPG_FINGERPRINT }}"
-#    apk:
-#      signature:
-#        key_file: "{{ .Env.GPG_FINGERPRINT }}"
-#    archlinux:
-#      # https://wiki.archlinux.org/title/PKGBUILD#pkgbase
-#      # https://dev-gang.ru/article/rukovodstvo-po-upakovke-go-dlja-arch-linux-lk5qokhan5/
-#      scripts:
-#        preupgrade: ./scripts/packaging/arch/preupgrade.sh
-#        postupgrade: ./scripts/packaging/arch/postupgrade.sh
-#
-#      pkgbase: meshtastic-mqtt-exporter
-#      packager: Dmitry Dubinin <capricornusx@gmail.com>
