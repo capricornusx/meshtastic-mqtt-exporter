@@ -115,14 +115,50 @@ prometheus:
 
 ### Embedded Mode (Recommended)
 
-```
-Meshtastic Devices → Built-in MQTT Broker → Prometheus Hook → Metrics
+```mermaid
+flowchart LR
+    A[📱 Meshtastic Devices] --> B[🔧 Built-in MQTT Broker]
+    B --> C[🎯 Prometheus Hook]
+    C --> D[📊 Metrics Endpoint]
+    E[📈 Prometheus] --> D
+    
+    style A fill:#e1f5fe
+    style B fill:#f3e5f5
+    style C fill:#e8f5e8
+    style D fill:#fff3e0
 ```
 
 ### Standalone Mode
 
+```mermaid
+flowchart LR
+    A[📱 Meshtastic Devices] --> B[🌐 External MQTT Broker]
+    B --> C[🔌 MQTT Client]
+    C --> D[⚙️ Exporter]
+    D --> E[📊 Metrics Endpoint]
+    F[📈 Prometheus] --> E
+    
+    style A fill:#e1f5fe
+    style B fill:#ffebee
+    style C fill:#f3e5f5
+    style D fill:#e8f5e8
+    style E fill:#fff3e0
 ```
-Meshtastic Devices → External MQTT Broker → MQTT Client → Exporter → Prometheus
+
+### Data Flow
+
+```mermaid
+sequenceDiagram
+    participant M as Meshtastic Device
+    participant B as MQTT Broker
+    participant H as Hook/Exporter
+    participant P as Prometheus
+    
+    M->>B: Publish telemetry
+    B->>H: Forward message
+    H->>H: Parse & convert to metrics
+    P->>H: Scrape /metrics
+    H->>P: Return metrics data
 ```
 
 
