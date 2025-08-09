@@ -1,10 +1,10 @@
-# Meshtastic MQTT Exporter
+# Meshtastic [mochi-mqtt](https://github.com/mochi-mqtt/server) Plugin
 
 [![Build Status](https://github.com/capricornusx/meshtastic-mqtt-exporter/workflows/Build%20and%20Test/badge.svg)](https://github.com/capricornusx/meshtastic-mqtt-exporter/actions)
 [![codecov](https://codecov.io/gh/capricornusx/meshtastic-mqtt-exporter/graph/badge.svg?token=P0409HCBFS)](https://codecov.io/gh/capricornusx/meshtastic-mqtt-exporter)
 [![Go Report Card](https://goreportcard.com/badge/github.com/capricornusx/meshtastic-mqtt-exporter)](https://goreportcard.com/report/github.com/capricornusx/meshtastic-mqtt-exporter)
 
-MQTT telemetry data exporter for Meshtastic devices with Prometheus metrics support.
+A mochi-mqtt server plugin that exports Meshtastic device telemetry to Prometheus metrics.
 
 ## Features
 
@@ -48,12 +48,6 @@ server.AddHook(hook, nil)
 ```
 
 See [example](examples/mochi-mqtt-integration/) for complete integration.
-
-### Build Binaries
-```bash
-make build-standalone    # Standalone
-make build-hook         # Embedded with hook
-```
 
 ## Mode Comparison
 
