@@ -1,9 +1,9 @@
-#!/bin/bash
+#!/bin/env bash
 
 HOOK_FILE=".git/hooks/pre-commit"
 
 cat > "$HOOK_FILE" << 'EOF'
-#!/bin/bash
+#!/bin/env bash
 
 set -e
 

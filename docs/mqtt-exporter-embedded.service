@@ -4,12 +4,17 @@ After=network.target
 
 [Service]
 Type=simple
-User=dim
-Group=dim
-WorkingDirectory=/home/dim/projects/mqtt_exporter
-ExecStart=/home/dim/projects/mqtt_exporter/meshtastic-exporter-embedded --config /blabla/config.yaml
+User=mqtt-exporter
+Group=mqtt-exporter
+WorkingDirectory=/opt/mqtt-exporter
+ExecStart=/opt/mqtt-exporter/meshtastic-exporter-embedded --config /etc/mqtt-exporter/config.yaml
 Restart=always
 RestartSec=10
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/mqtt-exporter
 
 [Install]
 WantedBy=multi-user.target

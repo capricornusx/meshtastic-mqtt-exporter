@@ -99,9 +99,9 @@ func TestProcessMessage(t *testing.T) {
 				"to":   float64(789012),
 				"type": "telemetry",
 				"payload": map[string]interface{}{
-					"battery_level": float64(85.5),
-					"voltage":       float64(3.7),
-					"temperature":   float64(22.5),
+					"battery_level": 85.5,
+					"voltage":       3.7,
+					"temperature":   22.5,
 				},
 			},
 		},
@@ -235,14 +235,14 @@ func TestProcessTelemetryEdgeCases(t *testing.T) {
 
 	// Test with all fields
 	payload = map[string]interface{}{
-		"battery_level":       float64(85.5),
-		"voltage":             float64(3.7),
-		"channel_utilization": float64(12.5),
-		"air_util_tx":         float64(8.2),
-		"uptime_seconds":      float64(3600),
-		"temperature":         float64(22.5),
-		"relative_humidity":   float64(65.0),
-		"barometric_pressure": float64(1013.25),
+		"battery_level":       85.5,
+		"voltage":             3.7,
+		"channel_utilization": 12.5,
+		"air_util_tx":         8.2,
+		"uptime_seconds":      3600.0,
+		"temperature":         22.5,
+		"relative_humidity":   65.0,
+		"barometric_pressure": 1013.25,
 	}
 	exporter.processTelemetry("123", payload)
 }
@@ -263,8 +263,8 @@ func TestProcessMessageEdgeCases(t *testing.T) {
 		"from": float64(123456),
 		"to":   float64(789012),
 		"type": "telemetry",
-		"rssi": float64(-85.5),
-		"snr":  float64(12.3),
+		"rssi": -85.5,
+		"snr":  12.3,
 		"payload": map[string]interface{}{
 			"battery_level": float64(75),
 		},

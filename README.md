@@ -26,38 +26,41 @@ go mod download
 ## Usage
 
 ### Embedded Mode (Recommended)
+
 ```bash
 go run ./cmd/embedded-hook --config config.yaml
 ```
 
 ### Standalone Mode
+
 ```bash
 go run ./cmd/standalone --config config.yaml
 ```
 
 ### As mochi-mqtt Hook
+
 ```go
 import "meshtastic-exporter/pkg/hooks"
 
 // Add to your existing mochi-mqtt server
 hook := hooks.NewMeshtasticHook(hooks.MeshtasticHookConfig{
-    PrometheusAddr: ":8100",
-    EnableHealth:   true,
+PrometheusAddr: ":8100",
+EnableHealth:   true,
 })
 server.AddHook(hook, nil)
 ```
 
-See [example](examples/mochi-mqtt-integration/) for complete integration.
+See [example](examples/mochi-mqtt-integration/README.md) for complete integration.
 
 ## Mode Comparison
 
-| Feature | Embedded Mode | Standalone Mode |
-|---------|---------------|----------------|
-| **Setup** | Single binary | Requires external MQTT broker |
-| **Performance** | Higher (direct processing) | Lower (network overhead) |
-| **Resources** | Lower | Higher |
-| **Use Case** | New deployments | Existing MQTT infrastructure |
-| **Recommended** | ✅ Yes | For legacy setups |
+| Feature         | Embedded Mode              | Standalone Mode               |
+|-----------------|----------------------------|-------------------------------|
+| **Setup**       | Single binary              | Requires external MQTT broker |
+| **Performance** | Higher (direct processing) | Lower (network overhead)      |
+| **Resources**   | Lower                      | Higher                        |
+| **Use Case**    | New deployments            | Existing MQTT infrastructure  |
+| **Recommended** | ✅ Yes                      | For legacy setups             |
 
 ## Configuration
 
@@ -65,9 +68,10 @@ See [Configuration Guide](docs/CONFIGURATION.md) for detailed options.
 
 ## Docker Deployment
 
-See [Docker Guide](docs/DOCKER.md) for container deployment with health checks.
+See docs/ for container deployment with health checks.
 
 Basic example:
+
 ```yaml
 mqtt:
   host: localhost
@@ -93,11 +97,13 @@ prometheus:
 ## Architecture
 
 ### Embedded Mode (Recommended)
+
 ```
 Meshtastic Devices → Built-in MQTT Broker → Prometheus Hook → Metrics
 ```
 
 ### Standalone Mode
+
 ```
 Meshtastic Devices → External MQTT Broker → MQTT Client → Exporter → Prometheus
 ```

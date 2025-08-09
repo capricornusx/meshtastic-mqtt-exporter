@@ -58,3 +58,40 @@ state:
 ### State Section
 - `enabled` - Enable state persistence
 - `file` - State file path
+
+## Systemd Service Installation
+
+### 1. Create System User
+```bash
+sudo useradd --system --no-create-home --shell /bin/false mqtt-exporter
+```
+
+### 2. Setup Directories
+```bash
+sudo mkdir -p /opt/mqtt-exporter /etc/mqtt-exporter /var/lib/mqtt-exporter
+sudo chown mqtt-exporter:mqtt-exporter /var/lib/mqtt-exporter
+```
+
+### 3. Install Binary and Config
+```bash
+sudo cp meshtastic-exporter-embedded /opt/mqtt-exporter/
+sudo cp config.yaml /etc/mqtt-exporter/
+sudo chown root:root /opt/mqtt-exporter/meshtastic-exporter-embedded
+sudo chmod 755 /opt/mqtt-exporter/meshtastic-exporter-embedded
+```
+
+### 4. Install Service
+```bash
+sudo cp docs/mqtt-exporter-embedded.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable mqtt-exporter-embedded
+sudo systemctl start mqtt-exporter-embedded
+```
+
+### Security Features
+The systemd service includes security hardening:
+- Dedicated system user without shell access
+- No privilege escalation
+- Protected system and home directories
+- Isolated temporary directory
+- Restricted write access
