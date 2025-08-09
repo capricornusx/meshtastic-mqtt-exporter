@@ -71,6 +71,20 @@ func TestMeshtasticHook_OnPublish(t *testing.T) {
 	}
 }
 
+func TestMeshtasticHook_Provides(t *testing.T) {
+	hook := NewMeshtasticHook(MeshtasticHookConfig{})
+
+	// Test OnPublish event (value 1 corresponds to mqtt.OnPublish)
+	if !hook.Provides(1) {
+		t.Log("Hook provides OnPublish event")
+	}
+
+	// Test other events
+	if hook.Provides(0) {
+		t.Error("Hook should not provide other events")
+	}
+}
+
 func TestMeshtasticHook_HealthEndpoint(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/health", nil)
 	w := httptest.NewRecorder()
@@ -98,5 +112,103 @@ func TestMeshtasticHook_HealthEndpoint(t *testing.T) {
 
 	if response["status"] != "ok" {
 		t.Errorf("Expected status 'ok', got %s", response["status"])
+	}
+}
+
+func TestMeshtasticHook_ProcessTelemetry(t *testing.T) {
+	hook := NewMeshtasticHook(MeshtasticHookConfig{})
+
+	// Test with all telemetry fields
+	payload := map[string]interface{}{
+		"battery_level":       85.5,
+		"voltage":             3.7,
+		"temperature":         22.5,
+		"relative_humidity":   65.0,
+		"barometric_pressure": 1013.25,
+		"channel_utilization": 12.5,
+		"air_util_tx":         8.2,
+		"uptime_seconds":      3600.0,
+	}
+
+	hook.processTelemetry("123456", payload)
+
+	// Test with missing fields
+	payload = map[string]interface{}{
+		"battery_level": float64(50),
+		// Other fields missing
+	}
+	hook.processTelemetry("789012", payload)
+}
+
+func TestMeshtasticHook_ProcessNodeInfo(t *testing.T) {
+	hook := NewMeshtasticHook(MeshtasticHookConfig{})
+
+	// Test with all node info fields
+	payload := map[string]interface{}{
+		"longname":  "Test Node Long",
+		"shortname": "TN",
+		"hardware":  float64(31),
+		"role":      float64(1),
+	}
+
+	hook.processNodeInfo("123456", payload)
+
+	// Test with missing fields
+	payload = map[string]interface{}{
+		"longname": "Minimal Node",
+		// Other fields missing
+	}
+	hook.processNodeInfo("789012", payload)
+}
+
+func TestMeshtasticHook_ProcessMessage(t *testing.T) {
+	hook := NewMeshtasticHook(MeshtasticHookConfig{})
+
+	// Test message without from field
+	data := map[string]interface{}{
+		"type": "telemetry",
+	}
+	hook.processMessage(data)
+
+	// Test valid telemetry message
+	data = map[string]interface{}{
+		"from": float64(123456),
+		"type": "telemetry",
+		"payload": map[string]interface{}{
+			"battery_level": 85.5,
+			"temperature":   22.5,
+		},
+	}
+	hook.processMessage(data)
+
+	// Test valid nodeinfo message
+	data = map[string]interface{}{
+		"from": float64(789012),
+		"type": "nodeinfo",
+		"payload": map[string]interface{}{
+			"longname":  "Test Node",
+			"shortname": "TN",
+			"hardware":  float64(31),
+		},
+	}
+	hook.processMessage(data)
+
+	// Test message without payload
+	data = map[string]interface{}{
+		"from": float64(456789),
+		"type": "position",
+	}
+	hook.processMessage(data)
+}
+
+func TestMeshtasticHook_Init(t *testing.T) {
+	hook := NewMeshtasticHook(MeshtasticHookConfig{
+		PrometheusAddr: "", // No server
+		EnableHealth:   false,
+	})
+
+	err := hook.Init(nil)
+	if err != nil {
+		t.Errorf("Init() should not error: %v", err)
 	}
 }

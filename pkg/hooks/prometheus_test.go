@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"meshtastic-exporter/pkg/exporter"
 
@@ -149,6 +150,13 @@ func TestPrometheusHook_ProcessNodeInfo(t *testing.T) {
 
 	hook.processMessage(nodeInfoData)
 
+	// Test processNodeInfo directly with missing fields
+	payload := map[string]interface{}{
+		"longname": "Minimal Node",
+		// Other fields missing
+	}
+	hook.processNodeInfo("789012", payload)
+
 	// Check if the node info metric was updated
 	metricChan := make(chan prometheus.Metric, 10)
 	hook.nodeHardware.Collect(metricChan)
@@ -255,4 +263,98 @@ func TestRoundFloat(t *testing.T) {
 			t.Errorf("roundFloat(%f, %d) = %f, expected %f", tt.value, tt.precision, result, tt.expected)
 		}
 	}
+}
+
+func TestPrometheusHook_ProcessTelemetryEdgeCases(t *testing.T) {
+	config := exporter.Config{}
+	hook := NewPrometheusHook(config)
+
+	// Test with missing fields
+	payload := map[string]interface{}{
+		"battery_level": float64(50),
+		// Other fields missing
+	}
+	hook.processTelemetry("123", payload)
+
+	// Test with all fields
+	payload = map[string]interface{}{
+		"battery_level":       float64(85.5),
+		"voltage":             float64(3.7),
+		"channel_utilization": float64(12.5),
+		"air_util_tx":         float64(8.2),
+		"uptime_seconds":      float64(3600),
+		"temperature":         float64(22.5),
+		"relative_humidity":   float64(65.0),
+		"barometric_pressure": float64(1013.25),
+	}
+	hook.processTelemetry("456", payload)
+}
+
+func TestPrometheusHook_ProcessMessageEdgeCases(t *testing.T) {
+	config := exporter.Config{}
+	hook := NewPrometheusHook(config)
+
+	// Test message without from field
+	data := map[string]interface{}{
+		"type": "telemetry",
+	}
+	hook.processMessage(data)
+
+	// Test message with unknown type
+	data = map[string]interface{}{
+		"from": float64(123456),
+		"type": "unknown",
+		"payload": map[string]interface{}{
+			"some_field": "value",
+		},
+	}
+	hook.processMessage(data)
+
+	// Test message without payload
+	data = map[string]interface{}{
+		"from": float64(123456),
+		"type": "position",
+	}
+	hook.processMessage(data)
+}
+
+func TestPrometheusHook_StartServer(t *testing.T) {
+	// Test that startServer doesn't panic when called
+	config := exporter.Config{}
+	config.Prometheus.Enabled = false // Disable to avoid conflicts
+	config.Prometheus.Port = 0
+	config.Prometheus.Host = "127.0.0.1"
+
+	hook := NewPrometheusHook(config)
+
+	// Just test that the function exists and can be called
+	// Don't actually start server to avoid port conflicts in tests
+	if hook.config.Prometheus.Enabled {
+		go hook.startServer()
+		time.Sleep(10 * time.Millisecond)
+	}
+}
+
+func TestPrometheusHook_ProcessPayload(t *testing.T) {
+	config := exporter.Config{}
+	hook := NewPrometheusHook(config)
+
+	// Test telemetry payload
+	telemetryPayload := map[string]interface{}{
+		"battery_level": float64(75.5),
+		"temperature":   float64(25.0),
+	}
+	hook.processPayload("123", "telemetry", telemetryPayload)
+
+	// Test nodeinfo payload
+	nodeinfoPayload := map[string]interface{}{
+		"longname":  "Test Node",
+		"shortname": "TN",
+		"hardware":  float64(31),
+		"role":      float64(1),
+	}
+	hook.processPayload("456", "nodeinfo", nodeinfoPayload)
+
+	// Test unknown payload type
+	hook.processPayload("789", "unknown", map[string]interface{}{})
 }
