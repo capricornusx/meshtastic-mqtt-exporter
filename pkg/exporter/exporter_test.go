@@ -46,10 +46,11 @@ prometheus:
 					KeepAlive       int  `yaml:"keep_alive"`
 				}{MaxInflight: 50, MaxQueued: 1000, RetainAvailable: true, MaxPacketSize: 131072, KeepAlive: 60}},
 				Prometheus: struct {
-					Enabled bool   `yaml:"enabled"`
-					Port    int    `yaml:"port"`
-					Host    string `yaml:"host"`
-				}{Enabled: false, Port: 8000, Host: "127.0.0.1"},
+					Enabled    bool   `yaml:"enabled"`
+					Port       int    `yaml:"port"`
+					Host       string `yaml:"host"`
+					MetricsTTL string `yaml:"metrics_ttl"`
+				}{Enabled: false, Port: 8000, Host: "127.0.0.1", MetricsTTL: "10m"},
 			},
 		},
 	}

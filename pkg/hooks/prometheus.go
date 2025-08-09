@@ -4,20 +4,23 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"os"
 	"strconv"
+	"sync"
 	"time"
 
 	mqtt "github.com/mochi-mqtt/server/v2"
 	"github.com/mochi-mqtt/server/v2/packets"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	dto "github.com/prometheus/client_model/go"
 
 	"meshtastic-exporter/pkg/exporter"
 )
 
 type PrometheusHook struct {
 	mqtt.HookBase
-	config   exporter.Config
+	Config   exporter.Config
 	registry *prometheus.Registry
 
 	messageCounter *prometheus.CounterVec
@@ -34,16 +37,24 @@ type PrometheusHook struct {
 	nodeLastSeen   *prometheus.GaugeVec
 	mqttUp         prometheus.Gauge
 	nodeHardware   *prometheus.GaugeVec
+
+	nodeMetrics map[string]time.Time
+	mutex       sync.RWMutex
 }
 
 func NewPrometheusHook(config exporter.Config) *PrometheusHook {
 	h := &PrometheusHook{
-		config:   config,
-		registry: prometheus.NewRegistry(),
+		Config:      config,
+		registry:    prometheus.NewRegistry(),
+		nodeMetrics: make(map[string]time.Time),
 	}
 	h.setupMetrics()
 	h.mqttUp.Set(1) // MQTT server is up when hook initializes
+	if config.State.Enabled {
+		h.loadState()
+	}
 	h.startServer()
+	h.startCleanupRoutine()
 	return h
 }
 
@@ -100,6 +111,11 @@ func (h *PrometheusHook) processMessage(data map[string]interface{}) {
 		return
 	}
 	nodeID := strconv.FormatUint(uint64(fromNode), 10)
+
+	h.mutex.Lock()
+	h.nodeMetrics[nodeID] = time.Now()
+	h.mutex.Unlock()
+
 	h.nodeLastSeen.WithLabelValues(nodeID).SetToCurrentTime()
 	h.messageCounter.WithLabelValues(msgType, nodeID).Inc()
 	if rssi, ok := data["rssi"].(float64); ok {
@@ -164,10 +180,10 @@ func (h *PrometheusHook) processNodeInfo(nodeID string, payload map[string]inter
 }
 
 func (h *PrometheusHook) startServer() {
-	if !h.config.Prometheus.Enabled {
+	if !h.Config.Prometheus.Enabled {
 		return
 	}
-	addr := h.config.Prometheus.Host + ":" + strconv.Itoa(h.config.Prometheus.Port)
+	addr := h.Config.Prometheus.Host + ":" + strconv.Itoa(h.Config.Prometheus.Port)
 	http.Handle("/metrics", promhttp.HandlerFor(h.registry, promhttp.HandlerOpts{}))
 	http.HandleFunc("/health", h.healthHandler)
 	log.Printf("Starting Prometheus server on %s", addr)
@@ -208,4 +224,131 @@ func roundFloat(val float64, precision int) float64 {
 		ratio *= 10
 	}
 	return float64(int(val*ratio+0.5)) / ratio
+}
+
+func (h *PrometheusHook) startCleanupRoutine() {
+	go func() {
+		ticker := time.NewTicker(5 * time.Minute)
+		defer ticker.Stop()
+
+		for range ticker.C {
+			h.cleanupStaleMetrics()
+		}
+	}()
+}
+
+func (h *PrometheusHook) cleanupStaleMetrics() {
+	h.mutex.Lock()
+	defer h.mutex.Unlock()
+
+	ttl, err := time.ParseDuration(h.Config.Prometheus.MetricsTTL)
+	if err != nil {
+		ttl = 30 * time.Minute
+	}
+
+	staleThreshold := time.Now().Add(-ttl)
+	for nodeID, lastSeen := range h.nodeMetrics {
+		if lastSeen.Before(staleThreshold) {
+			h.deleteNodeMetrics(nodeID)
+			delete(h.nodeMetrics, nodeID)
+			log.Printf("Cleaned up stale metrics for node %s (TTL: %v)", nodeID, ttl)
+		}
+	}
+}
+
+func (h *PrometheusHook) deleteNodeMetrics(nodeID string) {
+	h.batteryLevel.DeleteLabelValues(nodeID)
+	h.voltage.DeleteLabelValues(nodeID)
+	h.channelUtil.DeleteLabelValues(nodeID)
+	h.airUtilTx.DeleteLabelValues(nodeID)
+	h.uptime.DeleteLabelValues(nodeID)
+	h.temperature.DeleteLabelValues(nodeID)
+	h.humidity.DeleteLabelValues(nodeID)
+	h.pressure.DeleteLabelValues(nodeID)
+	h.nodeLastSeen.DeleteLabelValues(nodeID)
+}
+
+func (h *PrometheusHook) loadState() {
+	if !h.Config.State.Enabled || h.Config.State.File == "" {
+		return
+	}
+	data, err := os.ReadFile(h.Config.State.File)
+	if err != nil {
+		return
+	}
+	var state exporter.State
+	if err := json.Unmarshal(data, &state); err != nil {
+		return
+	}
+	for nodeID, node := range state.Nodes {
+		if node.BatteryLevel > 0 {
+			h.batteryLevel.WithLabelValues(nodeID).Set(node.BatteryLevel)
+		}
+		if node.Voltage > 0 {
+			h.voltage.WithLabelValues(nodeID).Set(node.Voltage)
+		}
+		if node.Temperature != 0 {
+			h.temperature.WithLabelValues(nodeID).Set(node.Temperature)
+		}
+		if node.Humidity > 0 {
+			h.humidity.WithLabelValues(nodeID).Set(node.Humidity)
+		}
+		if node.Pressure > 0 {
+			h.pressure.WithLabelValues(nodeID).Set(node.Pressure)
+		}
+		if node.Uptime > 0 {
+			h.uptime.WithLabelValues(nodeID).Set(node.Uptime)
+		}
+	}
+}
+
+func (h *PrometheusHook) SaveState() {
+	if !h.Config.State.Enabled || h.Config.State.File == "" {
+		return
+	}
+	state := exporter.State{Nodes: h.extractMetricValues(), Timestamp: time.Now()}
+	data, err := json.MarshalIndent(state, "", "  ")
+	if err != nil {
+		log.Printf("Failed to marshal state: %v", err)
+		return
+	}
+	if err := os.WriteFile(h.Config.State.File, data, 0600); err != nil {
+		log.Printf("Failed to save state: %v", err)
+	}
+}
+
+func (h *PrometheusHook) extractMetricValues() map[string]exporter.NodeState {
+	nodes := make(map[string]exporter.NodeState)
+	extractFromMetric := func(vec *prometheus.GaugeVec, setValue func(*exporter.NodeState, float64)) {
+		metricChan := make(chan prometheus.Metric, 100)
+		go func() {
+			vec.Collect(metricChan)
+			close(metricChan)
+		}()
+		for metric := range metricChan {
+			dtoMetric := &dto.Metric{}
+			if err := metric.Write(dtoMetric); err != nil {
+				continue
+			}
+			nodeID := ""
+			for _, label := range dtoMetric.GetLabel() {
+				if label.GetName() == "node_id" {
+					nodeID = label.GetValue()
+					break
+				}
+			}
+			if nodeID != "" && dtoMetric.GetGauge() != nil {
+				node := nodes[nodeID]
+				setValue(&node, dtoMetric.GetGauge().GetValue())
+				nodes[nodeID] = node
+			}
+		}
+	}
+	extractFromMetric(h.batteryLevel, func(n *exporter.NodeState, v float64) { n.BatteryLevel = v })
+	extractFromMetric(h.voltage, func(n *exporter.NodeState, v float64) { n.Voltage = v })
+	extractFromMetric(h.temperature, func(n *exporter.NodeState, v float64) { n.Temperature = v })
+	extractFromMetric(h.humidity, func(n *exporter.NodeState, v float64) { n.Humidity = v })
+	extractFromMetric(h.pressure, func(n *exporter.NodeState, v float64) { n.Pressure = v })
+	extractFromMetric(h.uptime, func(n *exporter.NodeState, v float64) { n.Uptime = v })
+	return nodes
 }

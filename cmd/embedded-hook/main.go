@@ -15,9 +15,13 @@ import (
 	mqtt "github.com/mochi-mqtt/server/v2"
 	"github.com/mochi-mqtt/server/v2/hooks/auth"
 	"github.com/mochi-mqtt/server/v2/listeners"
+	"github.com/rs/zerolog"
 )
 
 func main() {
+	// Suppress connection warnings
+	zerolog.SetGlobalLevel(zerolog.ErrorLevel)
+
 	configFile := flag.String("config", "config.yaml", "Configuration file path")
 	flag.Parse()
 
@@ -101,5 +105,8 @@ func main() {
 	<-c
 
 	log.Println("Shutting down...")
+	if prometheusHook.Config.State.Enabled {
+		prometheusHook.SaveState()
+	}
 	server.Close()
 }

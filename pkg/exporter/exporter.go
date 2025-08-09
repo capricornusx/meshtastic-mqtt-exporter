@@ -42,9 +42,10 @@ type Config struct {
 		} `yaml:"broker,omitempty"`
 	} `yaml:"mqtt"`
 	Prometheus struct {
-		Enabled bool   `yaml:"enabled"`
-		Port    int    `yaml:"port"`
-		Host    string `yaml:"host"`
+		Enabled    bool   `yaml:"enabled"`
+		Port       int    `yaml:"port"`
+		Host       string `yaml:"host"`
+		MetricsTTL string `yaml:"metrics_ttl"`
 	} `yaml:"prometheus"`
 	State struct {
 		Enabled bool   `yaml:"enabled"`
@@ -96,8 +97,10 @@ type MeshtasticExporter struct {
 }
 
 func LoadConfig(filename string) (Config, error) {
+	const localhost = "localhost"
+
 	var config Config
-	config.MQTT.Host = "localhost"
+	config.MQTT.Host = localhost
 	config.MQTT.Port = 1883
 	config.MQTT.Broker.MaxInflight = 50
 	config.MQTT.Broker.MaxQueued = 1000
@@ -106,7 +109,8 @@ func LoadConfig(filename string) (Config, error) {
 	config.MQTT.Broker.KeepAlive = 60
 	config.Prometheus.Enabled = true
 	config.Prometheus.Port = 8000
-	config.Prometheus.Host = "127.0.0.1"
+	config.Prometheus.Host = localhost
+	config.Prometheus.MetricsTTL = "10m"
 	config.State.Enabled = false
 	config.State.File = "meshtastic_state.json"
 
