@@ -1,0 +1,18 @@
+services:
+  meshtastic-exporter:
+    build: ..
+    ports:
+      - "8100:8100"
+      - "1883:1883"
+    volumes:
+      - ./config.yaml:/app/config.yaml
+      - ./data:/app/data
+    environment:
+      - CONFIG_FILE=/app/config.yaml
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8100/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped

@@ -1,0 +1,23 @@
+mqtt:
+  host: 0.0.0.0
+  port: 1883
+  username: "exporter"
+  password: "123"
+  tls: false
+  allow_anonymous: true
+  users:  # Дополнительные пользователи
+    - username: "meshtastic"
+      password: "mesh456"
+    - username: "monitor"
+      password: "mon789"
+    - username: "admin"
+      password: "admin000"
+
+prometheus:
+  enabled: true
+  host: 0.0.0.0
+  port: 8100
+
+state:
+  enabled: true
+  file: "meshtastic_state.json"

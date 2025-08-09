@@ -1,0 +1,15 @@
+[Unit]
+Description=MQTT Exporter with embedded broker for Meshtastic devices
+After=network.target
+
+[Service]
+Type=simple
+User=dim
+Group=dim
+WorkingDirectory=/home/dim/projects/mqtt_exporter
+ExecStart=/home/dim/projects/mqtt_exporter/meshtastic-exporter-embedded --config /blabla/config.yaml
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
