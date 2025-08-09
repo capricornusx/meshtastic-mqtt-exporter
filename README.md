@@ -93,6 +93,7 @@ prometheus:
 - `meshtastic_humidity_percent` - Humidity
 - `meshtastic_pressure_hpa` - Barometric pressure
 - `meshtastic_rssi_dbm` - Signal strength
+- `meshtastic_mqtt_up` - MQTT connection status
 - `meshtastic_node_last_seen_timestamp` - Last seen timestamp
 
 ## Architecture
