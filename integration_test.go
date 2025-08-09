@@ -77,8 +77,8 @@ prometheus:
 		"to":   float64(789012),
 		"type": "telemetry",
 		"payload": map[string]interface{}{
-			"battery_level": float64(85.5),
-			"voltage":       float64(3.7),
+			"battery_level": 85.5,
+			"voltage":       3.7,
 		},
 	}
 
@@ -119,10 +119,30 @@ func TestHealthCheck(t *testing.T) {
 		t.Skip("skipping integration test")
 	}
 
+	// Start a test server with health endpoint
+	mux := http.NewServeMux()
+	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(map[string]string{
+			"status":  "ok",
+			"service": "meshtastic-exporter",
+		})
+	})
+
+	server := &http.Server{Addr: ":8100", Handler: mux}
+	go func() {
+		server.ListenAndServe()
+	}()
+	defer server.Close()
+
+	// Wait for server to start
+	time.Sleep(100 * time.Millisecond)
+
 	// Test health endpoint
 	resp, err := http.Get("http://localhost:8100/health")
 	if err != nil {
-		t.Skipf("Health endpoint not available: %v", err)
+		t.Fatalf("Failed to connect to health endpoint: %v", err)
 	}
 	defer resp.Body.Close()
 
