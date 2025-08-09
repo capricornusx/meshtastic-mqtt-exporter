@@ -33,7 +33,7 @@ builds:
     goarm:
       - "7"
     ldflags: -s -w -X main.version={{.Version}}
-    binary: meshtastic-exporter-embedded
+    binary: '{{ .Env.SHORT_NAME }}-embedded'
     env:
       - CGO_ENABLED=0
   - id: standalone
@@ -47,7 +47,7 @@ builds:
     goarm:
       - "7"
     ldflags: -s -w -X main.version={{.Version}}
-    binary: meshtastic-exporter-standalone
+    binary: '{{ .Env.SHORT_NAME }}-standalone'
     env:
       - CGO_ENABLED=0
 archives:
@@ -162,7 +162,7 @@ dockers:
 
 # https://goreleaser.com/customization/nfpm/
 nfpms:
-  - package_name: '{{ .ProjectName }}'
+  - package_name: '{{ .Env.SHORT_NAME }}'
     homepage: https://github.com/capricornusx/{{ .ProjectName }}
     maintainer: Dmitry Dubinin <capricornusx@gmail.com>
     description: |-

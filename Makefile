@@ -1,5 +1,5 @@
-BINARY_NAME=meshtastic-exporter
-EMBEDDED_BINARY=meshtastic-exporter-embedded
+BINARY_NAME=mqtt-exporter
+EMBEDDED_BINARY=mqtt-exporter-embedded
 
 .PHONY: build build-hook clean deps lint test docker run build-rpi build-rpi-arm64 build-rpi-arm32 release-check release-test release-build
 
@@ -45,13 +45,13 @@ run:
 
 # GoReleaser commands
 release-check:
-	goreleaser check
+	SSH_PRIVATE_KEY="$$(cat ~/.ssh/github_sign 2>/dev/null || echo '')" goreleaser check
 
-release-test:
-	goreleaser release --snapshot --clean --skip=publish
+release-test: release-check
+	SSH_PRIVATE_KEY="$$(cat ~/.ssh/github_sign 2>/dev/null || echo '')" goreleaser release --snapshot --clean --skip=publish
 
-release-build:
-	goreleaser build --snapshot --clean
+release-build: release-check
+	SSH_PRIVATE_KEY="$$(cat ~/.ssh/github_sign 2>/dev/null || echo '')" goreleaser build --snapshot --clean
 
 # Raspberry Pi builds
 build-rpi: build-rpi-arm64 build-rpi-arm32

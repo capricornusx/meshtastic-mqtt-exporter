@@ -5,7 +5,7 @@ mqtt:
   password: "123"
   tls: false
   allow_anonymous: true
-  users:  # Дополнительные пользователи
+  users:
     - username: "meshtastic"
       password: "mesh456"
     - username: "monitor"
