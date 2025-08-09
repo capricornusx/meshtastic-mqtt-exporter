@@ -1,6 +1,6 @@
 # Binaries
-meshtastic-exporter
-meshtastic-exporter-embedded
+mqtt-exporter
+mqtt-exporter-embedded
 
 # Go build cache
 .cache/

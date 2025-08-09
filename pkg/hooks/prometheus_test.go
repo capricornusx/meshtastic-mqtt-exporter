@@ -143,8 +143,8 @@ func TestPrometheusHook_ProcessNodeInfo(t *testing.T) {
 		"payload": map[string]interface{}{
 			"longname":  "Test Node",
 			"shortname": "TN",
-			"hardware":  float64(1),
-			"role":      float64(2),
+			"hardware":  1.0,
+			"role":      2.0,
 		},
 	}
 
@@ -278,14 +278,14 @@ func TestPrometheusHook_ProcessTelemetryEdgeCases(t *testing.T) {
 
 	// Test with all fields
 	payload = map[string]interface{}{
-		"battery_level":       float64(85.5),
-		"voltage":             float64(3.7),
-		"channel_utilization": float64(12.5),
-		"air_util_tx":         float64(8.2),
-		"uptime_seconds":      float64(3600),
-		"temperature":         float64(22.5),
-		"relative_humidity":   float64(65.0),
-		"barometric_pressure": float64(1013.25),
+		"battery_level":       85.5,
+		"voltage":             3.7,
+		"channel_utilization": 12.5,
+		"air_util_tx":         8.2,
+		"uptime_seconds":      3600.0,
+		"temperature":         22.5,
+		"relative_humidity":   65.0,
+		"barometric_pressure": 1013.25,
 	}
 	hook.processTelemetry("456", payload)
 }
@@ -328,8 +328,8 @@ func TestPrometheusHook_StartServer(t *testing.T) {
 	hook := NewPrometheusHook(config)
 
 	// Just test that the function exists and can be called
-	// Don't actually start server to avoid port conflicts in tests
-	if hook.config.Prometheus.Enabled {
+	// Don't start server to avoid port conflicts in tests
+	if hook.Config.Prometheus.Enabled {
 		go hook.startServer()
 		time.Sleep(10 * time.Millisecond)
 	}
@@ -341,8 +341,8 @@ func TestPrometheusHook_ProcessPayload(t *testing.T) {
 
 	// Test telemetry payload
 	telemetryPayload := map[string]interface{}{
-		"battery_level": float64(75.5),
-		"temperature":   float64(25.0),
+		"battery_level": 75.5,
+		"temperature":   25.0,
 	}
 	hook.processPayload("123", "telemetry", telemetryPayload)
 
@@ -350,8 +350,8 @@ func TestPrometheusHook_ProcessPayload(t *testing.T) {
 	nodeinfoPayload := map[string]interface{}{
 		"longname":  "Test Node",
 		"shortname": "TN",
-		"hardware":  float64(31),
-		"role":      float64(1),
+		"hardware":  31.0,
+		"role":      1.0,
 	}
 	hook.processPayload("456", "nodeinfo", nodeinfoPayload)
 
