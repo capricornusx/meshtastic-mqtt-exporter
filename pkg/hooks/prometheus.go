@@ -32,6 +32,7 @@ type PrometheusHook struct {
 	humidity       *prometheus.GaugeVec
 	pressure       *prometheus.GaugeVec
 	nodeLastSeen   *prometheus.GaugeVec
+	mqttUp         prometheus.Gauge
 	nodeHardware   *prometheus.GaugeVec
 }
 
@@ -41,6 +42,7 @@ func NewPrometheusHook(config exporter.Config) *PrometheusHook {
 		registry: prometheus.NewRegistry(),
 	}
 	h.setupMetrics()
+	h.mqttUp.Set(1) // MQTT server is up when hook initializes
 	h.startServer()
 	return h
 }
@@ -84,9 +86,10 @@ func (h *PrometheusHook) setupMetrics() {
 	h.humidity = prometheus.NewGaugeVec(prometheus.GaugeOpts{Name: "meshtastic_humidity_percent", Help: "Humidity"}, []string{"node_id"})
 	h.pressure = prometheus.NewGaugeVec(prometheus.GaugeOpts{Name: "meshtastic_pressure_hpa", Help: "Pressure"}, []string{"node_id"})
 	h.nodeLastSeen = prometheus.NewGaugeVec(prometheus.GaugeOpts{Name: "meshtastic_node_last_seen_timestamp", Help: "Last seen timestamp"}, []string{"node_id"})
+	h.mqttUp = prometheus.NewGauge(prometheus.GaugeOpts{Name: "meshtastic_mqtt_up", Help: "MQTT connection status"})
 	h.nodeHardware = prometheus.NewGaugeVec(prometheus.GaugeOpts{Name: "meshtastic_node_info", Help: "Node information"}, []string{"node_id", "longname", "shortname", "hardware", "role"})
 
-	h.registry.MustRegister(h.messageCounter, h.rssi, h.snr, h.batteryLevel, h.voltage, h.channelUtil, h.airUtilTx, h.uptime, h.temperature, h.humidity, h.pressure, h.nodeLastSeen, h.nodeHardware)
+	h.registry.MustRegister(h.messageCounter, h.rssi, h.snr, h.batteryLevel, h.voltage, h.channelUtil, h.airUtilTx, h.uptime, h.temperature, h.humidity, h.pressure, h.nodeLastSeen, h.mqttUp, h.nodeHardware)
 }
 
 func (h *PrometheusHook) processMessage(data map[string]interface{}) {

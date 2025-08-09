@@ -37,6 +37,7 @@ type MeshtasticHook struct {
 	airUtilTx      *prometheus.GaugeVec
 	uptime         *prometheus.GaugeVec
 	nodeLastSeen   *prometheus.GaugeVec
+	mqttUp         prometheus.Gauge
 	nodeHardware   *prometheus.GaugeVec
 
 	registry *prometheus.Registry
@@ -80,6 +81,7 @@ func (h *MeshtasticHook) OnPublish(_ *mqtt.Client, pk packets.Packet) (packets.P
 
 // Init starts the Prometheus server.
 func (h *MeshtasticHook) Init(config any) error {
+	h.mqttUp.Set(1) // MQTT server is up when hook initializes
 	if h.config.PrometheusAddr != "" {
 		go h.startServer()
 	}
@@ -131,11 +133,14 @@ func (h *MeshtasticHook) setupMetrics() {
 		prometheus.GaugeOpts{Name: "meshtastic_node_info", Help: "Node information"},
 		[]string{"node_id", "longname", "shortname", "hardware", "role"})
 
+	h.mqttUp = prometheus.NewGauge(
+		prometheus.GaugeOpts{Name: "meshtastic_mqtt_up", Help: "MQTT connection status"})
+
 	// Register all metrics
 	h.registry.MustRegister(
 		h.messageCounter, h.batteryLevel, h.voltage, h.temperature,
 		h.humidity, h.pressure, h.channelUtil, h.airUtilTx,
-		h.uptime, h.nodeLastSeen, h.nodeHardware,
+		h.uptime, h.nodeLastSeen, h.mqttUp, h.nodeHardware,
 	)
 }
 

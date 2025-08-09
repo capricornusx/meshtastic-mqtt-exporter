@@ -1,7 +1,7 @@
 # Meshtastic MQTT Exporter
 
 [![Build Status](https://github.com/capricornusx/meshtastic-mqtt-exporter/workflows/Build%20and%20Test/badge.svg)](https://github.com/capricornusx/meshtastic-mqtt-exporter/actions)
-[![codecov](https://codecov.io/gh/capricornusx/meshtastic-mqtt-exporter/branch/main/graph/badge.svg)](https://codecov.io/gh/capricornusx/meshtastic-mqtt-exporter)
+[![codecov](https://codecov.io/gh/capricornusx/meshtastic-mqtt-exporter/graph/badge.svg?token=P0409HCBFS)](https://codecov.io/gh/capricornusx/meshtastic-mqtt-exporter)
 [![Go Report Card](https://goreportcard.com/badge/github.com/capricornusx/meshtastic-mqtt-exporter)](https://goreportcard.com/report/github.com/capricornusx/meshtastic-mqtt-exporter)
 
 MQTT telemetry data exporter for Meshtastic devices with Prometheus metrics support.

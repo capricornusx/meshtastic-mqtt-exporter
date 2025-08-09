@@ -40,18 +40,11 @@ jobs:
       - name: Test with coverage
         run: go test -v -race -coverprofile=coverage.txt -covermode=atomic ./...
 
-      - name: Upload coverage report
+      - name: Upload results to Codecov
         uses: codecov/codecov-action@v5
-        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/release/'
-        env:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-          COMMIT_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
         with:
-          files: ./coverage.txt
-          flags: unittests
-          fail_ci_if_error: true
-          verbose: true
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: capricornusx/meshtastic-mqtt-exporter
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
