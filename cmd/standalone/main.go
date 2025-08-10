@@ -2,25 +2,32 @@ package main
 
 import (
 	"flag"
-	"log"
+	"os"
+	"time"
 
 	"meshtastic-exporter/pkg/exporter"
+
+	"github.com/rs/zerolog"
 )
 
 func main() {
+	// Configure zerolog
+	zerolog.TimeFieldFormat = time.RFC3339
+	logger := zerolog.New(os.Stderr).With().Timestamp().Logger()
+
 	configFile := flag.String("config", "config.yaml", "Configuration file path")
 	flag.Parse()
 
 	config, err := exporter.LoadConfig(*configFile)
 	if err != nil {
-		log.Fatalf("Failed to load config: %v", err)
+		logger.Fatal().Err(err).Msg("Failed to load config")
 	}
 
 	exp := exporter.New(config)
 	exp.Init()
 
-	log.Println("Starting Meshtastic Exporter (Go version)")
+	logger.Info().Str("component", "standalone").Msg("Starting Meshtastic Exporter")
 	if err := exp.Run(); err != nil {
-		log.Fatalf("Exporter failed: %v", err)
+		logger.Fatal().Err(err).Str("component", "standalone").Msg("Exporter failed")
 	}
 }

@@ -4,7 +4,6 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 	"os/signal"
@@ -16,6 +15,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	dto "github.com/prometheus/client_model/go"
+	"github.com/rs/zerolog"
 	"gopkg.in/yaml.v3"
 )
 
@@ -116,7 +116,8 @@ func LoadConfig(filename string) (Config, error) {
 
 	data, err := os.ReadFile(filename)
 	if err != nil {
-		log.Printf("Config file not found, using defaults: %v", err)
+		logger := zerolog.New(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: time.RFC3339}).With().Timestamp().Logger()
+		logger.Warn().Err(err).Str("component", "config").Msg("config file not found, using defaults")
 		return config, nil
 	}
 
@@ -160,14 +161,24 @@ func (e *MeshtasticExporter) setupMetrics() {
 
 func (e *MeshtasticExporter) setupMQTT() error {
 	opts := mqtt.NewClientOptions()
-	broker := fmt.Sprintf("tcp://%s:%d", e.config.MQTT.Host, e.config.MQTT.Port)
-	if e.config.MQTT.TLS {
-		broker = fmt.Sprintf("ssl://%s:%d", e.config.MQTT.Host, e.config.MQTT.Port)
-		opts.SetTLSConfig(&tls.Config{
-			InsecureSkipVerify: false,
-			MinVersion:         tls.VersionTLS12,
-		})
+	var broker string
+	if e.config.MQTT.Host == "::" {
+		if e.config.MQTT.TLS {
+			broker = fmt.Sprintf("ssl://[::1]:%d", e.config.MQTT.Port)
+		} else {
+			broker = fmt.Sprintf("tcp://[::1]:%d", e.config.MQTT.Port)
+		}
+	} else {
+		if e.config.MQTT.TLS {
+			broker = fmt.Sprintf("ssl://%s:%d", e.config.MQTT.Host, e.config.MQTT.Port)
+		} else {
+			broker = fmt.Sprintf("tcp://%s:%d", e.config.MQTT.Host, e.config.MQTT.Port)
+		}
 	}
+	opts.SetTLSConfig(&tls.Config{
+		InsecureSkipVerify: false,
+		MinVersion:         tls.VersionTLS12,
+	})
 	opts.AddBroker(broker)
 	opts.SetClientID("meshtastic-exporter")
 	opts.SetKeepAlive(60 * time.Second)
@@ -184,7 +195,8 @@ func (e *MeshtasticExporter) setupMQTT() error {
 		return fmt.Errorf("failed to connect to MQTT: %w", token.Error())
 	}
 	e.mqttUp.Set(1)
-	log.Println("Connected to MQTT broker")
+	logger := zerolog.New(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: time.RFC3339}).With().Timestamp().Logger()
+	logger.Info().Str("component", "mqtt").Msg("connected to broker")
 	return nil
 }
 
@@ -192,22 +204,26 @@ func (e *MeshtasticExporter) onConnect(client mqtt.Client) {
 	topics := []string{"msh/+/+/json/+/+", "msh/2/json/+/+"}
 	for _, topic := range topics {
 		if token := client.Subscribe(topic, 0, e.messageHandler); token.Wait() && token.Error() != nil {
-			log.Printf("Failed to subscribe to %s: %v", topic, token.Error())
+			logger := zerolog.New(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: time.RFC3339}).With().Timestamp().Logger()
+			logger.Error().Err(token.Error()).Str("component", "mqtt").Str("topic", topic).Msg("failed to subscribe")
 		} else {
-			log.Printf("Subscribed to %s", topic)
+			logger := zerolog.New(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: time.RFC3339}).With().Timestamp().Logger()
+			logger.Info().Str("component", "mqtt").Str("topic", topic).Msg("subscribed")
 		}
 	}
 }
 
 func (e *MeshtasticExporter) onConnectionLost(_ mqtt.Client, err error) {
 	e.mqttUp.Set(0)
-	log.Printf("MQTT connection lost: %v", err)
+	logger := zerolog.New(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: time.RFC3339}).With().Timestamp().Logger()
+	logger.Error().Err(err).Str("component", "mqtt").Msg("connection lost")
 }
 
 func (e *MeshtasticExporter) messageHandler(_ mqtt.Client, msg mqtt.Message) {
 	var data map[string]interface{}
 	if err := json.Unmarshal(msg.Payload(), &data); err != nil {
-		log.Printf("Failed to parse JSON: %v", err)
+		logger := zerolog.New(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: time.RFC3339}).With().Timestamp().Logger()
+		logger.Error().Err(err).Str("component", "mqtt").Msg("failed to parse json")
 		return
 	}
 	e.processMessage(data)
@@ -290,10 +306,16 @@ func (e *MeshtasticExporter) startPrometheusServer() {
 	}
 	registry := prometheus.NewRegistry()
 	registry.MustRegister(e.messageCounter, e.rssi, e.snr, e.batteryLevel, e.voltage, e.channelUtil, e.airUtilTx, e.uptime, e.temperature, e.humidity, e.pressure, e.nodeLastSeen, e.mqttUp, e.nodeHardware)
-	addr := fmt.Sprintf("%s:%d", e.config.Prometheus.Host, e.config.Prometheus.Port)
+	var addr string
+	if e.config.Prometheus.Host == "::" {
+		addr = fmt.Sprintf("[::]:%d", e.config.Prometheus.Port)
+	} else {
+		addr = fmt.Sprintf("%s:%d", e.config.Prometheus.Host, e.config.Prometheus.Port)
+	}
 	http.Handle("/metrics", promhttp.HandlerFor(registry, promhttp.HandlerOpts{}))
 	http.HandleFunc("/health", e.healthHandler)
-	log.Printf("Starting Prometheus server on %s", addr)
+	logger := zerolog.New(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: time.RFC3339}).With().Timestamp().Logger()
+	logger.Info().Str("component", "prometheus").Str("address", addr).Msg("server started")
 	go func() {
 		server := &http.Server{
 			Addr:         addr,
@@ -301,7 +323,8 @@ func (e *MeshtasticExporter) startPrometheusServer() {
 			WriteTimeout: 10 * time.Second,
 		}
 		if err := server.ListenAndServe(); err != nil {
-			log.Fatalf("Failed to start Prometheus server: %v", err)
+			logger := zerolog.New(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: time.RFC3339}).With().Timestamp().Logger()
+			logger.Fatal().Err(err).Str("component", "prometheus").Msg("failed to start server")
 		}
 	}()
 }
@@ -313,11 +336,13 @@ func (e *MeshtasticExporter) saveState() {
 	state := State{Nodes: e.extractMetricValues(), Timestamp: time.Now()}
 	data, err := json.MarshalIndent(state, "", "  ")
 	if err != nil {
-		log.Printf("Failed to marshal state: %v", err)
+		logger := zerolog.New(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: time.RFC3339}).With().Timestamp().Logger()
+		logger.Error().Err(err).Str("component", "state").Msg("failed to marshal")
 		return
 	}
 	if err := os.WriteFile(e.stateFile, data, 0600); err != nil {
-		log.Printf("Failed to save state: %v", err)
+		logger := zerolog.New(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: time.RFC3339}).With().Timestamp().Logger()
+		logger.Error().Err(err).Str("component", "state").Msg("failed to save")
 	}
 }
 
@@ -333,6 +358,7 @@ func (e *MeshtasticExporter) loadState() {
 	if err := json.Unmarshal(data, &state); err != nil {
 		return
 	}
+	nodeCount := 0
 	for nodeID, node := range state.Nodes {
 		if node.BatteryLevel > 0 {
 			e.batteryLevel.WithLabelValues(nodeID).Set(node.BatteryLevel)
@@ -346,7 +372,10 @@ func (e *MeshtasticExporter) loadState() {
 		if node.Uptime > 0 {
 			e.uptime.WithLabelValues(nodeID).Set(node.Uptime)
 		}
+		nodeCount++
 	}
+	logger := zerolog.New(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: time.RFC3339}).With().Timestamp().Logger()
+	logger.Info().Str("component", "state").Int("nodes", nodeCount).Str("file", e.stateFile).Msg("loaded metrics")
 }
 
 func (e *MeshtasticExporter) extractMetricValues() map[string]NodeState {
@@ -391,7 +420,8 @@ func (e *MeshtasticExporter) Run() error {
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 	<-c
-	log.Println("Shutting down...")
+	logger := zerolog.New(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: time.RFC3339}).With().Timestamp().Logger()
+	logger.Info().Str("component", "standalone").Msg("shutting down")
 	if e.config.State.Enabled {
 		e.saveState()
 	}
