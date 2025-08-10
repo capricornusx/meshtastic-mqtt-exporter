@@ -1,0 +1,84 @@
+groups:
+  - name: meshtastic
+    rules:
+      - alert: MeshtasticMQTTDown
+        expr: meshtastic_mqtt_up != 1
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Meshtastic MQTT connection is down"
+          description: "MQTT broker connection is not available"
+
+      - alert: MeshtasticExporterDown
+        expr: up{job="meshtastic"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Meshtastic exporter is down"
+          description: "Cannot scrape metrics from Meshtastic exporter"
+
+      - alert: MeshtasticBatteryCritical
+        expr: meshtastic_battery_level_percent < 10
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Meshtastic node {{ $labels.from_node }} battery critical"
+          description: "Battery level is {{ $value }}% - device may shut down soon"
+
+      - alert: MeshtasticBatteryLow
+        expr: meshtastic_battery_level_percent < 20 and meshtastic_battery_level_percent >= 10
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Meshtastic node {{ $labels.from_node }} battery low"
+          description: "Battery level is {{ $value }}% - consider charging"
+
+      - alert: MeshtasticNodeOffline
+        expr: (time() - meshtastic_node_last_seen_timestamp) > 1200
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Meshtastic node {{ $labels.from_node }} is offline"
+          description: "Node {{ $labels.from_node }} hasn't been seen for {{ $value }}s"
+
+      - alert: MeshtasticFrequentRestarts
+        expr: meshtastic_uptime_seconds < 600
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Meshtastic node {{ $labels.from_node }} restarted recently"
+          description: "Node uptime is only {{ $value }}s - possible stability issues"
+
+      - alert: MeshtasticNoMessages
+        expr: sum(rate(meshtastic_messages_total[10m])) by (from_node) == 0
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Meshtastic node {{ $labels.from_node }} not sending messages"
+          description: "No messages received from node in 15 minutes"
+
+      - alert: MeshtasticMessageFlood
+        expr: rate(meshtastic_messages_total[5m]) > 10
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Meshtastic message flood detected"
+          description: "High message rate: {{ $value }} msg/s - possible loop or spam"
+
+      - alert: MeshtasticWeakSignal
+        expr: meshtastic_rssi_dbm < -120
+        for: 10m
+        labels:
+          severity: info
+        annotations:
+          summary: "Meshtastic node {{ $labels.from_node }} weak signal"
+          description: "RSSI is {{ $value }}dBm - poor connectivity"
+
