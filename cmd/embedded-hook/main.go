@@ -2,7 +2,6 @@ package main
 
 import (
 	"flag"
-	"log"
 	"os"
 	"os/signal"
 	"strconv"
@@ -19,15 +18,19 @@ import (
 )
 
 func main() {
-	// Suppress connection warnings
-	zerolog.SetGlobalLevel(zerolog.ErrorLevel)
+	// Configure zerolog to match mochi-mqtt format
+	zerolog.TimeFieldFormat = time.RFC3339
+	zerolog.SetGlobalLevel(zerolog.InfoLevel)
+
+	// Use console writer to match mochi-mqtt format
+	logger := zerolog.New(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: time.RFC3339}).With().Timestamp().Logger()
 
 	configFile := flag.String("config", "config.yaml", "Configuration file path")
 	flag.Parse()
 
 	config, err := exporter.LoadConfig(*configFile)
 	if err != nil {
-		log.Fatalf("Failed to load config: %v", err)
+		logger.Fatal().Err(err).Msg("Failed to load config")
 	}
 
 	server := mqtt.New(&mqtt.Options{
@@ -38,7 +41,7 @@ func main() {
 	prometheusHook := hooks.NewPrometheusHook(config)
 	err = server.AddHook(prometheusHook, nil)
 	if err != nil {
-		log.Fatalf("Failed to add Prometheus hook: %v", err)
+		logger.Fatal().Err(err).Msg("Failed to add Prometheus hook")
 	}
 
 	// Configure authentication only if not allowing anonymous
@@ -64,7 +67,7 @@ func main() {
 				Ledger: &auth.Ledger{Auth: authRules},
 			})
 			if err != nil {
-				log.Fatalf("Failed to add auth: %v", err)
+				logger.Fatal().Err(err).Msg("Failed to add auth")
 			}
 		}
 	} else {
@@ -77,26 +80,32 @@ func main() {
 			},
 		})
 		if err != nil {
-			log.Fatalf("Failed to add anonymous auth: %v", err)
+			logger.Fatal().Err(err).Msg("Failed to add anonymous auth")
 		}
 	}
 
 	// Add TCP listener
-	addr := config.MQTT.Host + ":" + strconv.Itoa(config.MQTT.Port)
+	var addr string
+	if config.MQTT.Host == "::" {
+		addr = "[::]:" + strconv.Itoa(config.MQTT.Port)
+	} else {
+		addr = config.MQTT.Host + ":" + strconv.Itoa(config.MQTT.Port)
+	}
 	tcp := listeners.NewTCP(listeners.Config{ID: "tcp", Address: addr})
 	err = server.AddListener(tcp)
 	if err != nil {
-		log.Fatalf("Failed to add listener: %v", err)
+		logger.Fatal().Err(err).Msg("Failed to add listener")
 	}
 
 	go func() {
 		err := server.Serve()
 		if err != nil {
-			log.Printf("MQTT server error: %v", err)
+			logger.Error().Err(err).Msg("MQTT server error")
 		}
 	}()
 
-	log.Printf("MQTT broker with Prometheus hook started on %s", addr)
+	logger.Info().Str("component", "embedded").Str("address", addr).Msg("mqtt broker started")
+	logger.Info().Str("component", "embedded").Str("metrics_url", config.Prometheus.Host+":"+strconv.Itoa(config.Prometheus.Port)+"/metrics").Msg("prometheus metrics available")
 	time.Sleep(time.Second)
 
 	// Wait for interrupt
@@ -104,9 +113,7 @@ func main() {
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 	<-c
 
-	log.Println("Shutting down...")
-	if prometheusHook.Config.State.Enabled {
-		prometheusHook.SaveState()
-	}
+	logger.Info().Str("component", "embedded").Msg("shutting down")
+	prometheusHook.SaveStateOnShutdown()
 	server.Close()
 }

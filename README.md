@@ -91,18 +91,31 @@ Basic example:
 
 ```yaml
 mqtt:
-  host: localhost
+  host: 0.0.0.0
   port: 1883
   allow_anonymous: true
 
 prometheus:
   enabled: true
+  host: 0.0.0.0
   port: 8100
   metrics_ttl: "30m"  # Clean up stale metrics after 30 minutes
 
 state:
   enabled: true
   file: "meshtastic_state.json"
+```
+
+## Testing Connectivity
+
+```bash
+# IPv4
+curl -4 "http://127.0.0.1:8100/metrics"
+curl -4 "http://127.0.0.1:8100/health"
+
+# IPv6
+curl -6 "http://[::1]:8100/metrics"
+curl -6 "http://[::1]:8100/health"
 ```
 
 ## Metrics

@@ -23,7 +23,7 @@ state:
 
 ```yaml
 mqtt:
-  host: localhost
+  host: 0.0.0.0
   port: 1883
   allow_anonymous: false
   users:
@@ -32,7 +32,7 @@ mqtt:
 
 prometheus:
   enabled: true
-  host: 127.0.0.1
+  host: 0.0.0.0
   port: 8100
   metrics_ttl: "1h"  # Keep metrics for 1 hour
 
@@ -44,7 +44,7 @@ state:
 ## Configuration Options
 
 ### MQTT Section
-- `host` - MQTT broker host
+- `host` - MQTT broker host (IPv4/IPv6)
 - `port` - MQTT broker port
 - `username/password` - Single user credentials
 - `tls` - Enable TLS encryption
@@ -58,7 +58,7 @@ state:
 
 ### Prometheus Section
 - `enabled` - Enable Prometheus metrics
-- `host` - Metrics server host
+- `host` - Metrics server host (IPv4/IPv6)
 - `port` - Metrics server port
 - `metrics_ttl` - Time to keep inactive node metrics (e.g., "30m", "1h", "24h")
 
@@ -89,10 +89,10 @@ sudo chmod 755 /opt/mqtt-exporter/meshtastic-exporter-embedded
 
 ### 4. Install Service
 ```bash
-sudo cp docs/mqtt-exporter-embedded.service /etc/systemd/system/
+sudo cp docs/.service /etc/systemd/system/
 sudo systemctl daemon-reload
-sudo systemctl enable mqtt-exporter-embedded
-sudo systemctl start mqtt-exporter-embedded
+sudo systemctl enable 
+sudo systemctl start 
 ```
 
 ### Security Features

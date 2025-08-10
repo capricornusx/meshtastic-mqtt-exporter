@@ -2,7 +2,6 @@ package hooks
 
 import (
 	"encoding/json"
-	"log"
 	"net/http"
 	"os"
 	"strconv"
@@ -14,6 +13,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	dto "github.com/prometheus/client_model/go"
+	"github.com/rs/zerolog"
 
 	"meshtastic-exporter/pkg/exporter"
 )
@@ -183,10 +183,16 @@ func (h *PrometheusHook) startServer() {
 	if !h.Config.Prometheus.Enabled {
 		return
 	}
-	addr := h.Config.Prometheus.Host + ":" + strconv.Itoa(h.Config.Prometheus.Port)
+	var addr string
+	if h.Config.Prometheus.Host == "::" {
+		addr = "[::]:" + strconv.Itoa(h.Config.Prometheus.Port)
+	} else {
+		addr = h.Config.Prometheus.Host + ":" + strconv.Itoa(h.Config.Prometheus.Port)
+	}
 	http.Handle("/metrics", promhttp.HandlerFor(h.registry, promhttp.HandlerOpts{}))
 	http.HandleFunc("/health", h.healthHandler)
-	log.Printf("Starting Prometheus server on %s", addr)
+	logger := zerolog.New(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: time.RFC3339}).With().Timestamp().Logger()
+	logger.Info().Str("component", "prometheus").Str("address", addr).Msg("server started")
 	go func() {
 		server := &http.Server{
 			Addr:         addr,
@@ -194,7 +200,8 @@ func (h *PrometheusHook) startServer() {
 			WriteTimeout: 10 * time.Second,
 		}
 		if err := server.ListenAndServe(); err != nil {
-			log.Printf("Prometheus server error: %v", err)
+			logger := zerolog.New(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: time.RFC3339}).With().Timestamp().Logger()
+			logger.Error().Err(err).Str("component", "prometheus").Msg("server error")
 		}
 	}()
 }
@@ -251,7 +258,8 @@ func (h *PrometheusHook) cleanupStaleMetrics() {
 		if lastSeen.Before(staleThreshold) {
 			h.deleteNodeMetrics(nodeID)
 			delete(h.nodeMetrics, nodeID)
-			log.Printf("Cleaned up stale metrics for node %s (TTL: %v)", nodeID, ttl)
+			logger := zerolog.New(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: time.RFC3339}).With().Timestamp().Logger()
+			logger.Info().Str("component", "cleanup").Str("node_id", nodeID).Dur("ttl", ttl).Msg("removed stale metrics")
 		}
 	}
 }
@@ -280,6 +288,7 @@ func (h *PrometheusHook) loadState() {
 	if err := json.Unmarshal(data, &state); err != nil {
 		return
 	}
+	nodeCount := 0
 	for nodeID, node := range state.Nodes {
 		if node.BatteryLevel > 0 {
 			h.batteryLevel.WithLabelValues(nodeID).Set(node.BatteryLevel)
@@ -299,7 +308,10 @@ func (h *PrometheusHook) loadState() {
 		if node.Uptime > 0 {
 			h.uptime.WithLabelValues(nodeID).Set(node.Uptime)
 		}
+		nodeCount++
 	}
+	logger := zerolog.New(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: time.RFC3339}).With().Timestamp().Logger()
+	logger.Info().Str("component", "state").Int("nodes", nodeCount).Str("file", h.Config.State.File).Msg("loaded metrics")
 }
 
 func (h *PrometheusHook) SaveState() {
@@ -309,11 +321,21 @@ func (h *PrometheusHook) SaveState() {
 	state := exporter.State{Nodes: h.extractMetricValues(), Timestamp: time.Now()}
 	data, err := json.MarshalIndent(state, "", "  ")
 	if err != nil {
-		log.Printf("Failed to marshal state: %v", err)
+		logger := zerolog.New(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: time.RFC3339}).With().Timestamp().Logger()
+		logger.Error().Err(err).Str("component", "state").Msg("failed to marshal state")
 		return
 	}
 	if err := os.WriteFile(h.Config.State.File, data, 0600); err != nil {
-		log.Printf("Failed to save state: %v", err)
+		logger := zerolog.New(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: time.RFC3339}).With().Timestamp().Logger()
+		logger.Error().Err(err).Str("component", "state").Msg("failed to save state")
+	}
+}
+
+func (h *PrometheusHook) SaveStateOnShutdown() {
+	if h.Config.State.Enabled {
+		h.SaveState()
+		logger := zerolog.New(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: time.RFC3339}).With().Timestamp().Logger()
+		logger.Info().Str("component", "state").Msg("saved on shutdown")
 	}
 }
 

@@ -1,5 +1,5 @@
 mqtt:
-  host: 0.0.0.0
+  host: 0.0.0.0  # Listen on all interfaces (:: for IPv6)
   port: 1883
   username: "exporter"
   password: "123"
@@ -15,9 +15,9 @@ mqtt:
 
 prometheus:
   enabled: true
-  host: 0.0.0.0
+  host: 0.0.0.0  # Listen on all interfaces (:: for IPv6)
   port: 8100
-  metrics_ttl: "10m"
+  metrics_ttl: "4m"
 
 state:
   enabled: true
