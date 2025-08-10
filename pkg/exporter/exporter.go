@@ -17,6 +17,8 @@ import (
 	dto "github.com/prometheus/client_model/go"
 	"github.com/rs/zerolog"
 	"gopkg.in/yaml.v3"
+
+	"meshtastic-exporter/pkg/logger"
 )
 
 type MQTTUser struct {
@@ -47,6 +49,9 @@ type Config struct {
 		Host       string `yaml:"host"`
 		MetricsTTL string `yaml:"metrics_ttl"`
 	} `yaml:"prometheus"`
+	Topic struct {
+		Prefix string `yaml:"prefix"`
+	} `yaml:"topic"`
 	State struct {
 		Enabled bool   `yaml:"enabled"`
 		File    string `yaml:"file"`
@@ -77,6 +82,7 @@ type MeshtasticExporter struct {
 	config    Config
 	client    mqtt.Client
 	nodeNames map[uint32]string
+	logger    zerolog.Logger
 
 	stateFile string
 
@@ -113,11 +119,12 @@ func LoadConfig(filename string) (Config, error) {
 	config.Prometheus.MetricsTTL = "10m"
 	config.State.Enabled = false
 	config.State.File = "meshtastic_state.json"
+	config.Topic.Prefix = "msh/"
 
 	data, err := os.ReadFile(filename)
 	if err != nil {
-		logger := zerolog.New(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: time.RFC3339}).With().Timestamp().Logger()
-		logger.Warn().Err(err).Str("component", "config").Msg("config file not found, using defaults")
+		configLogger := logger.ComponentLogger("config")
+		configLogger.Warn().Err(err).Msg("config file not found, using defaults")
 		return config, nil
 	}
 
@@ -132,6 +139,7 @@ func New(config Config) *MeshtasticExporter {
 		config:    config,
 		nodeNames: make(map[uint32]string),
 		stateFile: config.State.File,
+		logger:    logger.ComponentLogger("exporter"),
 	}
 }
 
@@ -195,35 +203,34 @@ func (e *MeshtasticExporter) setupMQTT() error {
 		return fmt.Errorf("failed to connect to MQTT: %w", token.Error())
 	}
 	e.mqttUp.Set(1)
-	logger := zerolog.New(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: time.RFC3339}).With().Timestamp().Logger()
-	logger.Info().Str("component", "mqtt").Msg("connected to broker")
+	mqttLogger := logger.SubLogger(e.logger, map[string]string{"operation": "mqtt"})
+	mqttLogger.Info().Msg("connected to broker")
 	return nil
 }
 
 func (e *MeshtasticExporter) onConnect(client mqtt.Client) {
 	topics := []string{"msh/+/+/json/+/+", "msh/2/json/+/+"}
 	for _, topic := range topics {
+		mqttLogger := logger.SubLogger(e.logger, map[string]string{"operation": "mqtt"})
 		if token := client.Subscribe(topic, 0, e.messageHandler); token.Wait() && token.Error() != nil {
-			logger := zerolog.New(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: time.RFC3339}).With().Timestamp().Logger()
-			logger.Error().Err(token.Error()).Str("component", "mqtt").Str("topic", topic).Msg("failed to subscribe")
+			mqttLogger.Error().Err(token.Error()).Str("topic", topic).Msg("failed to subscribe")
 		} else {
-			logger := zerolog.New(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: time.RFC3339}).With().Timestamp().Logger()
-			logger.Info().Str("component", "mqtt").Str("topic", topic).Msg("subscribed")
+			mqttLogger.Info().Str("topic", topic).Msg("subscribed")
 		}
 	}
 }
 
 func (e *MeshtasticExporter) onConnectionLost(_ mqtt.Client, err error) {
 	e.mqttUp.Set(0)
-	logger := zerolog.New(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: time.RFC3339}).With().Timestamp().Logger()
-	logger.Error().Err(err).Str("component", "mqtt").Msg("connection lost")
+	mqttLogger := logger.SubLogger(e.logger, map[string]string{"operation": "mqtt"})
+	mqttLogger.Error().Err(err).Msg("connection lost")
 }
 
 func (e *MeshtasticExporter) messageHandler(_ mqtt.Client, msg mqtt.Message) {
 	var data map[string]interface{}
 	if err := json.Unmarshal(msg.Payload(), &data); err != nil {
-		logger := zerolog.New(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: time.RFC3339}).With().Timestamp().Logger()
-		logger.Error().Err(err).Str("component", "mqtt").Msg("failed to parse json")
+		mqttLogger := logger.SubLogger(e.logger, map[string]string{"operation": "mqtt"})
+		mqttLogger.Error().Err(err).Msg("failed to parse json")
 		return
 	}
 	e.processMessage(data)
@@ -314,8 +321,8 @@ func (e *MeshtasticExporter) startPrometheusServer() {
 	}
 	http.Handle("/metrics", promhttp.HandlerFor(registry, promhttp.HandlerOpts{}))
 	http.HandleFunc("/health", e.healthHandler)
-	logger := zerolog.New(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: time.RFC3339}).With().Timestamp().Logger()
-	logger.Info().Str("component", "prometheus").Str("address", addr).Msg("server started")
+	prometheusLogger := logger.SubLogger(e.logger, map[string]string{"operation": "prometheus"})
+	prometheusLogger.Info().Str("address", addr).Msg("server started")
 	go func() {
 		server := &http.Server{
 			Addr:         addr,
@@ -323,8 +330,8 @@ func (e *MeshtasticExporter) startPrometheusServer() {
 			WriteTimeout: 10 * time.Second,
 		}
 		if err := server.ListenAndServe(); err != nil {
-			logger := zerolog.New(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: time.RFC3339}).With().Timestamp().Logger()
-			logger.Fatal().Err(err).Str("component", "prometheus").Msg("failed to start server")
+			prometheusLogger := logger.SubLogger(e.logger, map[string]string{"operation": "prometheus"})
+			prometheusLogger.Fatal().Err(err).Msg("failed to start server")
 		}
 	}()
 }
@@ -336,13 +343,13 @@ func (e *MeshtasticExporter) saveState() {
 	state := State{Nodes: e.extractMetricValues(), Timestamp: time.Now()}
 	data, err := json.MarshalIndent(state, "", "  ")
 	if err != nil {
-		logger := zerolog.New(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: time.RFC3339}).With().Timestamp().Logger()
-		logger.Error().Err(err).Str("component", "state").Msg("failed to marshal")
+		stateLogger := logger.SubLogger(e.logger, map[string]string{"operation": "save_state"})
+		stateLogger.Error().Err(err).Msg("failed to marshal")
 		return
 	}
 	if err := os.WriteFile(e.stateFile, data, 0600); err != nil {
-		logger := zerolog.New(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: time.RFC3339}).With().Timestamp().Logger()
-		logger.Error().Err(err).Str("component", "state").Msg("failed to save")
+		stateLogger := logger.SubLogger(e.logger, map[string]string{"operation": "save_state"})
+		stateLogger.Error().Err(err).Msg("failed to save")
 	}
 }
 
@@ -350,12 +357,15 @@ func (e *MeshtasticExporter) loadState() {
 	if !e.config.State.Enabled || e.stateFile == "" {
 		return
 	}
+	stateLogger := logger.SubLogger(e.logger, map[string]string{"operation": "load_state"})
 	data, err := os.ReadFile(e.stateFile)
 	if err != nil {
+		stateLogger.Debug().Err(err).Msg("state file not found")
 		return
 	}
 	var state State
 	if err := json.Unmarshal(data, &state); err != nil {
+		stateLogger.Error().Err(err).Msg("failed to parse state file")
 		return
 	}
 	nodeCount := 0
@@ -366,16 +376,32 @@ func (e *MeshtasticExporter) loadState() {
 		if node.Voltage > 0 {
 			e.voltage.WithLabelValues(nodeID).Set(node.Voltage)
 		}
+		if node.ChannelUtil > 0 {
+			e.channelUtil.WithLabelValues(nodeID).Set(node.ChannelUtil)
+		}
+		if node.AirUtilTx > 0 {
+			e.airUtilTx.WithLabelValues(nodeID).Set(node.AirUtilTx)
+		}
 		if node.Temperature != 0 {
 			e.temperature.WithLabelValues(nodeID).Set(node.Temperature)
+		}
+		if node.Humidity > 0 {
+			e.humidity.WithLabelValues(nodeID).Set(node.Humidity)
+		}
+		if node.Pressure > 0 {
+			e.pressure.WithLabelValues(nodeID).Set(node.Pressure)
 		}
 		if node.Uptime > 0 {
 			e.uptime.WithLabelValues(nodeID).Set(node.Uptime)
 		}
+		if node.Longname != "" && node.Hardware > 0 {
+			e.nodeHardware.WithLabelValues(nodeID, node.Longname, node.Shortname,
+				strconv.FormatFloat(node.Hardware, 'f', 0, 64),
+				strconv.FormatFloat(node.Role, 'f', 0, 64)).Set(1)
+		}
 		nodeCount++
 	}
-	logger := zerolog.New(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: time.RFC3339}).With().Timestamp().Logger()
-	logger.Info().Str("component", "state").Int("nodes", nodeCount).Str("file", e.stateFile).Msg("loaded metrics")
+	stateLogger.Info().Int("nodes", nodeCount).Str("file", e.stateFile).Msg("loaded metrics")
 }
 
 func (e *MeshtasticExporter) extractMetricValues() map[string]NodeState {
@@ -405,10 +431,59 @@ func (e *MeshtasticExporter) extractMetricValues() map[string]NodeState {
 			}
 		}
 	}
+
+	// Extract node info with labels
+	extractNodeInfo := func() {
+		metricChan := make(chan prometheus.Metric, 100)
+		go func() {
+			e.nodeHardware.Collect(metricChan)
+			close(metricChan)
+		}()
+		for metric := range metricChan {
+			dtoMetric := &dto.Metric{}
+			if err := metric.Write(dtoMetric); err != nil {
+				continue
+			}
+			nodeID := ""
+			var longname, shortname, hardware, role string
+			for _, label := range dtoMetric.GetLabel() {
+				switch label.GetName() {
+				case "node_id":
+					nodeID = label.GetValue()
+				case "longname":
+					longname = label.GetValue()
+				case "shortname":
+					shortname = label.GetValue()
+				case "hardware":
+					hardware = label.GetValue()
+				case "role":
+					role = label.GetValue()
+				}
+			}
+			if nodeID != "" {
+				node := nodes[nodeID]
+				node.Longname = longname
+				node.Shortname = shortname
+				if hw, err := strconv.ParseFloat(hardware, 64); err == nil {
+					node.Hardware = hw
+				}
+				if r, err := strconv.ParseFloat(role, 64); err == nil {
+					node.Role = r
+				}
+				nodes[nodeID] = node
+			}
+		}
+	}
+
 	extractFromMetric(e.batteryLevel, func(n *NodeState, v float64) { n.BatteryLevel = v })
 	extractFromMetric(e.voltage, func(n *NodeState, v float64) { n.Voltage = v })
+	extractFromMetric(e.channelUtil, func(n *NodeState, v float64) { n.ChannelUtil = v })
+	extractFromMetric(e.airUtilTx, func(n *NodeState, v float64) { n.AirUtilTx = v })
 	extractFromMetric(e.temperature, func(n *NodeState, v float64) { n.Temperature = v })
+	extractFromMetric(e.humidity, func(n *NodeState, v float64) { n.Humidity = v })
+	extractFromMetric(e.pressure, func(n *NodeState, v float64) { n.Pressure = v })
 	extractFromMetric(e.uptime, func(n *NodeState, v float64) { n.Uptime = v })
+	extractNodeInfo()
 	return nodes
 }
 
@@ -417,13 +492,20 @@ func (e *MeshtasticExporter) Run() error {
 		return err
 	}
 	e.startPrometheusServer()
+
+	// Start periodic state saving
+	if e.config.State.Enabled {
+		go e.startPeriodicStateSave()
+	}
+
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 	<-c
-	logger := zerolog.New(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: time.RFC3339}).With().Timestamp().Logger()
-	logger.Info().Str("component", "standalone").Msg("shutting down")
+	e.logger.Info().Msg("shutting down")
 	if e.config.State.Enabled {
 		e.saveState()
+		stateLogger := logger.SubLogger(e.logger, map[string]string{"operation": "shutdown"})
+		stateLogger.Info().Msg("final state saved")
 	}
 	e.client.Disconnect(250)
 	return nil
@@ -450,6 +532,15 @@ func (e *MeshtasticExporter) healthHandler(w http.ResponseWriter, _ *http.Reques
 		status = "degraded"
 	}
 	json.NewEncoder(w).Encode(map[string]string{"status": status, "service": "meshtastic-exporter"})
+}
+
+func (e *MeshtasticExporter) startPeriodicStateSave() {
+	ticker := time.NewTicker(5 * time.Minute)
+	defer ticker.Stop()
+
+	for range ticker.C {
+		e.saveState()
+	}
 }
 
 func roundFloat(val float64, precision int) float64 {

@@ -185,6 +185,11 @@ sequenceDiagram
  - [ ] ♻ Auto-release (sync) on upstream .proto 👆 changes 
  - [ ] 📊 Create an example Grafana dashboard
  - [ ] 🔥 Create basic AlertManager rules
+   - [ ] (time() - meshtastic_node_last_seen_timestamp) <= 1200
+   - [ ] meshtastic_mqtt_up != 1
+   - [ ] meshtastic_uptime_seconds < 600 more than 10min
+   - [ ] meshtastic_battery_level_percent < 20 OR meshtastic_voltage_volts < 3.8
+   - [ ] sum(rate(meshtastic_messages_total[10m])) by (from_node) == 0
 
 ## Acknowledgments
 

@@ -295,16 +295,21 @@ func TestStateFileOperations(t *testing.T) {
 	exporter := New(config)
 	exporter.Init()
 
-	// Set some metric values
+	// Set comprehensive metric values
 	exporter.batteryLevel.WithLabelValues("123").Set(85.5)
 	exporter.voltage.WithLabelValues("123").Set(3.7)
+	exporter.channelUtil.WithLabelValues("123").Set(12.5)
+	exporter.airUtilTx.WithLabelValues("123").Set(8.2)
 	exporter.temperature.WithLabelValues("123").Set(22.5)
+	exporter.humidity.WithLabelValues("123").Set(65.0)
+	exporter.pressure.WithLabelValues("123").Set(1013.25)
 	exporter.uptime.WithLabelValues("123").Set(3600)
+	exporter.nodeHardware.WithLabelValues("123", "Test Node", "TN", "31", "1").Set(1)
 
 	// Test save state
 	exporter.saveState()
 
-	// Verify file exists and has content
+	// Verify a file exists and has content
 	data, err := os.ReadFile(tmpFile.Name())
 	if err != nil {
 		t.Fatal(err)
@@ -313,9 +318,52 @@ func TestStateFileOperations(t *testing.T) {
 		t.Error("State file should not be empty")
 	}
 
-	// Test load state with corrupted file
+	// Parse and verify saved state
+	var state State
+	if err := json.Unmarshal(data, &state); err != nil {
+		t.Fatal("Failed to parse saved state:", err)
+	}
+	if len(state.Nodes) == 0 {
+		t.Error("Expected nodes in saved state")
+	}
+	if node, exists := state.Nodes["123"]; exists {
+		if node.BatteryLevel != 85.5 {
+			t.Errorf("Expected battery level 85.5, got %f", node.BatteryLevel)
+		}
+		if node.Longname != "Test Node" {
+			t.Errorf("Expected longname 'Test Node', got '%s'", node.Longname)
+		}
+	} else {
+		t.Error("Expected node 123 in saved state")
+	}
+
+	// Test load state with a corrupted file
 	os.WriteFile(tmpFile.Name(), []byte("invalid json"), 0600)
 	exporter.loadState() // Should not panic
+
+	// Test load state with a valid file
+	validState := State{
+		Nodes: map[string]NodeState{
+			"456": {
+				BatteryLevel: 75.0,
+				Voltage:      3.5,
+				ChannelUtil:  15.0,
+				AirUtilTx:    10.0,
+				Temperature:  25.0,
+				Humidity:     70.0,
+				Pressure:     1015.0,
+				Uptime:       7200,
+				Longname:     "Load Test",
+				Shortname:    "LT",
+				Hardware:     32,
+				Role:         2,
+			},
+		},
+		Timestamp: time.Now(),
+	}
+	validData, _ := json.MarshalIndent(validState, "", "  ")
+	os.WriteFile(tmpFile.Name(), validData, 0600)
+	exporter.loadState()
 }
 
 func TestMQTTConnectionHandlers(t *testing.T) {
@@ -356,14 +404,75 @@ func TestExtractMetricValues(t *testing.T) {
 	exporter := New(config)
 	exporter.Init()
 
-	// Set some values
+	// Set comprehensive values
 	exporter.batteryLevel.WithLabelValues("123").Set(85.5)
 	exporter.voltage.WithLabelValues("123").Set(3.7)
+	exporter.channelUtil.WithLabelValues("123").Set(12.5)
+	exporter.airUtilTx.WithLabelValues("123").Set(8.2)
 	exporter.temperature.WithLabelValues("456").Set(22.5)
+	exporter.humidity.WithLabelValues("456").Set(65.0)
+	exporter.pressure.WithLabelValues("456").Set(1013.25)
 	exporter.uptime.WithLabelValues("456").Set(3600)
+	exporter.nodeHardware.WithLabelValues("789", "Test Node", "TN", "31", "1").Set(1)
 
 	nodes := exporter.extractMetricValues()
 	if len(nodes) == 0 {
 		t.Error("Expected extracted nodes")
+	}
+
+	// Verify extracted values
+	if node, exists := nodes["123"]; exists {
+		if node.BatteryLevel != 85.5 {
+			t.Errorf("Expected battery level 85.5, got %f", node.BatteryLevel)
+		}
+		if node.ChannelUtil != 12.5 {
+			t.Errorf("Expected channel util 12.5, got %f", node.ChannelUtil)
+		}
+	}
+
+	if node, exists := nodes["789"]; exists {
+		if node.Longname != "Test Node" {
+			t.Errorf("Expected longname 'Test Node', got '%s'", node.Longname)
+		}
+		if node.Hardware != 31 {
+			t.Errorf("Expected hardware 31, got %f", node.Hardware)
+		}
+	}
+}
+
+func TestPeriodicStateSave(t *testing.T) {
+	tmpFile, err := os.CreateTemp("", "periodic-state-*.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.Remove(tmpFile.Name())
+	tmpFile.Close()
+
+	config := Config{}
+	config.State.Enabled = true
+	config.State.File = tmpFile.Name()
+
+	exporter := New(config)
+	exporter.Init()
+
+	// Set a metric value
+	exporter.batteryLevel.WithLabelValues("test").Set(50.0)
+
+	// Manually trigger save (simulating periodic save)
+	exporter.saveState()
+
+	// Verify the file was created and contains data
+	data, err := os.ReadFile(tmpFile.Name())
+	if err != nil {
+		t.Fatal("Failed to read state file:", err)
+	}
+
+	var state State
+	if err := json.Unmarshal(data, &state); err != nil {
+		t.Fatal("Failed to parse state file:", err)
+	}
+
+	if len(state.Nodes) == 0 {
+		t.Error("Expected nodes in periodic save")
 	}
 }

@@ -3,7 +3,6 @@ package hooks
 
 import (
 	"encoding/json"
-	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -13,6 +12,9 @@ import (
 	"github.com/mochi-mqtt/server/v2/packets"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/rs/zerolog"
+
+	"meshtastic-exporter/pkg/logger"
 )
 
 // MeshtasticHookConfig configures the Meshtastic hook.
@@ -25,6 +27,7 @@ type MeshtasticHookConfig struct {
 type MeshtasticHook struct {
 	mqtt.HookBase
 	config MeshtasticHookConfig
+	logger zerolog.Logger
 
 	// Prometheus metrics
 	messageCounter *prometheus.CounterVec
@@ -48,6 +51,7 @@ func NewMeshtasticHook(config MeshtasticHookConfig) *MeshtasticHook {
 	h := &MeshtasticHook{
 		config:   config,
 		registry: prometheus.NewRegistry(),
+		logger:   logger.ComponentLogger("meshtastic-hook"),
 	}
 	h.setupMetrics()
 	return h
@@ -81,7 +85,7 @@ func (h *MeshtasticHook) OnPublish(_ *mqtt.Client, pk packets.Packet) (packets.P
 
 // Init starts the Prometheus server.
 func (h *MeshtasticHook) Init(config any) error {
-	h.mqttUp.Set(1) // MQTT server is up when hook initializes
+	h.mqttUp.Set(1) // MQTT server is up when the hook initializes
 	if h.config.PrometheusAddr != "" {
 		go h.startServer()
 	}
@@ -228,14 +232,14 @@ func (h *MeshtasticHook) startServer() {
 		})
 	}
 
-	log.Printf("Meshtastic hook: Prometheus server starting on %s", h.config.PrometheusAddr)
+	h.logger.Info().Str("address", h.config.PrometheusAddr).Msg("prometheus server starting")
 	server := &http.Server{
 		Addr:              h.config.PrometheusAddr,
 		Handler:           mux,
 		ReadHeaderTimeout: 10 * time.Second,
 	}
 	if err := server.ListenAndServe(); err != nil {
-		log.Printf("Meshtastic hook: Failed to start server: %v", err)
+		h.logger.Error().Err(err).Msg("failed to start server")
 	}
 }
 

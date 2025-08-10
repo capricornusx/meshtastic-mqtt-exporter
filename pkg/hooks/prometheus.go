@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -16,12 +17,14 @@ import (
 	"github.com/rs/zerolog"
 
 	"meshtastic-exporter/pkg/exporter"
+	"meshtastic-exporter/pkg/logger"
 )
 
 type PrometheusHook struct {
 	mqtt.HookBase
 	Config   exporter.Config
 	registry *prometheus.Registry
+	logger   zerolog.Logger
 
 	messageCounter *prometheus.CounterVec
 	rssi           *prometheus.GaugeVec
@@ -47,14 +50,18 @@ func NewPrometheusHook(config exporter.Config) *PrometheusHook {
 		Config:      config,
 		registry:    prometheus.NewRegistry(),
 		nodeMetrics: make(map[string]time.Time),
+		logger:      logger.ComponentLogger("prometheus"),
 	}
 	h.setupMetrics()
-	h.mqttUp.Set(1) // MQTT server is up when hook initializes
+	h.mqttUp.Set(1) // MQTT server is up when the hook initializes
 	if config.State.Enabled {
 		h.loadState()
 	}
 	h.startServer()
 	h.startCleanupRoutine()
+	if config.State.Enabled {
+		h.startPeriodicStateSave()
+	}
 	return h
 }
 
@@ -71,7 +78,7 @@ func (h *PrometheusHook) OnPublish(_ *mqtt.Client, pk packets.Packet) (packets.P
 		return pk, nil
 	}
 
-	if len(pk.TopicName) < 4 || pk.TopicName[:4] != "msh/" {
+	if !strings.HasPrefix(pk.TopicName, h.Config.Topic.Prefix) {
 		return pk, nil
 	}
 
@@ -191,8 +198,7 @@ func (h *PrometheusHook) startServer() {
 	}
 	http.Handle("/metrics", promhttp.HandlerFor(h.registry, promhttp.HandlerOpts{}))
 	http.HandleFunc("/health", h.healthHandler)
-	logger := zerolog.New(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: time.RFC3339}).With().Timestamp().Logger()
-	logger.Info().Str("component", "prometheus").Str("address", addr).Msg("server started")
+	h.logger.Info().Str("address", addr).Msg("server started")
 	go func() {
 		server := &http.Server{
 			Addr:         addr,
@@ -200,8 +206,7 @@ func (h *PrometheusHook) startServer() {
 			WriteTimeout: 10 * time.Second,
 		}
 		if err := server.ListenAndServe(); err != nil {
-			logger := zerolog.New(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: time.RFC3339}).With().Timestamp().Logger()
-			logger.Error().Err(err).Str("component", "prometheus").Msg("server error")
+			h.logger.Error().Err(err).Msg("server error")
 		}
 	}()
 }
@@ -254,13 +259,18 @@ func (h *PrometheusHook) cleanupStaleMetrics() {
 	}
 
 	staleThreshold := time.Now().Add(-ttl)
+	var cleanedNodes []string
 	for nodeID, lastSeen := range h.nodeMetrics {
 		if lastSeen.Before(staleThreshold) {
 			h.deleteNodeMetrics(nodeID)
 			delete(h.nodeMetrics, nodeID)
-			logger := zerolog.New(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: time.RFC3339}).With().Timestamp().Logger()
-			logger.Info().Str("component", "cleanup").Str("node_id", nodeID).Dur("ttl", ttl).Msg("removed stale metrics")
+			cleanedNodes = append(cleanedNodes, nodeID)
 		}
+	}
+
+	if len(cleanedNodes) > 0 {
+		cleanupLogger := logger.SubLogger(h.logger, map[string]string{"operation": "cleanup"})
+		cleanupLogger.Info().Strs("node_ids", cleanedNodes).Str("ttl", ttl.String()).Msg("removed stale metrics")
 	}
 }
 
@@ -280,12 +290,15 @@ func (h *PrometheusHook) loadState() {
 	if !h.Config.State.Enabled || h.Config.State.File == "" {
 		return
 	}
+	stateLogger := logger.SubLogger(h.logger, map[string]string{"operation": "load_state"})
 	data, err := os.ReadFile(h.Config.State.File)
 	if err != nil {
+		stateLogger.Debug().Err(err).Msg("state file not found")
 		return
 	}
 	var state exporter.State
 	if err := json.Unmarshal(data, &state); err != nil {
+		stateLogger.Error().Err(err).Msg("failed to parse state file")
 		return
 	}
 	nodeCount := 0
@@ -295,6 +308,12 @@ func (h *PrometheusHook) loadState() {
 		}
 		if node.Voltage > 0 {
 			h.voltage.WithLabelValues(nodeID).Set(node.Voltage)
+		}
+		if node.ChannelUtil > 0 {
+			h.channelUtil.WithLabelValues(nodeID).Set(node.ChannelUtil)
+		}
+		if node.AirUtilTx > 0 {
+			h.airUtilTx.WithLabelValues(nodeID).Set(node.AirUtilTx)
 		}
 		if node.Temperature != 0 {
 			h.temperature.WithLabelValues(nodeID).Set(node.Temperature)
@@ -308,10 +327,14 @@ func (h *PrometheusHook) loadState() {
 		if node.Uptime > 0 {
 			h.uptime.WithLabelValues(nodeID).Set(node.Uptime)
 		}
+		if node.Longname != "" && node.Hardware > 0 {
+			h.nodeHardware.WithLabelValues(nodeID, node.Longname, node.Shortname,
+				strconv.FormatFloat(node.Hardware, 'f', 0, 64),
+				strconv.FormatFloat(node.Role, 'f', 0, 64)).Set(1)
+		}
 		nodeCount++
 	}
-	logger := zerolog.New(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: time.RFC3339}).With().Timestamp().Logger()
-	logger.Info().Str("component", "state").Int("nodes", nodeCount).Str("file", h.Config.State.File).Msg("loaded metrics")
+	stateLogger.Info().Int("nodes", nodeCount).Str("file", h.Config.State.File).Msg("loaded metrics")
 }
 
 func (h *PrometheusHook) SaveState() {
@@ -321,22 +344,33 @@ func (h *PrometheusHook) SaveState() {
 	state := exporter.State{Nodes: h.extractMetricValues(), Timestamp: time.Now()}
 	data, err := json.MarshalIndent(state, "", "  ")
 	if err != nil {
-		logger := zerolog.New(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: time.RFC3339}).With().Timestamp().Logger()
-		logger.Error().Err(err).Str("component", "state").Msg("failed to marshal state")
+		stateLogger := logger.SubLogger(h.logger, map[string]string{"operation": "save_state"})
+		stateLogger.Error().Err(err).Msg("failed to marshal state")
 		return
 	}
 	if err := os.WriteFile(h.Config.State.File, data, 0600); err != nil {
-		logger := zerolog.New(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: time.RFC3339}).With().Timestamp().Logger()
-		logger.Error().Err(err).Str("component", "state").Msg("failed to save state")
+		stateLogger := logger.SubLogger(h.logger, map[string]string{"operation": "save_state"})
+		stateLogger.Error().Err(err).Msg("failed to save state")
 	}
 }
 
 func (h *PrometheusHook) SaveStateOnShutdown() {
 	if h.Config.State.Enabled {
 		h.SaveState()
-		logger := zerolog.New(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: time.RFC3339}).With().Timestamp().Logger()
-		logger.Info().Str("component", "state").Msg("saved on shutdown")
+		stateLogger := logger.SubLogger(h.logger, map[string]string{"operation": "shutdown"})
+		stateLogger.Info().Msg("saved on shutdown")
 	}
+}
+
+func (h *PrometheusHook) startPeriodicStateSave() {
+	go func() {
+		ticker := time.NewTicker(5 * time.Minute)
+		defer ticker.Stop()
+
+		for range ticker.C {
+			h.SaveState()
+		}
+	}()
 }
 
 func (h *PrometheusHook) extractMetricValues() map[string]exporter.NodeState {
@@ -366,11 +400,58 @@ func (h *PrometheusHook) extractMetricValues() map[string]exporter.NodeState {
 			}
 		}
 	}
+
+	// Extract node info with labels
+	extractNodeInfo := func() {
+		metricChan := make(chan prometheus.Metric, 100)
+		go func() {
+			h.nodeHardware.Collect(metricChan)
+			close(metricChan)
+		}()
+		for metric := range metricChan {
+			dtoMetric := &dto.Metric{}
+			if err := metric.Write(dtoMetric); err != nil {
+				continue
+			}
+			nodeID := ""
+			var longname, shortname, hardware, role string
+			for _, label := range dtoMetric.GetLabel() {
+				switch label.GetName() {
+				case "node_id":
+					nodeID = label.GetValue()
+				case "longname":
+					longname = label.GetValue()
+				case "shortname":
+					shortname = label.GetValue()
+				case "hardware":
+					hardware = label.GetValue()
+				case "role":
+					role = label.GetValue()
+				}
+			}
+			if nodeID != "" {
+				node := nodes[nodeID]
+				node.Longname = longname
+				node.Shortname = shortname
+				if hw, err := strconv.ParseFloat(hardware, 64); err == nil {
+					node.Hardware = hw
+				}
+				if r, err := strconv.ParseFloat(role, 64); err == nil {
+					node.Role = r
+				}
+				nodes[nodeID] = node
+			}
+		}
+	}
+
 	extractFromMetric(h.batteryLevel, func(n *exporter.NodeState, v float64) { n.BatteryLevel = v })
 	extractFromMetric(h.voltage, func(n *exporter.NodeState, v float64) { n.Voltage = v })
+	extractFromMetric(h.channelUtil, func(n *exporter.NodeState, v float64) { n.ChannelUtil = v })
+	extractFromMetric(h.airUtilTx, func(n *exporter.NodeState, v float64) { n.AirUtilTx = v })
 	extractFromMetric(h.temperature, func(n *exporter.NodeState, v float64) { n.Temperature = v })
 	extractFromMetric(h.humidity, func(n *exporter.NodeState, v float64) { n.Humidity = v })
 	extractFromMetric(h.pressure, func(n *exporter.NodeState, v float64) { n.Pressure = v })
 	extractFromMetric(h.uptime, func(n *exporter.NodeState, v float64) { n.Uptime = v })
+	extractNodeInfo()
 	return nodes
 }
