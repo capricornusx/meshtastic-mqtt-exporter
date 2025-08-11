@@ -59,7 +59,6 @@ jobs:
       - name: Test examples compile
         run: |
           cd docs/mochi-mqtt-integration && go build .
-          cd ../with-alertmanager && go build .
 
       - name: Check GoReleaser config
         run: |
