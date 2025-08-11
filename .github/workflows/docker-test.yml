@@ -18,6 +18,10 @@ on:
       - 'docs/Dockerfile'
       - 'docs/docker-compose.yml'
 
+permissions:
+  contents: read
+  pull-requests: read
+
 jobs:
   docker-test:
     runs-on: ubuntu-latest

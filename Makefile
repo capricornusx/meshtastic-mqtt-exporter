@@ -3,7 +3,7 @@ STANDALONE_BINARY=standalone
 EXAMPLE_BINARY=mochi-mqtt-integration
 TIMEOUT?=30
 
-.PHONY: build build-all build-embedded build-standalone build-example build-linux build-linux-amd64 build-linux-arm64 clean deps lint test test-unit test-integration coverage docker release-check release-test release-build sonar-up sonar-scan
+.PHONY: build build-all build-embedded build-standalone build-example build-examples build-linux build-linux-amd64 build-linux-arm64 clean deps lint test test-unit test-integration coverage docker release-check release-test release-build sonar-up sonar-scan
 
 build: build-all
 
@@ -20,6 +20,9 @@ build-standalone:
 # Example integration
 build-example:
 	cd docs/mochi-mqtt-integration && go build -o ../../dist/$(EXAMPLE_BINARY) .
+
+# Alias for CI compatibility
+build-examples: build-example
 
 
 # Dependencies and cleanup
