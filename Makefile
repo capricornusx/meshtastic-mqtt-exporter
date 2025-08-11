@@ -11,11 +11,11 @@ build-all: build-embedded build-standalone build-example
 
 # Embedded mode with built-in MQTT broker
 build-embedded:
-	go build -o dist/$(EMBEDDED_BINARY) ./cmd/embedded-hook
+	go build -ldflags="-X meshtastic-exporter/pkg/version.Version=dev -X meshtastic-exporter/pkg/version.GitCommit=$$(git rev-parse --short HEAD 2>/dev/null || echo unknown) -X meshtastic-exporter/pkg/version.BuildDate=$$(date -u +%Y-%m-%dT%H:%M:%SZ)" -o dist/$(EMBEDDED_BINARY) ./cmd/embedded-hook
 
 # Standalone mode for existing MQTT setups
 build-standalone:
-	go build -o dist/$(STANDALONE_BINARY) ./cmd/standalone
+	go build -ldflags="-X meshtastic-exporter/pkg/version.Version=dev -X meshtastic-exporter/pkg/version.GitCommit=$$(git rev-parse --short HEAD 2>/dev/null || echo unknown) -X meshtastic-exporter/pkg/version.BuildDate=$$(date -u +%Y-%m-%dT%H:%M:%SZ)" -o dist/$(STANDALONE_BINARY) ./cmd/standalone
 
 # Example integration
 build-example:
@@ -64,13 +64,13 @@ build-linux: build-linux-amd64 build-linux-arm64
 
 build-linux-amd64:
 	mkdir -p dist
-	env GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o dist/$(EMBEDDED_BINARY)-linux-amd64 ./cmd/embedded-hook
-	env GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o dist/$(STANDALONE_BINARY)-linux-amd64 ./cmd/standalone
+	env GOOS=linux GOARCH=amd64 go build -ldflags="-s -w -X meshtastic-exporter/pkg/version.Version=$$(git describe --tags --always 2>/dev/null || echo dev) -X meshtastic-exporter/pkg/version.GitCommit=$$(git rev-parse --short HEAD 2>/dev/null || echo unknown) -X meshtastic-exporter/pkg/version.BuildDate=$$(date -u +%Y-%m-%dT%H:%M:%SZ)" -o dist/$(EMBEDDED_BINARY)-linux-amd64 ./cmd/embedded-hook
+	env GOOS=linux GOARCH=amd64 go build -ldflags="-s -w -X meshtastic-exporter/pkg/version.Version=$$(git describe --tags --always 2>/dev/null || echo dev) -X meshtastic-exporter/pkg/version.GitCommit=$$(git rev-parse --short HEAD 2>/dev/null || echo unknown) -X meshtastic-exporter/pkg/version.BuildDate=$$(date -u +%Y-%m-%dT%H:%M:%SZ)" -o dist/$(STANDALONE_BINARY)-linux-amd64 ./cmd/standalone
 
 build-linux-arm64:
 	mkdir -p dist
-	env GOOS=linux GOARCH=arm64 go build -ldflags="-s -w" -o dist/$(EMBEDDED_BINARY)-linux-arm64 ./cmd/embedded-hook
-	env GOOS=linux GOARCH=arm64 go build -ldflags="-s -w" -o dist/$(STANDALONE_BINARY)-linux-arm64 ./cmd/standalone
+	env GOOS=linux GOARCH=arm64 go build -ldflags="-s -w -X meshtastic-exporter/pkg/version.Version=$$(git describe --tags --always 2>/dev/null || echo dev) -X meshtastic-exporter/pkg/version.GitCommit=$$(git rev-parse --short HEAD 2>/dev/null || echo unknown) -X meshtastic-exporter/pkg/version.BuildDate=$$(date -u +%Y-%m-%dT%H:%M:%SZ)" -o dist/$(EMBEDDED_BINARY)-linux-arm64 ./cmd/embedded-hook
+	env GOOS=linux GOARCH=arm64 go build -ldflags="-s -w -X meshtastic-exporter/pkg/version.Version=$$(git describe --tags --always 2>/dev/null || echo dev) -X meshtastic-exporter/pkg/version.GitCommit=$$(git rev-parse --short HEAD 2>/dev/null || echo unknown) -X meshtastic-exporter/pkg/version.BuildDate=$$(date -u +%Y-%m-%dT%H:%M:%SZ)" -o dist/$(STANDALONE_BINARY)-linux-arm64 ./cmd/standalone
 
 # Release (requires goreleaser)
 release-check:

@@ -61,6 +61,6 @@ jobs:
           cd docs/mochi-mqtt-integration && go build .
 
       - name: Check GoReleaser config
-        run: |
-          go install github.com/goreleaser/goreleaser@latest
-          goreleaser check
+        uses: goreleaser/goreleaser-action@v6.3.0
+        with:
+          args: check

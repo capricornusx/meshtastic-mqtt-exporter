@@ -54,7 +54,7 @@ func NewMeshtasticHook(cfg MeshtasticHookConfig, f *factory.Factory) *Meshtastic
 		return nil
 	}
 
-	collector := f.CreateMetricsCollector()
+	collector := f.CreateMetricsCollectorWithMode("embedded")
 	alerter := f.CreateAlertSender()
 	processor := f.CreateMessageProcessor()
 

@@ -21,14 +21,17 @@ func NewDefaultFactory() *Factory {
 }
 
 func (f *Factory) CreateMetricsCollector() domain.MetricsCollector {
+	return f.CreateMetricsCollectorWithMode("hook")
+}
+
+func (f *Factory) CreateMetricsCollectorWithMode(mode string) domain.MetricsCollector {
 	if f.collector == nil {
-		f.collector = infrastructure.NewPrometheusCollector()
+		f.collector = infrastructure.NewPrometheusCollectorWithMode(mode)
 
 		if f.config != nil {
 			prometheusConfig := f.config.GetPrometheusConfig()
 			if stateFile := prometheusConfig.GetStateFile(); stateFile != "" {
 				if err := f.collector.LoadState(stateFile); err != nil {
-					// Состояние может отсутствовать при первом запуске
 					_ = err
 				}
 			}

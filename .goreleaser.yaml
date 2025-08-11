@@ -35,7 +35,7 @@ builds:
       - arm
     goarm:
       - "7"
-    ldflags: -s -w -X main.version={{.Version}}
+    ldflags: -s -w -X meshtastic-exporter/pkg/version.Version={{.Version}} -X meshtastic-exporter/pkg/version.GitCommit={{.ShortCommit}} -X meshtastic-exporter/pkg/version.BuildDate={{.Date}}
     binary: '{{ .Env.SHORT_NAME }}-embedded'
     env:
       - CGO_ENABLED=0
@@ -49,7 +49,7 @@ builds:
       - arm
     goarm:
       - "7"
-    ldflags: -s -w -X main.version={{.Version}}
+    ldflags: -s -w -X meshtastic-exporter/pkg/version.Version={{.Version}} -X meshtastic-exporter/pkg/version.GitCommit={{.ShortCommit}} -X meshtastic-exporter/pkg/version.BuildDate={{.Date}}
     binary: '{{ .Env.SHORT_NAME }}-standalone'
     env:
       - CGO_ENABLED=0

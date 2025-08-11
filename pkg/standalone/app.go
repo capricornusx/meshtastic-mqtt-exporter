@@ -31,7 +31,7 @@ func NewApp(config domain.Config) *App {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	f := factory.NewFactory(config)
-	collector := f.CreateMetricsCollector()
+	collector := f.CreateMetricsCollectorWithMode("standalone")
 	alerter := f.CreateAlertSender()
 	processor := f.CreateMessageProcessor()
 

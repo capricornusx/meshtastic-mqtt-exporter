@@ -10,6 +10,7 @@ import (
 	"github.com/rs/zerolog/log"
 
 	"meshtastic-exporter/pkg/domain"
+	"meshtastic-exporter/pkg/version"
 )
 
 type PrometheusCollector struct {
@@ -26,9 +27,14 @@ type PrometheusCollector struct {
 	uptime         *prometheus.GaugeVec
 	nodeLastSeen   *prometheus.GaugeVec
 	nodeHardware   *prometheus.GaugeVec
+	serviceInfo    *prometheus.GaugeVec
 }
 
 func NewPrometheusCollector() *PrometheusCollector {
+	return NewPrometheusCollectorWithMode("hook")
+}
+
+func NewPrometheusCollectorWithMode(mode string) *PrometheusCollector {
 	registry := prometheus.NewRegistry()
 
 	collector := &PrometheusCollector{
@@ -36,6 +42,7 @@ func NewPrometheusCollector() *PrometheusCollector {
 	}
 
 	collector.setupMetrics()
+	collector.setupServiceInfo(mode)
 	return collector
 }
 
@@ -89,13 +96,23 @@ func (c *PrometheusCollector) setupMetrics() {
 		c.humidity, c.pressure, c.channelUtil, c.airUtilTx,
 		c.uptime, c.nodeLastSeen, c.nodeHardware,
 	)
+}
 
-	// Добавляем базовую метрику для проверки работы
-	serviceInfo := prometheus.NewGaugeVec(
+func (c *PrometheusCollector) setupServiceInfo(mode string) {
+	c.serviceInfo = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{Name: "meshtastic_exporter_info", Help: "Service information"},
-		[]string{"version", "mode"})
-	serviceInfo.WithLabelValues("dev", "hook").Set(1)
-	c.registry.MustRegister(serviceInfo)
+		[]string{"version", "mode", "git_commit", "build_date"})
+	c.registry.MustRegister(c.serviceInfo)
+	c.updateServiceInfo(mode)
+}
+
+func (c *PrometheusCollector) updateServiceInfo(mode string) {
+	version, gitCommit, buildDate := getVersionInfo()
+	c.serviceInfo.WithLabelValues(version, mode, gitCommit, buildDate).Set(1)
+}
+
+func getVersionInfo() (string, string, string) {
+	return version.GetBuildInfo()
 }
 
 func (c *PrometheusCollector) CollectTelemetry(data domain.TelemetryData) error {
