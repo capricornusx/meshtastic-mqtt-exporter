@@ -19,7 +19,9 @@ import (
     "github.com/mochi-mqtt/server/v2/hooks/auth"
     "github.com/mochi-mqtt/server/v2/listeners"
     
-    "github.com/capricornusx/meshtastic-mqtt-exporter/pkg/hooks"
+    "meshtastic-exporter/pkg/config"
+    "meshtastic-exporter/pkg/factory"
+    "meshtastic-exporter/pkg/hooks"
 )
 
 func main() {
@@ -41,8 +43,15 @@ func main() {
         log.Fatal(err)
     }
 
+    // Загрузка конфигурации для factory
+    cfg, err := config.LoadUnifiedConfig("config.yaml")
+    if err != nil {
+        log.Printf("Config not found, using defaults: %v", err)
+    }
+    f := factory.NewFactory(cfg)
+
     // Добавление Meshtastic хука
-    hook := hooks.NewMeshtasticHookSimple()
+    hook := hooks.NewMeshtasticHookSimple(f)
     err = server.AddHook(hook, nil)
     if err != nil {
         log.Fatal(err)
@@ -78,7 +87,9 @@ import (
     "github.com/mochi-mqtt/server/v2/hooks/auth"
     "github.com/mochi-mqtt/server/v2/listeners"
     
-    "github.com/capricornusx/meshtastic-mqtt-exporter/pkg/hooks"
+    "meshtastic-exporter/pkg/config"
+    "meshtastic-exporter/pkg/factory"
+    "meshtastic-exporter/pkg/hooks"
 )
 
 func main() {
@@ -97,22 +108,21 @@ func main() {
     // Аутентификация
     server.AddHook(new(auth.AllowHook), nil)
 
+    // Загрузка конфигурации
+    cfg, err := config.LoadUnifiedConfig("config.yaml")
+    if err != nil {
+        log.Fatal(err)
+    }
+    f := factory.NewFactory(cfg)
+
     // Meshtastic хук с конфигурацией
     hook := hooks.NewMeshtasticHook(hooks.MeshtasticHookConfig{
-        PrometheusAddr:    ":8101",
-        EnableHealth:      true,
-        TopicPrefix:       "msh/",
-        MetricsTTL:        30 * time.Minute,
-        StateFile:         "meshtastic_state.json",
-        EnablePersistence: true,
-        AlertManagerConfig: &hooks.AlertManagerConfig{
-            Enabled:    true,
-            HTTPPort:   8080,
-            HTTPPath:   "/alerts/webhook",
-            Channel:    "LongFast",
-            Mode:       "broadcast",
-        },
-    })
+        ServerAddr:   ":8100",
+        EnableHealth: true,
+        TopicPrefix:  "msh/",
+        MetricsTTL:   30 * time.Minute,
+        AlertPath:    "/alerts/webhook",
+    }, f)
     
     server.AddHook(hook, nil)
 
@@ -127,24 +137,13 @@ func main() {
 
 | Параметр | Тип | По умолчанию | Описание |
 |----------|-----|--------------|----------|
-| `PrometheusAddr` | string | `:8101` | Адрес сервера метрик |
+| `ServerAddr` | string | `localhost:8100` | Адрес сервера метрик |
 | `EnableHealth` | bool | `true` | Включить health endpoint |
 | `TopicPrefix` | string | `msh/` | Префикс MQTT топиков |
 | `MetricsTTL` | time.Duration | `30m` | TTL метрик неактивных узлов |
-| `StateFile` | string | - | Путь к файлу состояния |
-| `EnablePersistence` | bool | `false` | Включить персистентность |
-| `AlertManagerConfig` | *AlertManagerConfig | nil | Конфигурация AlertManager |
+| `AlertPath` | string | `/alerts` | Путь AlertManager webhook |
 
-### AlertManagerConfig
-
-| Параметр | Тип | По умолчанию | Описание |
-|----------|-----|--------------|----------|
-| `Enabled` | bool | `false` | Включить AlertManager |
-| `HTTPPort` | int | `8080` | Порт HTTP сервера |
-| `HTTPPath` | string | `/alerts/webhook` | Путь webhook |
-| `Channel` | string | `LongFast` | Канал по умолчанию |
-| `Mode` | string | `broadcast` | Режим доставки |
-| `TargetNodes` | []string | - | Целевые узлы |
+**Примечание:** Персистентность состояния настраивается через YAML конфигурацию, а не через параметры хука.
 
 ## Интеграция с существующим сервером
 
@@ -156,18 +155,24 @@ package main
 
 import (
     "github.com/your-org/your-mqtt-server/internal/server"
-    "github.com/capricornusx/meshtastic-mqtt-exporter/pkg/hooks"
+    "meshtastic-exporter/pkg/config"
+    "meshtastic-exporter/pkg/factory"
+    "meshtastic-exporter/pkg/hooks"
 )
 
 func main() {
     // Ваш существующий сервер
     mqttServer := server.New()
     
+    // Загрузка конфигурации
+    cfg, _ := config.LoadUnifiedConfig("config.yaml")
+    f := factory.NewFactory(cfg)
+    
     // Добавление Meshtastic хука
     meshtasticHook := hooks.NewMeshtasticHook(hooks.MeshtasticHookConfig{
-        PrometheusAddr: ":8101",
-        TopicPrefix:    "msh/",
-    })
+        ServerAddr:  ":8100",
+        TopicPrefix: "msh/",
+    }, f)
     
     mqttServer.AddHook(meshtasticHook, nil)
     
@@ -185,7 +190,7 @@ go 1.21
 
 require (
     github.com/mochi-mqtt/server/v2 v2.4.1
-    github.com/capricornusx/meshtastic-mqtt-exporter v0.1.0
+    meshtastic-exporter v0.1.0
 )
 ```
 
@@ -201,7 +206,8 @@ import (
     mqtt "github.com/mochi-mqtt/server/v2"
     "github.com/mochi-mqtt/server/v2/packets"
     
-    "github.com/capricornusx/meshtastic-mqtt-exporter/pkg/hooks"
+    "meshtastic-exporter/pkg/factory"
+    "meshtastic-exporter/pkg/hooks"
 )
 
 // Кастомный хук с middleware
@@ -211,8 +217,9 @@ type CustomHook struct {
 }
 
 func NewCustomHook() *CustomHook {
+    f := factory.NewDefaultFactory()
     return &CustomHook{
-        meshtasticHook: hooks.NewMeshtasticHookSimple(),
+        meshtasticHook: hooks.NewMeshtasticHookSimple(f),
     }
 }
 
@@ -342,18 +349,19 @@ import (
     "log"
     "os"
     
-    "github.com/capricornusx/meshtastic-mqtt-exporter/pkg/hooks"
+    "meshtastic-exporter/pkg/factory"
+    "meshtastic-exporter/pkg/hooks"
 )
 
 func main() {
     // Включение отладочного режима
     os.Setenv("LOG_LEVEL", "debug")
     
+    f := factory.NewDefaultFactory()
     hook := hooks.NewMeshtasticHook(hooks.MeshtasticHookConfig{
-        PrometheusAddr: ":8101",
-        TopicPrefix:    "msh/",
-        Debug:          true,
-    })
+        ServerAddr:  ":8100",
+        TopicPrefix: "msh/",
+    }, f)
     
     server := mqtt.New(nil)
     server.AddHook(hook, nil)
@@ -367,10 +375,10 @@ func main() {
 
 ```bash
 # Проверка метрик
-curl http://localhost:8101/metrics | grep meshtastic
+curl http://localhost:8100/metrics | grep meshtastic
 
 # Проверка health
-curl http://localhost:8101/health
+curl http://localhost:8100/health
 
 # Тестирование MQTT
 mosquitto_pub -h localhost -t "msh/2/e/LongFast/!test" -m '{"battery_level": 85}'

@@ -46,7 +46,7 @@ hook:
     topics:
       broadcast: "msh/2/c/%s/!broadcast"
       direct: "msh/2/c/%s/!%s"
-    
+
     # Severity-based routing
     routing:
       critical:
@@ -67,52 +67,52 @@ hook:
 
 ### Логирование
 
-| Параметр | Тип | По умолчанию | Описание |
-|----------|-----|--------------|----------|
-| `level` | string | `info` | Уровень логирования: debug, info, warn, error, fatal |
+| Параметр | Тип    | По умолчанию | Описание                                             |
+|----------|--------|--------------|------------------------------------------------------|
+| `level`  | string | `info`       | Уровень логирования: debug, info, warn, error, fatal |
 
 ### MQTT Брокер
 
-| Параметр | Тип | По умолчанию | Описание |
-|----------|-----|--------------|----------|
-| `host` | string | `localhost` | Хост MQTT брокера (IPv4/IPv6) |
-| `port` | int | `1883` | Порт MQTT брокера |
-| `tls` | bool | `false` | Включить TLS шифрование |
-| `allow_anonymous` | bool | `true` | Разрешить анонимные подключения |
-| `users` | array | - | Массив учетных записей пользователей |
-| `broker.max_inflight` | int | `50` | Макс. неподтвержденных сообщений на клиента |
-| `broker.max_queued` | int | `1000` | Макс. сообщений в очереди на клиента |
-| `broker.keep_alive` | int | `60` | Интервал keep alive в секундах |
-| `debug.log_all_messages` | bool | `false` | Логировать все входящие MQTT сообщения |
+| Параметр                 | Тип    | По умолчанию | Описание                                    |
+|--------------------------|--------|--------------|---------------------------------------------|
+| `host`                   | string | `localhost`  | Хост MQTT брокера (IPv4/IPv6)               |
+| `port`                   | int    | `1883`       | Порт MQTT брокера                           |
+| `tls`                    | bool   | `false`      | Включить TLS шифрование                     |
+| `allow_anonymous`        | bool   | `true`       | Разрешить анонимные подключения             |
+| `users`                  | array  | -            | Массив учетных записей пользователей        |
+| `broker.max_inflight`    | int    | `50`         | Макс. неподтвержденных сообщений на клиента |
+| `broker.max_queued`      | int    | `1000`       | Макс. сообщений в очереди на клиента        |
+| `broker.keep_alive`      | int    | `60`         | Интервал keep alive в секундах              |
+| `debug.log_all_messages` | bool   | `false`      | Логировать все входящие MQTT сообщения      |
 
 ### HTTP Hook Server
 
-| Параметр | Тип | По умолчанию | Описание |
-|----------|-----|--------------|----------|
+| Параметр | Тип    | По умолчанию     | Описание                  |
+|----------|--------|------------------|---------------------------|
 | `listen` | string | `localhost:8100` | Адрес и порт HTTP сервера |
 
 ### Prometheus метрики
 
-| Параметр | Тип | По умолчанию | Описание |
-|----------|-----|--------------|----------|
-| `path` | string | `/metrics` | Путь к endpoint метрик |
-| `metrics_ttl` | string | `30m` | Время хранения метрик неактивных узлов |
-| `topic.pattern` | string | `msh/#` | Паттерн MQTT топиков (поддерживает wildcards + и #) |
-| `debug.log_all_messages` | bool | `false` | Логировать MQTT сообщения соответствующие pattern |
-| `state.file` | string | - | Путь к файлу состояния (если не указан - персистентность отключена) |
+| Параметр                 | Тип    | По умолчанию | Описание                                                            |
+|--------------------------|--------|--------------|---------------------------------------------------------------------|
+| `path`                   | string | `/metrics`   | Путь к endpoint метрик                                              |
+| `metrics_ttl`            | string | `30m`        | Время хранения метрик неактивных узлов                              |
+| `topic.pattern`          | string | `msh/#`      | Паттерн MQTT топиков (поддерживает wildcards + и #)                 |
+| `debug.log_all_messages` | bool   | `false`      | Логировать MQTT сообщения соответствующие pattern                   |
+| `state.file`             | string | -            | Путь к файлу состояния (если не указан - персистентность отключена) |
 
 ### AlertManager интеграция
 
-| Параметр | Тип | По умолчанию | Описание |
-|----------|-----|--------------|----------|
-| `path` | string | `/alerts/webhook` | Путь HTTP webhook endpoint |
-| `channel` | string | `LongFast` | Канал Meshtastic по умолчанию |
-| `mode` | string | `broadcast` | Режим доставки по умолчанию |
-| `topics.broadcast` | string | `msh/2/c/%s/!broadcast` | Шаблон топика для broadcast |
-| `topics.direct` | string | `msh/2/c/%s/!%s` | Шаблон топика для прямых сообщений |
-| `routing.critical` | object | - | Настройки для критических алертов |
-| `routing.warning` | object | - | Настройки для предупреждений |
-| `routing.info` | object | - | Настройки для информационных алертов |
+| Параметр           | Тип    | По умолчанию            | Описание                             |
+|--------------------|--------|-------------------------|--------------------------------------|
+| `path`             | string | `/alerts/webhook`       | Путь HTTP webhook endpoint           |
+| `channel`          | string | `LongFast`              | Канал Meshtastic по умолчанию        |
+| `mode`             | string | `broadcast`             | Режим доставки по умолчанию          |
+| `topics.broadcast` | string | `msh/2/c/%s/!broadcast` | Шаблон топика для broadcast          |
+| `topics.direct`    | string | `msh/2/c/%s/!%s`        | Шаблон топика для прямых сообщений   |
+| `routing.critical` | object | -                       | Настройки для критических алертов    |
+| `routing.warning`  | object | -                       | Настройки для предупреждений         |
+| `routing.info`     | object | -                       | Настройки для информационных алертов |
 
 ## Паттерны MQTT топиков
 
@@ -211,7 +211,9 @@ DBG mqtt message received topic=msh/test/topic payload={"from":123,"data":"..."}
 ## Режимы доставки алертов
 
 ### Broadcast режим
+
 Отправляет алерты всем узлам в mesh сети:
+
 ```yaml
 alertmanager:
   mode: "broadcast"
@@ -219,7 +221,9 @@ alertmanager:
 ```
 
 ### Direct режим
+
 Отправляет алерты только указанным узлам:
+
 ```yaml
 alertmanager:
   mode: "direct"

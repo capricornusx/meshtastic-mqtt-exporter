@@ -31,7 +31,7 @@ mqtt:
       password: "pass1"
 
 hook:
-  listen: "0.0.0.0:8101"
+  listen: "0.0.0.0:8100"
   prometheus:
     path: "/metrics"
     metrics_ttl: "1h"

@@ -20,7 +20,7 @@ func TestMainWithArgs(t *testing.T) {
 	defer os.Remove(tempFile.Name())
 
 	configContent := `
-prometheus_addr: ":8101"
+prometheus_addr: ":8100"
 topic_prefix: "msh/"
 enable_health: true
 `

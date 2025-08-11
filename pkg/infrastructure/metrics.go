@@ -25,6 +25,8 @@ type PrometheusCollector struct {
 	channelUtil    *prometheus.GaugeVec
 	airUtilTx      *prometheus.GaugeVec
 	uptime         *prometheus.GaugeVec
+	rssi           *prometheus.GaugeVec
+	snr            *prometheus.GaugeVec
 	nodeLastSeen   *prometheus.GaugeVec
 	nodeHardware   *prometheus.GaugeVec
 	serviceInfo    *prometheus.GaugeVec
@@ -83,6 +85,14 @@ func (c *PrometheusCollector) setupMetrics() {
 		prometheus.GaugeOpts{Name: domain.MetricUptime, Help: "Uptime"},
 		[]string{"node_id"})
 
+	c.rssi = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{Name: domain.MetricRSSI, Help: "RSSI signal strength"},
+		[]string{"node_id"})
+
+	c.snr = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{Name: domain.MetricSNR, Help: "Signal-to-noise ratio"},
+		[]string{"node_id"})
+
 	c.nodeLastSeen = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{Name: domain.MetricNodeLastSeen, Help: "Last seen timestamp"},
 		[]string{"node_id"})
@@ -94,7 +104,7 @@ func (c *PrometheusCollector) setupMetrics() {
 	c.registry.MustRegister(
 		c.messageCounter, c.batteryLevel, c.voltage, c.temperature,
 		c.humidity, c.pressure, c.channelUtil, c.airUtilTx,
-		c.uptime, c.nodeLastSeen, c.nodeHardware,
+		c.uptime, c.rssi, c.snr, c.nodeLastSeen, c.nodeHardware,
 	)
 }
 
@@ -119,12 +129,29 @@ func (c *PrometheusCollector) CollectTelemetry(data domain.TelemetryData) error 
 	c.nodeLastSeen.WithLabelValues(data.NodeID).SetToCurrentTime()
 	c.messageCounter.WithLabelValues(domain.MessageTypeTelemetry, data.NodeID).Inc()
 
+	c.setTelemetryMetrics(data)
+	return nil
+}
+
+func (c *PrometheusCollector) setTelemetryMetrics(data domain.TelemetryData) {
+	c.setBasicMetrics(data)
+	c.setEnvironmentalMetrics(data)
+	c.setNetworkMetrics(data)
+}
+
+func (c *PrometheusCollector) setBasicMetrics(data domain.TelemetryData) {
 	if data.BatteryLevel != nil {
 		c.batteryLevel.WithLabelValues(data.NodeID).Set(*data.BatteryLevel)
 	}
 	if data.Voltage != nil {
 		c.voltage.WithLabelValues(data.NodeID).Set(*data.Voltage)
 	}
+	if data.UptimeSeconds != nil {
+		c.uptime.WithLabelValues(data.NodeID).Set(*data.UptimeSeconds)
+	}
+}
+
+func (c *PrometheusCollector) setEnvironmentalMetrics(data domain.TelemetryData) {
 	if data.Temperature != nil {
 		c.temperature.WithLabelValues(data.NodeID).Set(*data.Temperature)
 	}
@@ -134,17 +161,21 @@ func (c *PrometheusCollector) CollectTelemetry(data domain.TelemetryData) error 
 	if data.BarometricPressure != nil {
 		c.pressure.WithLabelValues(data.NodeID).Set(*data.BarometricPressure)
 	}
+}
+
+func (c *PrometheusCollector) setNetworkMetrics(data domain.TelemetryData) {
 	if data.ChannelUtilization != nil {
 		c.channelUtil.WithLabelValues(data.NodeID).Set(*data.ChannelUtilization)
 	}
 	if data.AirUtilTx != nil {
 		c.airUtilTx.WithLabelValues(data.NodeID).Set(*data.AirUtilTx)
 	}
-	if data.UptimeSeconds != nil {
-		c.uptime.WithLabelValues(data.NodeID).Set(*data.UptimeSeconds)
+	if data.RSSI != nil {
+		c.rssi.WithLabelValues(data.NodeID).Set(*data.RSSI)
 	}
-
-	return nil
+	if data.SNR != nil {
+		c.snr.WithLabelValues(data.NodeID).Set(*data.SNR)
+	}
 }
 
 func (c *PrometheusCollector) CollectNodeInfo(info domain.NodeInfo) error {
@@ -300,6 +331,8 @@ func (c *PrometheusCollector) restoreMetric(metricName string, value float64, no
 		domain.MetricChannelUtil:  c.channelUtil,
 		domain.MetricAirUtilTx:    c.airUtilTx,
 		domain.MetricUptime:       c.uptime,
+		domain.MetricRSSI:         c.rssi,
+		domain.MetricSNR:          c.snr,
 		domain.MetricNodeLastSeen: c.nodeLastSeen,
 	}
 

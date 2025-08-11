@@ -110,6 +110,8 @@ hook:
 - `meshtastic_temperature_celsius` — Температура
 - `meshtastic_humidity_percent` — Влажность
 - `meshtastic_pressure_hpa` — Барометрическое давление
+- `meshtastic_rssi_dbm` — Мощность сигнала (dBm)
+- `meshtastic_snr_db` — Отношение сигнал/шум (dB)
 - `meshtastic_node_last_seen_timestamp` — Время последней активности
 
 ## Персистентность состояния

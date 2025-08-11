@@ -20,7 +20,7 @@ func main() {
     server := mqtt.New(nil)
     
     hook := hooks.NewMeshtasticHook(hooks.MeshtasticHookConfig{
-        PrometheusAddr: ":8101",
+        PrometheusAddr: ":8100",
         EnableHealth:   true,
         TopicPrefix:    "msh/",
         MetricsTTL:     30 * time.Minute,
@@ -39,7 +39,7 @@ func main() {
 ### Базовая конфигурация
 ```go
 config := hooks.MeshtasticHookConfig{
-    PrometheusAddr: ":8101",        // Адрес Prometheus метрик
+    PrometheusAddr: ":8100",        // Адрес Prometheus метрик
     TopicPrefix:    "msh/",         // Префикс MQTT топиков
     EnableHealth:   true,           // Включить /health endpoint
 }
@@ -48,7 +48,7 @@ config := hooks.MeshtasticHookConfig{
 ### Полная конфигурация
 ```go
 config := hooks.MeshtasticHookConfig{
-    PrometheusAddr: ":8101",
+    PrometheusAddr: ":8100",
     TopicPrefix:    "msh/",
     EnableHealth:   true,
     MetricsTTL:     30 * time.Minute,

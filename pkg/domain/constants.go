@@ -16,6 +16,8 @@ const (
 	MetricUptime       = "meshtastic_uptime_seconds"
 	MetricNodeLastSeen = "meshtastic_node_last_seen_timestamp"
 	MetricNodeInfo     = "meshtastic_node_info"
+	MetricRSSI         = "meshtastic_rssi_dbm"
+	MetricSNR          = "meshtastic_snr_db"
 
 	DefaultStateSaveInterval = 5 * time.Minute
 	StateFilePermissions     = 0600

@@ -20,7 +20,7 @@ mqtt:
 
 prometheus:
   enabled: true
-  port: 8101
+  port: 8100
   topic:
     prefix: "msh/"
 ```

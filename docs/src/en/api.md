@@ -3,10 +3,12 @@
 ## Endpoints
 
 ### Prometheus Metrics
+
 - **GET** `/metrics` - Returns metrics in Prometheus format
 - **GET** `/health` - Health check endpoint
 
-### AlertManager Webhook  
+### AlertManager Webhook
+
 - **POST** `/alerts/webhook` - Accepts alerts from AlertManager
 
 ## OpenAPI Specification
@@ -14,6 +16,7 @@
 Full API specification is available in [api/openapi.yaml](../../api/openapi.yaml).
 
 To view:
+
 ```bash
 # Swagger UI
 docker run -p 8080:8080 -e SWAGGER_JSON=/api/openapi.yaml -v $(pwd)/api:/api swaggerapi/swagger-ui
@@ -25,11 +28,13 @@ npx redoc-cli serve api/openapi.yaml
 ## Usage Examples
 
 ### Get Metrics
+
 ```bash
 curl http://localhost:8100/metrics
 ```
 
 Example response:
+
 ```
 # HELP meshtastic_battery_level_percent Battery level percentage
 # TYPE meshtastic_battery_level_percent gauge
@@ -53,11 +58,13 @@ meshtastic_node_last_seen_timestamp{node_id="12345678",node_name="Node1"} 164099
 ```
 
 ### Health Check
+
 ```bash
 curl http://localhost:8100/health
 ```
 
 Example response:
+
 ```json
 {
   "status": "ok",
@@ -73,6 +80,7 @@ Example response:
 ```
 
 ### Send Alert
+
 ```bash
 curl -X POST http://localhost:8100/alerts/webhook \
   -H "Content-Type: application/json" \
@@ -96,22 +104,22 @@ curl -X POST http://localhost:8100/alerts/webhook \
 
 ### Core Metrics
 
-| Metric | Type | Description | Labels |
-|--------|------|-------------|--------|
-| `meshtastic_battery_level_percent` | gauge | Battery level percentage | `node_id`, `node_name` |
-| `meshtastic_temperature_celsius` | gauge | Temperature in Celsius | `node_id`, `node_name` |
-| `meshtastic_humidity_percent` | gauge | Humidity percentage | `node_id`, `node_name` |
-| `meshtastic_pressure_hpa` | gauge | Barometric pressure in hPa | `node_id`, `node_name` |
+| Metric                                | Type  | Description                     | Labels                 |
+|---------------------------------------|-------|---------------------------------|------------------------|
+| `meshtastic_battery_level_percent`    | gauge | Battery level percentage        | `node_id`, `node_name` |
+| `meshtastic_temperature_celsius`      | gauge | Temperature in Celsius          | `node_id`, `node_name` |
+| `meshtastic_humidity_percent`         | gauge | Humidity percentage             | `node_id`, `node_name` |
+| `meshtastic_pressure_hpa`             | gauge | Barometric pressure in hPa      | `node_id`, `node_name` |
 | `meshtastic_node_last_seen_timestamp` | gauge | Unix timestamp of last activity | `node_id`, `node_name` |
 
 ### System Metrics
 
-| Metric | Type | Description |
-|--------|------|-------------|
-| `meshtastic_exporter_messages_total` | counter | Total processed messages |
-| `meshtastic_exporter_errors_total` | counter | Total errors |
-| `meshtastic_exporter_active_nodes` | gauge | Number of active nodes |
-| `meshtastic_exporter_uptime_seconds` | gauge | Exporter uptime in seconds |
+| Metric                               | Type    | Description                |
+|--------------------------------------|---------|----------------------------|
+| `meshtastic_exporter_messages_total` | counter | Total processed messages   |
+| `meshtastic_exporter_errors_total`   | counter | Total errors               |
+| `meshtastic_exporter_active_nodes`   | gauge   | Number of active nodes     |
+| `meshtastic_exporter_uptime_seconds` | gauge   | Exporter uptime in seconds |
 
 ## AlertManager Webhook
 
@@ -165,7 +173,9 @@ curl -X POST http://localhost:8100/alerts/webhook \
   "details": {
     "channel": "LongFast",
     "mode": "broadcast",
-    "target_nodes": ["ffffffff"],
+    "target_nodes": [
+      "ffffffff"
+    ],
     "message_sent": "🚨 NodeDown: Node is offline"
   }
 }
@@ -173,13 +183,13 @@ curl -X POST http://localhost:8100/alerts/webhook \
 
 ## Error Codes
 
-| Code | Description |
-|------|-------------|
-| 200 | Successful request |
-| 400 | Bad request format |
-| 404 | Endpoint not found |
-| 500 | Internal server error |
-| 503 | Service unavailable |
+| Code | Description           |
+|------|-----------------------|
+| 200  | Successful request    |
+| 400  | Bad request format    |
+| 404  | Endpoint not found    |
+| 500  | Internal server error |
+| 503  | Service unavailable   |
 
 ## Integration Examples
 
@@ -190,7 +200,7 @@ curl -X POST http://localhost:8100/alerts/webhook \
 scrape_configs:
   - job_name: 'meshtastic'
     static_configs:
-      - targets: ['localhost:8100']
+      - targets: [ 'localhost:8100' ]
     scrape_interval: 30s
     metrics_path: /metrics
 ```
@@ -232,21 +242,21 @@ scrape_configs:
 ```yaml
 # meshtastic.rules.yml
 groups:
-- name: meshtastic
-  rules:
-  - alert: NodeOffline
-    expr: (time() - meshtastic_node_last_seen_timestamp) > 600
-    for: 5m
-    labels:
-      severity: warning
-    annotations:
-      summary: "Node {{ $labels.node_name }} is offline"
-      
-  - alert: LowBattery
-    expr: meshtastic_battery_level_percent < 20
-    for: 2m
-    labels:
-      severity: critical
-    annotations:
-      summary: "Low battery: {{ $labels.node_name }} ({{ $value }}%)"
+  - name: meshtastic
+    rules:
+      - alert: NodeOffline
+        expr: (time() - meshtastic_node_last_seen_timestamp) > 600
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Node {{ $labels.node_name }} is offline"
+
+      - alert: LowBattery
+        expr: meshtastic_battery_level_percent < 20
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Low battery: {{ $labels.node_name }} ({{ $value }}%)"
 ```

@@ -226,8 +226,8 @@ sudo journalctl -u mqtt-exporter --since "2024-01-01 10:00:00"
 #!/bin/bash
 # /usr/local/bin/mqtt-exporter-health.sh
 
-HEALTH_URL="http://localhost:8101/health"
-METRICS_URL="http://localhost:8101/metrics"
+HEALTH_URL="http://localhost:8100/health"
+METRICS_URL="http://localhost:8100/metrics"
 
 # Проверка health endpoint
 if ! curl -f -s $HEALTH_URL > /dev/null; then
@@ -363,8 +363,8 @@ sudo ufw status
 sudo iptables -L
 
 # Тестирование подключения
-curl http://localhost:8101/health
-curl http://localhost:8101/metrics
+curl http://localhost:8100/health
+curl http://localhost:8100/metrics
 ```
 
 ## Удаление

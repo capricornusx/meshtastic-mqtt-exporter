@@ -13,7 +13,7 @@ services:
     image: ghcr.io/capricornusx/meshtastic-mqtt-exporter:latest
     ports:
       - "1883:1883"
-      - "8101:8101"
+      - "8100:8100"
       - "8080:8080"
     volumes:
       - ./config.yaml:/config.yaml
@@ -79,7 +79,7 @@ rule_files:
 scrape_configs:
   - job_name: 'meshtastic'
     static_configs:
-      - targets: ['mqtt-exporter:8101']
+      - targets: ['mqtt-exporter:8100']
     scrape_interval: 30s
     metrics_path: /metrics
 
@@ -223,7 +223,7 @@ data:
       allow_anonymous: true
     prometheus:
       enabled: true
-      port: 8101
+      port: 8100
       topic:
         prefix: "msh/"
     alertmanager:
@@ -258,7 +258,7 @@ spec:
         ports:
         - containerPort: 1883
           name: mqtt
-        - containerPort: 8101
+        - containerPort: 8100
           name: metrics
         - containerPort: 8080
           name: webhook
@@ -294,8 +294,8 @@ spec:
     port: 1883
     targetPort: 1883
   - name: metrics
-    port: 8101
-    targetPort: 8101
+    port: 8100
+    targetPort: 8100
   - name: webhook
     port: 8080
     targetPort: 8080
@@ -426,7 +426,7 @@ if [ -f /var/lib/mqtt-exporter/meshtastic_state.json ]; then
 fi
 
 # Export metrics
-curl -s http://localhost:8101/metrics > "$BACKUP_DIR/metrics_$DATE.txt"
+curl -s http://localhost:8100/metrics > "$BACKUP_DIR/metrics_$DATE.txt"
 
 # Clean old backups (older than 30 days)
 find "$BACKUP_DIR" -name "*.yaml" -o -name "*.json" -o -name "*.txt" | \
@@ -452,7 +452,7 @@ sensor:
         query: 'avg(meshtastic_battery_level_percent)'
 
   - platform: rest
-    resource: http://localhost:8101/health
+    resource: http://localhost:8100/health
     name: "MQTT Exporter Status"
     value_template: "{{ value_json.status }}"
 

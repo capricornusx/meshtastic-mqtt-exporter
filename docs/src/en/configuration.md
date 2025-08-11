@@ -6,7 +6,7 @@
 
 ```go
 hook := hooks.NewMeshtasticHook(hooks.MeshtasticHookConfig{
-    PrometheusAddr: ":8101",
+    PrometheusAddr: ":8100",
     TopicPrefix:    "msh/",
     MetricsTTL:     30 * time.Minute,
 })
@@ -105,7 +105,7 @@ alertmanager:
 |--------|------|---------|-------------|
 | `enabled` | bool | `true` | Enable Prometheus metrics |
 | `host` | string | `0.0.0.0` | Metrics server host |
-| `port` | int | `8101` | Metrics server port |
+| `port` | int | `8100` | Metrics server port |
 | `metrics_ttl` | string | `30m` | Time to keep inactive node metrics |
 | `topic.pattern` | string | `msh/#` | MQTT topic pattern (supports wildcards + and #) |
 | `state.enabled` | bool | `false` | Enable state persistence |
@@ -301,12 +301,12 @@ sudo systemctl start meshtastic-exporter
 
 ### Health Check
 ```bash
-curl http://localhost:8101/health
+curl http://localhost:8100/health
 ```
 
 ### Metrics
 ```bash
-curl http://localhost:8101/metrics
+curl http://localhost:8100/metrics
 ```
 
 ### Test Alert

@@ -20,7 +20,7 @@ wget https://github.com/capricornusx/meshtastic-mqtt-exporter/releases/latest/do
 ./mqtt-exporter-linux-amd64 --config config.yaml
 
 # Проверить метрики
-curl http://localhost:8101/metrics
+curl http://localhost:8100/metrics
 ```
 
 ## Режимы работы
@@ -33,7 +33,7 @@ curl http://localhost:8101/metrics
 ### 2. mochi-mqtt хук
 ```go
 hook := hooks.NewMeshtasticHook(hooks.MeshtasticHookConfig{
-    PrometheusAddr: ":8101",
+    PrometheusAddr: ":8100",
     EnableHealth:   true,
     TopicPrefix:    "msh/",
 })

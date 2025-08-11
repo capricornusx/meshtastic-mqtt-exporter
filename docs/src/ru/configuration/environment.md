@@ -10,7 +10,7 @@
 | `MQTT_ALLOW_ANONYMOUS` | Анонимные подключения | bool | `true` |
 | `PROMETHEUS_ENABLED` | Включить метрики | bool | `true` |
 | `PROMETHEUS_HOST` | Хост сервера метрик | string | `0.0.0.0` |
-| `PROMETHEUS_PORT` | Порт сервера метрик | int | `8101` |
+| `PROMETHEUS_PORT` | Порт сервера метрик | int | `8100` |
 | `ALERTMANAGER_ENABLED` | Включить AlertManager | bool | `false` |
 | `ALERTMANAGER_PORT` | Порт webhook сервера | int | `8080` |
 | `LOG_LEVEL` | Уровень логирования | string | `info` |
@@ -24,7 +24,7 @@ MQTT_PORT=1883
 MQTT_ALLOW_ANONYMOUS=true
 
 PROMETHEUS_ENABLED=true
-PROMETHEUS_PORT=8101
+PROMETHEUS_PORT=8100
 
 ALERTMANAGER_ENABLED=false
 ALERTMANAGER_PORT=8080
@@ -39,7 +39,7 @@ LOG_LEVEL=info
 docker run --env-file .env ghcr.io/capricornusx/meshtastic-mqtt-exporter:latest
 
 # Прямое указание переменных
-docker run -e MQTT_HOST=0.0.0.0 -e PROMETHEUS_PORT=8101 \
+docker run -e MQTT_HOST=0.0.0.0 -e PROMETHEUS_PORT=8100 \
   ghcr.io/capricornusx/meshtastic-mqtt-exporter:latest
 ```
 

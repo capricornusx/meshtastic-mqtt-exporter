@@ -42,7 +42,7 @@ mqtt:
 
 prometheus:
   enabled: true
-  port: 8101
+  port: 8100
   topic:
     pattern: "msh/#"  # Паттерн MQTT топиков с поддержкой wildcards
 
@@ -70,13 +70,13 @@ alertmanager:
 ### Метрики Prometheus
 
 ```bash
-curl http://localhost:8101/metrics
+curl http://localhost:8100/metrics
 ```
 
 ### Health check
 
 ```bash
-curl http://localhost:8101/health
+curl http://localhost:8100/health
 ```
 
 ### Логи
@@ -111,7 +111,7 @@ meshtastic --set mqtt.encryption_enabled false
 
 ```bash
 # Запуск с Docker
-docker run -p 1883:1883 -p 8101:8101 -v $(pwd)/config.yaml:/config.yaml \
+docker run -p 1883:1883 -p 8100:8100 -v $(pwd)/config.yaml:/config.yaml \
   ghcr.io/capricornusx/meshtastic-mqtt-exporter:latest --config /config.yaml
 ```
 
@@ -151,7 +151,8 @@ sudo systemctl start mqtt-exporter-embedded
 scrape_configs:
   - job_name: 'meshtastic'
     static_configs:
-      - targets: ['localhost:8101']
+      - targets: ['localhost:8100']
 ```
 
 2. Перезапустите Prometheus: `sudo systemctl restart prometheus`
+

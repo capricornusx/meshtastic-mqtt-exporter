@@ -18,15 +18,15 @@ rule_files:
 scrape_configs:
   - job_name: 'meshtastic-exporter'
     static_configs:
-      - targets: ['localhost:8101']
+      - targets: [ 'localhost:8100' ]
     scrape_interval: 30s
     scrape_timeout: 10s
     metrics_path: /metrics
     honor_labels: true
-    
+
   - job_name: 'meshtastic-exporter-health'
     static_configs:
-      - targets: ['localhost:8101']
+      - targets: [ 'localhost:8100' ]
     metrics_path: /health
     scrape_interval: 60s
 
@@ -34,36 +34,36 @@ alerting:
   alertmanagers:
     - static_configs:
         - targets:
-          - localhost:9093
+            - localhost:9093
 ```
 
 ## Доступные метрики
 
 ### Основные метрики узлов
 
-| Метрика | Тип | Описание | Лейблы |
-|---------|-----|----------|--------|
-| `meshtastic_battery_level_percent` | gauge | Уровень заряда батареи (%) | `node_id`, `node_name` |
-| `meshtastic_temperature_celsius` | gauge | Температура (°C) | `node_id`, `node_name` |
-| `meshtastic_humidity_percent` | gauge | Влажность (%) | `node_id`, `node_name` |
-| `meshtastic_pressure_hpa` | gauge | Давление (hPa) | `node_id`, `node_name` |
+| Метрика                               | Тип   | Описание                                    | Лейблы                 |
+|---------------------------------------|-------|---------------------------------------------|------------------------|
+| `meshtastic_battery_level_percent`    | gauge | Уровень заряда батареи (%)                  | `node_id`, `node_name` |
+| `meshtastic_temperature_celsius`      | gauge | Температура (°C)                            | `node_id`, `node_name` |
+| `meshtastic_humidity_percent`         | gauge | Влажность (%)                               | `node_id`, `node_name` |
+| `meshtastic_pressure_hpa`             | gauge | Давление (hPa)                              | `node_id`, `node_name` |
 | `meshtastic_node_last_seen_timestamp` | gauge | Время последней активности (Unix timestamp) | `node_id`, `node_name` |
 
 ### Метрики качества сигнала
 
-| Метрика | Тип | Описание | Лейблы |
-|---------|-----|----------|--------|
-| `meshtastic_snr_db` | gauge | Отношение сигнал/шум (dB) | `node_id`, `node_name`, `from_node` |
-| `meshtastic_rssi_dbm` | gauge | Мощность сигнала (dBm) | `node_id`, `node_name`, `from_node` |
-| `meshtastic_hop_limit` | gauge | Лимит переходов | `node_id`, `node_name` |
+| Метрика                | Тип   | Описание                  | Лейблы                              |
+|------------------------|-------|---------------------------|-------------------------------------|
+| `meshtastic_snr_db`    | gauge | Отношение сигнал/шум (dB) | `node_id`, `node_name`, `from_node` |
+| `meshtastic_rssi_dbm`  | gauge | Мощность сигнала (dBm)    | `node_id`, `node_name`, `from_node` |
+| `meshtastic_hop_limit` | gauge | Лимит переходов           | `node_id`, `node_name`              |
 
 ### Системные метрики
 
-| Метрика | Тип | Описание | Лейблы |
-|---------|-----|----------|--------|
+| Метрика                               | Тип     | Описание                                | Лейблы                  |
+|---------------------------------------|---------|-----------------------------------------|-------------------------|
 | `meshtastic_messages_processed_total` | counter | Общее количество обработанных сообщений | `topic`, `message_type` |
-| `meshtastic_nodes_active` | gauge | Количество активных узлов | - |
-| `meshtastic_exporter_uptime_seconds` | gauge | Время работы экспортера (секунды) | - |
+| `meshtastic_nodes_active`             | gauge   | Количество активных узлов               | -                       |
+| `meshtastic_exporter_uptime_seconds`  | gauge   | Время работы экспортера (секунды)       | -                       |
 
 ## Правила алертов
 
@@ -72,25 +72,25 @@ alerting:
 ```yaml
 # /etc/prometheus/rules/meshtastic-basic.yml
 groups:
-- name: meshtastic.basic
-  rules:
-  - alert: MeshtasticExporterDown
-    expr: up{job="meshtastic-exporter"} == 0
-    for: 1m
-    labels:
-      severity: critical
-    annotations:
-      summary: "Meshtastic экспортер недоступен"
-      description: "Экспортер не отвечает более 1 минуты"
+  - name: meshtastic.basic
+    rules:
+      - alert: MeshtasticExporterDown
+        expr: up{job="meshtastic-exporter"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Meshtastic экспортер недоступен"
+          description: "Экспортер не отвечает более 1 минуты"
 
-  - alert: NoActiveNodes
-    expr: meshtastic_nodes_active == 0
-    for: 5m
-    labels:
-      severity: warning
-    annotations:
-      summary: "Нет активных Meshtastic узлов"
-      description: "В сети нет активных узлов более 5 минут"
+      - alert: NoActiveNodes
+        expr: meshtastic_nodes_active == 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Нет активных Meshtastic узлов"
+          description: "В сети нет активных узлов более 5 минут"
 ```
 
 ### Правила для узлов
@@ -98,52 +98,52 @@ groups:
 ```yaml
 # /etc/prometheus/rules/meshtastic-nodes.yml
 groups:
-- name: meshtastic.nodes
-  rules:
-  - alert: NodeOffline
-    expr: (time() - meshtastic_node_last_seen_timestamp) > 1200
-    for: 5m
-    labels:
-      severity: warning
-    annotations:
-      summary: "Узел {{ $labels.node_name }} офлайн"
-      description: "Узел {{ $labels.node_name }} ({{ $labels.node_id }}) не отвечает {{ $value | humanizeDuration }}"
+  - name: meshtastic.nodes
+    rules:
+      - alert: NodeOffline
+        expr: (time() - meshtastic_node_last_seen_timestamp) > 1200
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Узел {{ $labels.node_name }} офлайн"
+          description: "Узел {{ $labels.node_name }} ({{ $labels.node_id }}) не отвечает {{ $value | humanizeDuration }}"
 
-  - alert: CriticalBatteryLevel
-    expr: meshtastic_battery_level_percent < 10
-    for: 1m
-    labels:
-      severity: critical
-    annotations:
-      summary: "Критически низкий заряд батареи"
-      description: "Заряд батареи узла {{ $labels.node_name }} составляет {{ $value }}%"
+      - alert: CriticalBatteryLevel
+        expr: meshtastic_battery_level_percent < 10
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Критически низкий заряд батареи"
+          description: "Заряд батареи узла {{ $labels.node_name }} составляет {{ $value }}%"
 
-  - alert: LowBatteryLevel
-    expr: meshtastic_battery_level_percent < 20
-    for: 5m
-    labels:
-      severity: warning
-    annotations:
-      summary: "Низкий заряд батареи"
-      description: "Заряд батареи узла {{ $labels.node_name }} составляет {{ $value }}%"
+      - alert: LowBatteryLevel
+        expr: meshtastic_battery_level_percent < 20
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Низкий заряд батареи"
+          description: "Заряд батареи узла {{ $labels.node_name }} составляет {{ $value }}%"
 
-  - alert: HighTemperature
-    expr: meshtastic_temperature_celsius > 60
-    for: 10m
-    labels:
-      severity: warning
-    annotations:
-      summary: "Высокая температура узла"
-      description: "Температура узла {{ $labels.node_name }} составляет {{ $value }}°C"
+      - alert: HighTemperature
+        expr: meshtastic_temperature_celsius > 60
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Высокая температура узла"
+          description: "Температура узла {{ $labels.node_name }} составляет {{ $value }}°C"
 
-  - alert: ExtremeTemperature
-    expr: meshtastic_temperature_celsius > 80 or meshtastic_temperature_celsius < -20
-    for: 2m
-    labels:
-      severity: critical
-    annotations:
-      summary: "Экстремальная температура узла"
-      description: "Температура узла {{ $labels.node_name }} составляет {{ $value }}°C"
+      - alert: ExtremeTemperature
+        expr: meshtastic_temperature_celsius > 80 or meshtastic_temperature_celsius < -20
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Экстремальная температура узла"
+          description: "Температура узла {{ $labels.node_name }} составляет {{ $value }}°C"
 ```
 
 ### Правила качества сигнала
@@ -151,34 +151,34 @@ groups:
 ```yaml
 # /etc/prometheus/rules/meshtastic-signal.yml
 groups:
-- name: meshtastic.signal
-  rules:
-  - alert: PoorSignalQuality
-    expr: meshtastic_snr_db < -10
-    for: 15m
-    labels:
-      severity: info
-    annotations:
-      summary: "Плохое качество сигнала"
-      description: "SNR между {{ $labels.node_name }} и {{ $labels.from_node }} составляет {{ $value }} dB"
+  - name: meshtastic.signal
+    rules:
+      - alert: PoorSignalQuality
+        expr: meshtastic_snr_db < -10
+        for: 15m
+        labels:
+          severity: info
+        annotations:
+          summary: "Плохое качество сигнала"
+          description: "SNR между {{ $labels.node_name }} и {{ $labels.from_node }} составляет {{ $value }} dB"
 
-  - alert: VeryPoorSignalQuality
-    expr: meshtastic_snr_db < -15
-    for: 5m
-    labels:
-      severity: warning
-    annotations:
-      summary: "Очень плохое качество сигнала"
-      description: "SNR между {{ $labels.node_name }} и {{ $labels.from_node }} составляет {{ $value }} dB"
+      - alert: VeryPoorSignalQuality
+        expr: meshtastic_snr_db < -15
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Очень плохое качество сигнала"
+          description: "SNR между {{ $labels.node_name }} и {{ $labels.from_node }} составляет {{ $value }} dB"
 
-  - alert: WeakSignalStrength
-    expr: meshtastic_rssi_dbm < -120
-    for: 10m
-    labels:
-      severity: info
-    annotations:
-      summary: "Слабый сигнал"
-      description: "RSSI между {{ $labels.node_name }} и {{ $labels.from_node }} составляет {{ $value }} dBm"
+      - alert: WeakSignalStrength
+        expr: meshtastic_rssi_dbm < -120
+        for: 10m
+        labels:
+          severity: info
+        annotations:
+          summary: "Слабый сигнал"
+          description: "RSSI между {{ $labels.node_name }} и {{ $labels.from_node }} составляет {{ $value }} dBm"
 ```
 
 ## Запросы PromQL
@@ -300,29 +300,29 @@ datasources:
 ```yaml
 # /etc/prometheus/rules/meshtastic-recording.yml
 groups:
-- name: meshtastic.recording
-  interval: 30s
-  rules:
-  - record: meshtastic:nodes_active
-    expr: count(meshtastic_node_last_seen_timestamp)
+  - name: meshtastic.recording
+    interval: 30s
+    rules:
+      - record: meshtastic:nodes_active
+        expr: count(meshtastic_node_last_seen_timestamp)
 
-  - record: meshtastic:battery_avg
-    expr: avg(meshtastic_battery_level_percent)
+      - record: meshtastic:battery_avg
+        expr: avg(meshtastic_battery_level_percent)
 
-  - record: meshtastic:battery_min
-    expr: min(meshtastic_battery_level_percent)
+      - record: meshtastic:battery_min
+        expr: min(meshtastic_battery_level_percent)
 
-  - record: meshtastic:temperature_avg
-    expr: avg(meshtastic_temperature_celsius)
+      - record: meshtastic:temperature_avg
+        expr: avg(meshtastic_temperature_celsius)
 
-  - record: meshtastic:temperature_max
-    expr: max(meshtastic_temperature_celsius)
+      - record: meshtastic:temperature_max
+        expr: max(meshtastic_temperature_celsius)
 
-  - record: meshtastic:messages_rate_5m
-    expr: rate(meshtastic_messages_processed_total[5m])
+      - record: meshtastic:messages_rate_5m
+        expr: rate(meshtastic_messages_processed_total[5m])
 
-  - record: meshtastic:nodes_offline
-    expr: count((time() - meshtastic_node_last_seen_timestamp) > 1200)
+      - record: meshtastic:nodes_offline
+        expr: count((time() - meshtastic_node_last_seen_timestamp) > 1200)
 ```
 
 ## Retention и Storage
@@ -386,16 +386,19 @@ avg by (node_id) (meshtastic_temperature_celsius)
 ### Отсутствующие метрики
 
 1. Проверьте статус экспортера:
+
 ```bash
-curl http://localhost:8101/health
+curl http://localhost:8100/health
 ```
 
 2. Проверьте доступность метрик:
+
 ```bash
-curl http://localhost:8101/metrics | grep meshtastic
+curl http://localhost:8100/metrics | grep meshtastic
 ```
 
 3. Проверьте конфигурацию Prometheus:
+
 ```bash
 curl http://localhost:9090/api/v1/targets
 ```
@@ -403,16 +406,19 @@ curl http://localhost:9090/api/v1/targets
 ### Проблемы с производительностью
 
 1. Мониторинг времени scrape:
+
 ```promql
 prometheus_target_scrape_duration_seconds{job="meshtastic-exporter"}
 ```
 
 2. Проверка размера ответа:
+
 ```promql
 prometheus_target_scrape_samples_scraped{job="meshtastic-exporter"}
 ```
 
 3. Оптимизация интервала сбора:
+
 ```yaml
 scrape_configs:
   - job_name: 'meshtastic-exporter'

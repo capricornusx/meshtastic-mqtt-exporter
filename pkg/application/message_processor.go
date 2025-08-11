@@ -118,6 +118,17 @@ func (p *MeshtasticProcessor) processTelemetry(nodeID string, payload map[string
 		Timestamp: time.Now(),
 	}
 
+	p.extractTelemetryFields(&data, payload)
+	return p.collector.CollectTelemetry(data)
+}
+
+func (p *MeshtasticProcessor) extractTelemetryFields(data *domain.TelemetryData, payload map[string]interface{}) {
+	p.extractBasicFields(data, payload)
+	p.extractEnvironmentalFields(data, payload)
+	p.extractNetworkFields(data, payload)
+}
+
+func (p *MeshtasticProcessor) extractBasicFields(data *domain.TelemetryData, payload map[string]interface{}) {
 	if val, ok := payload["battery_level"].(float64); ok {
 		data.BatteryLevel = &val
 	}
@@ -125,6 +136,12 @@ func (p *MeshtasticProcessor) processTelemetry(nodeID string, payload map[string
 		rounded := roundToTwoDecimals(val)
 		data.Voltage = &rounded
 	}
+	if val, ok := payload["uptime_seconds"].(float64); ok {
+		data.UptimeSeconds = &val
+	}
+}
+
+func (p *MeshtasticProcessor) extractEnvironmentalFields(data *domain.TelemetryData, payload map[string]interface{}) {
 	if val, ok := payload["temperature"].(float64); ok {
 		rounded := roundToTwoDecimals(val)
 		data.Temperature = &rounded
@@ -137,6 +154,9 @@ func (p *MeshtasticProcessor) processTelemetry(nodeID string, payload map[string
 		rounded := roundToTwoDecimals(val)
 		data.BarometricPressure = &rounded
 	}
+}
+
+func (p *MeshtasticProcessor) extractNetworkFields(data *domain.TelemetryData, payload map[string]interface{}) {
 	if val, ok := payload["channel_utilization"].(float64); ok {
 		rounded := roundToTwoDecimals(val)
 		data.ChannelUtilization = &rounded
@@ -145,11 +165,12 @@ func (p *MeshtasticProcessor) processTelemetry(nodeID string, payload map[string
 		rounded := roundToTwoDecimals(val)
 		data.AirUtilTx = &rounded
 	}
-	if val, ok := payload["uptime_seconds"].(float64); ok {
-		data.UptimeSeconds = &val
+	if val, ok := payload["rssi"].(float64); ok {
+		data.RSSI = &val
 	}
-
-	return p.collector.CollectTelemetry(data)
+	if val, ok := payload["snr"].(float64); ok {
+		data.SNR = &val
+	}
 }
 
 func (p *MeshtasticProcessor) processNodeInfo(nodeID string, payload map[string]interface{}) error {

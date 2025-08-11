@@ -18,6 +18,8 @@ type TelemetryData struct {
 	ChannelUtilization *float64
 	AirUtilTx          *float64
 	UptimeSeconds      *float64
+	RSSI               *float64
+	SNR                *float64
 	Timestamp          time.Time
 }
 

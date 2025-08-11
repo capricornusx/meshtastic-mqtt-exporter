@@ -177,7 +177,7 @@ if [ -f /var/lib/mqtt-exporter/meshtastic_state.json ]; then
 fi
 
 # Экспорт метрик
-curl -s http://localhost:8101/metrics > "$BACKUP_DIR/metrics_$DATE.txt"
+curl -s http://localhost:8100/metrics > "$BACKUP_DIR/metrics_$DATE.txt"
 
 # Очистка старых резервных копий (старше 30 дней)
 find "$BACKUP_DIR" -name "*.yaml" -o -name "*.json" -o -name "*.txt" | \
@@ -203,7 +203,7 @@ sensor:
         query: 'avg(meshtastic_battery_level_percent)'
 
   - platform: rest
-    resource: http://localhost:8101/health
+    resource: http://localhost:8100/health
     name: "MQTT Exporter Status"
     value_template: "{{ value_json.status }}"
 
@@ -326,10 +326,10 @@ if __name__ == "__main__":
 # test_metrics.sh
 
 echo "Проверка доступности сервиса..."
-curl -f http://localhost:8101/health || exit 1
+curl -f http://localhost:8100/health || exit 1
 
 echo "Проверка метрик..."
-METRICS=$(curl -s http://localhost:8101/metrics)
+METRICS=$(curl -s http://localhost:8100/metrics)
 
 if echo "$METRICS" | grep -q "meshtastic_"; then
     echo "✅ Метрики Meshtastic найдены"

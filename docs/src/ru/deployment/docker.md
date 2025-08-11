@@ -4,11 +4,11 @@
 
 ```bash
 # Простой запуск
-docker run -p 1883:1883 -p 8101:8101 \
+docker run -p 1883:1883 -p 8100:8100 \
   ghcr.io/capricornusx/meshtastic-mqtt-exporter:latest
 
 # С конфигурационным файлом
-docker run -p 1883:1883 -p 8101:8101 \
+docker run -p 1883:1883 -p 8100:8100 \
   -v $(pwd)/config.yaml:/config.yaml \
   ghcr.io/capricornusx/meshtastic-mqtt-exporter:latest --config /config.yaml
 ```
@@ -26,7 +26,7 @@ services:
     image: ghcr.io/capricornusx/meshtastic-mqtt-exporter:latest
     ports:
       - "1883:1883"
-      - "8101:8101"
+      - "8100:8100"
     volumes:
       - ./config.yaml:/config.yaml
     command: --config /config.yaml
@@ -44,7 +44,7 @@ services:
     image: ghcr.io/capricornusx/meshtastic-mqtt-exporter:latest
     ports:
       - "1883:1883"
-      - "8101:8101"
+      - "8100:8100"
       - "8080:8080"
     volumes:
       - ./config.yaml:/config.yaml
@@ -112,7 +112,7 @@ rule_files:
 scrape_configs:
   - job_name: 'meshtastic'
     static_configs:
-      - targets: ['mqtt-exporter:8101']
+      - targets: ['mqtt-exporter:8100']
     scrape_interval: 30s
     metrics_path: /metrics
 
@@ -249,10 +249,10 @@ secrets:
 docker-compose exec mqtt-exporter netstat -tlnp
 
 # Проверка метрик
-curl http://localhost:8101/metrics
+curl http://localhost:8100/metrics
 
 # Проверка health
-curl http://localhost:8101/health
+curl http://localhost:8100/health
 ```
 
 ### Логи
