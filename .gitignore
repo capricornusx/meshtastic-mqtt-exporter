@@ -116,3 +116,5 @@ go.work.sum
 # env file
 .env
 dist/
+sonar-project.properties
+.out

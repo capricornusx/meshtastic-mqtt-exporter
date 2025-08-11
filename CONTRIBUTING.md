@@ -30,9 +30,3 @@ make test  # Run tests
 4. Add tests if applicable
 5. Submit a pull request
 
-## Architecture
-
-- `pkg/exporter/` - Core exporter logic
-- `pkg/hooks/` - Mochi-MQTT hooks
-- `main.go` - Standalone version
-- `cmd/embedded-hook/` - Embedded MQTT broker with Prometheus hook

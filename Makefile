@@ -1,50 +1,77 @@
-BINARY_NAME=mqtt-exporter
-EMBEDDED_BINARY=mqtt-exporter-embedded
+EMBEDDED_BINARY=embedded-hook
+STANDALONE_BINARY=standalone
+EXAMPLE_BINARY=mochi-mqtt-integration
+TIMEOUT?=30
 
-.PHONY: build build-hook clean deps lint test docker run build-rpi build-rpi-arm64 build-rpi-arm32 release-check release-test release-build
+.PHONY: build build-all build-embedded build-standalone build-example build-linux build-linux-amd64 build-linux-arm64 clean deps lint test test-unit test-integration coverage docker release-check release-test release-build sonar-up sonar-scan
 
-build: build-standalone build-hook
+build: build-all
 
+build-all: build-embedded build-standalone build-example
+
+# Embedded mode with built-in MQTT broker
+build-embedded:
+	go build -o dist/$(EMBEDDED_BINARY) ./cmd/embedded-hook
+
+# Standalone mode for existing MQTT setups
 build-standalone:
-	go build -o $(BINARY_NAME) ./cmd/standalone
+	go build -o dist/$(STANDALONE_BINARY) ./cmd/standalone
 
-build-hook:
-	go build -o $(EMBEDDED_BINARY) ./cmd/embedded-hook
+# Example integration
+build-example:
+	cd docs/mochi-mqtt-integration && go build -o ../../dist/$(EXAMPLE_BINARY) .
 
+
+# Dependencies and cleanup
 deps:
 	go mod tidy
 	go mod download
 
 clean:
-	rm -f $(BINARY_NAME) $(EMBEDDED_BINARY)
+	rm -f $(EMBEDDED_BINARY) $(STANDALONE_BINARY) $(EXAMPLE_BINARY)
+	rm -f coverage.out coverage.html
+	rm -rf dist/ reports/
 
+# Code quality
 lint:
-	golangci-lint run
+	golangci-lint run --timeout=5m
 
-test:
-	go test -v ./...
+# Testing
+test: test-unit test-integration coverage-report
 
 test-unit:
-	go test -short -v ./...
+	timeout $(TIMEOUT) go test -v ./pkg/...
 
 test-integration:
-	go test -run Integration -v ./...
+	timeout $(TIMEOUT) go test -run Integration -v ./tests/...
 
 coverage:
-	go test -race -coverprofile=coverage.out -covermode=atomic ./...
-	go tool cover -html=coverage.out -o coverage.html
+	timeout $(TIMEOUT) go test -race -coverprofile=coverage.out -covermode=atomic ./...
+	timeout $(TIMEOUT) go tool cover -html=coverage.out -o coverage.html
 
 coverage-report: coverage
-	go tool cover -func=coverage.out
+	timeout $(TIMEOUT) go tool cover -func=coverage.out
 
+# Docker
 docker:
 	docker build -t meshtastic-exporter .
 
-run:
-	docker-compose up -d
+# Cross-compilation
+build-linux: build-linux-amd64 build-linux-arm64
 
-# GoReleaser commands
+build-linux-amd64:
+	mkdir -p dist
+	env GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o dist/$(EMBEDDED_BINARY)-linux-amd64 ./cmd/embedded-hook
+	env GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o dist/$(STANDALONE_BINARY)-linux-amd64 ./cmd/standalone
+
+build-linux-arm64:
+	mkdir -p dist
+	env GOOS=linux GOARCH=arm64 go build -ldflags="-s -w" -o dist/$(EMBEDDED_BINARY)-linux-arm64 ./cmd/embedded-hook
+	env GOOS=linux GOARCH=arm64 go build -ldflags="-s -w" -o dist/$(STANDALONE_BINARY)-linux-arm64 ./cmd/standalone
+
+# Release (requires goreleaser)
 release-check:
+	@which goreleaser > /dev/null || (echo "goreleaser not found. Install from https://goreleaser.com/install/" && exit 1)
 	SSH_PRIVATE_KEY="$$(cat ~/.ssh/github_sign 2>/dev/null || echo '')" goreleaser check
 
 release-test: release-check
@@ -53,11 +80,19 @@ release-test: release-check
 release-build: release-check
 	SSH_PRIVATE_KEY="$$(cat ~/.ssh/github_sign 2>/dev/null || echo '')" goreleaser build --snapshot --clean
 
-# Raspberry Pi builds
-build-rpi: build-rpi-arm64 build-rpi-arm32
+# SonarQube
+sonar-up:
+	@echo "Ожидание запуска SonarQube..."
+	@timeout 120 bash -c 'until curl -s http://192.168.1.77:9000/api/system/status | grep -q "UP"; do sleep 5; done' || echo "Таймаут ожидания SonarQube"
+	@echo "SonarQube доступен на http://192.168.1.77:9000"
 
-build-rpi-arm64:
-	GOOS=linux GOARCH=arm64 go build -o $(EMBEDDED_BINARY)-rpi-arm64 ./cmd/embedded-hook
+sonar-scan: sonar-up lint-reports coverage
+	./scripts/sonar-scan.sh
+	@sleep 1
+	rm -rf reports/ coverage.out coverage.html
 
-build-rpi-arm32:
-	GOOS=linux GOARCH=arm GOARM=7 go build -o $(EMBEDDED_BINARY)-rpi-arm32 ./cmd/embedded-hook
+lint-reports:
+	@echo "Генерация отчетов для SonarQube..."
+	@mkdir -p reports
+	@golangci-lint run --out-format checkstyle > reports/golint-report.xml 2>/dev/null || true
+	@go vet ./... 2> reports/govet-report.out || true

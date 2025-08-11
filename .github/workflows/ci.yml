@@ -6,6 +6,17 @@ on:
       - '**'
     branches:
       - '**'
+    paths:
+      - '**/*.go'
+      - 'go.mod'
+      - 'go.sum'
+      - '.golangci.yml'
+  pull_request:
+    paths:
+      - '**/*.go'
+      - 'go.mod'
+      - 'go.sum'
+      - '.golangci.yml'
 
 permissions:
   contents: read
@@ -33,11 +44,22 @@ jobs:
       - name: Test with coverage
         run: go test -v -race -coverprofile=coverage.txt -covermode=atomic ./...
 
+      - name: Integration tests
+        run: go test -v ./tests/ -timeout 30s
+
       - name: Upload results to Codecov
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           slug: capricornusx/meshtastic-mqtt-exporter
+
+      - name: Build examples
+        run: make build-examples
+
+      - name: Test examples compile
+        run: |
+          cd docs/mochi-mqtt-integration && go build .
+          cd ../with-alertmanager && go build .
 
       - name: Check GoReleaser config
         run: |

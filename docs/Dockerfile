@@ -1,12 +1,12 @@
-FROM alpine:latest
-RUN apk --no-cache add ca-certificates curl
-WORKDIR /app
-COPY mqtt-exporter-embedded .
-COPY config.yaml .
+FROM python:3.11-slim
 
-EXPOSE 8100 1883
+WORKDIR /docs
 
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-  CMD curl -f http://localhost:8100/health || exit 1
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
-CMD ["./mqtt-exporter-embedded", "--config", "config.yaml"]
+COPY . .
+
+EXPOSE 8000
+
+CMD ["mkdocs", "serve", "--dev-addr=0.0.0.0:8000"]

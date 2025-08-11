@@ -1,27 +1,57 @@
+logging:
+  level: "debug"  # debug, info, warn, error, fatal
+
 mqtt:
   host: 0.0.0.0
   port: 1883
-  username: "exporter"
-  password: "123"
   tls: false
   allow_anonymous: true
   users:
-    - username: "meshtastic"
-      password: "mesh456"
-    - username: "monitor"
-      password: "mon789"
     - username: "admin"
-      password: "admin000"
+      password: "admin"
+    - username: "monitor"
+      password: "monitor"
+  broker:
+    max_inflight: 50
+    max_queued: 1000
+    keep_alive: 60
 
-prometheus:
-  enabled: true
-  host: 0.0.0.0
-  port: 8100
-  metrics_ttl: "4m"
+# HTTP Hook Server (Prometheus + AlertManager)
+hook:
+  listen: "0.0.0.0:8100"
+  prometheus:
+    path: "/metrics"
+    metrics_ttl: "30m"
+    topic:
+      # Supports MQTT wildcards + and #
+      # "msh/+/+/+/+"     - точное соответствие структуре Meshtastic
+      # "msh/#"           - все сообщения начинающиеся с msh/
+      # "msh/+/json/+/+"  - только JSON сообщения
+      pattern: "msh/+/2/json/#"
+    debug:
+      log_all_messages: true  # Логировать все MQTT сообщения, соответствующие pattern
+    state:
+      file: "meshtastic_state.json"
+  alertmanager:
+    path: "/alerts/webhook"
+    # Default settings (fallback for unknown severities)
+    channel: "LongFast"
+    mode: "broadcast"
+    topics:
+      broadcast: "msh/2/c/%s/!broadcast"
+      direct: "msh/2/c/%s/!%s"
 
-state:
-  enabled: true
-  file: "meshtastic_state.json"
-
-topic:
-  prefix: "msh/"
+    # Severity-based routing
+    routing:
+      critical:
+        channel: "ShortFast"    # Fast delivery for critical alerts
+        mode: "broadcast"       # Send it to all nodes
+      warning:
+        channel: "LongFast"     # Balanced range/speed
+        mode: "direct"          # Send it to admins only
+        target_nodes:
+          - "admin001"
+          - "monitor02"
+      info:
+        channel: "LongSlow"     # Maximum range for info
+        mode: "broadcast"       # Send it to all nodes

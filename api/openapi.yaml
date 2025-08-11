@@ -1,0 +1,132 @@
+openapi: 3.0.3
+info:
+  title: Meshtastic MQTT Exporter API
+  description: API для экспорта метрик Meshtastic устройств в Prometheus и обработки AlertManager webhook'ов
+  version: 1.0.0
+  contact:
+    name: Meshtastic MQTT Exporter
+    url: https://github.com/capricornusx/meshtastic-mqtt-exporter
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:8100
+    description: Unified HTTP server (metrics, health, alerts)
+
+paths:
+  /metrics:
+    get:
+      summary: Prometheus метрики
+      description: Возвращает метрики Meshtastic устройств в формате Prometheus
+      tags:
+        - Metrics
+      responses:
+        '200':
+          description: Метрики в формате Prometheus
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: |
+                  # HELP meshtastic_battery_level_percent Battery level
+                  # TYPE meshtastic_battery_level_percent gauge
+                  meshtastic_battery_level_percent{node_id="123456789"} 85.5
+
+  /health:
+    get:
+      summary: Health check
+      description: Проверка состояния сервиса
+      tags:
+        - Health
+      responses:
+        '200':
+          description: Сервис работает
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  service:
+                    type: string
+                    example: "meshtastic-hook"
+                  status:
+                    type: string
+                    example: "ok"
+                  timestamp:
+                    type: integer
+                    example: 1691234567
+
+  /alerts/webhook:
+    post:
+      summary: AlertManager webhook
+      description: Принимает алерты от AlertManager и отправляет их в LoRa сеть
+      tags:
+        - Alerts
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AlertPayload'
+      responses:
+        '200':
+          description: Алерт успешно обработан
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "OK"
+        '400':
+          description: Неверный формат JSON
+        '405':
+          description: Метод не поддерживается
+
+components:
+  schemas:
+    AlertPayload:
+      type: object
+      required:
+        - alerts
+      properties:
+        alerts:
+          type: array
+          items:
+            $ref: '#/components/schemas/AlertItem'
+
+    AlertItem:
+      type: object
+      required:
+        - status
+        - labels
+      properties:
+        status:
+          type: string
+          enum: [firing, resolved]
+        labels:
+          type: object
+          additionalProperties:
+            type: string
+          properties:
+            alertname:
+              type: string
+            severity:
+              type: string
+              enum: [critical, warning, info]
+        annotations:
+          type: object
+          additionalProperties:
+            type: string
+          properties:
+            summary:
+              type: string
+            description:
+              type: string
+
+tags:
+  - name: Metrics
+    description: Prometheus метрики
+  - name: Health
+    description: Проверка состояния
+  - name: Alerts
+    description: Обработка алертов
