@@ -2,6 +2,28 @@ package domain
 
 import "time"
 
+var DeviceRoles = map[int]string{
+	0:  "client",
+	1:  "client_mute",
+	2:  "router",
+	3:  "router_client",
+	4:  "repeater",
+	5:  "tracker",
+	6:  "sensor",
+	7:  "tak",
+	8:  "client_hidden",
+	9:  "lost_and_found",
+	10: "tak_tracker",
+	11: "router_late",
+}
+
+func GetRoleName(role int) string {
+	if name, exists := DeviceRoles[role]; exists {
+		return name
+	}
+	return "unknown"
+}
+
 type MeshtasticMessage struct {
 	From    uint32                 `json:"from"`
 	Type    string                 `json:"type"`
