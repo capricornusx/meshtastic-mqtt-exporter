@@ -6,106 +6,13 @@
 
 ## Grafana Dashboard
 
-### Основная панель
+Готовые dashboard для Grafana доступны в [stack/grafana/dashboards/](../stack/grafana/dashboards/)
 
-```json
-{
-  "dashboard": {
-    "id": null,
-    "title": "Meshtastic Network Overview",
-    "tags": ["meshtastic", "lora"],
-    "timezone": "browser",
-    "panels": [
-      {
-        "id": 1,
-        "title": "Active Nodes",
-        "type": "stat",
-        "targets": [
-          {
-            "expr": "count(meshtastic_node_last_seen_timestamp)",
-            "legendFormat": "Active Nodes"
-          }
-        ],
-        "fieldConfig": {
-          "defaults": {
-            "color": {
-              "mode": "thresholds"
-            },
-            "thresholds": {
-              "steps": [
-                {"color": "red", "value": 0},
-                {"color": "yellow", "value": 1},
-                {"color": "green", "value": 3}
-              ]
-            }
-          }
-        },
-        "gridPos": {"h": 8, "w": 6, "x": 0, "y": 0}
-      },
-      {
-        "id": 2,
-        "title": "Battery Levels",
-        "type": "bargauge",
-        "targets": [
-          {
-            "expr": "meshtastic_battery_level_percent",
-            "legendFormat": "{{node_name}}"
-          }
-        ],
-        "fieldConfig": {
-          "defaults": {
-            "min": 0,
-            "max": 100,
-            "unit": "percent",
-            "thresholds": {
-              "steps": [
-                {"color": "red", "value": 0},
-                {"color": "yellow", "value": 20},
-                {"color": "green", "value": 50}
-              ]
-            }
-          }
-        },
-        "gridPos": {"h": 8, "w": 6, "x": 6, "y": 0}
-      },
-      {
-        "id": 3,
-        "title": "Temperature",
-        "type": "timeseries",
-        "targets": [
-          {
-            "expr": "meshtastic_temperature_celsius",
-            "legendFormat": "{{node_name}}"
-          }
-        ],
-        "fieldConfig": {
-          "defaults": {
-            "unit": "celsius"
-          }
-        },
-        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8}
-      },
-      {
-        "id": 4,
-        "title": "Network Map",
-        "type": "geomap",
-        "targets": [
-          {
-            "expr": "meshtastic_node_last_seen_timestamp",
-            "legendFormat": "{{node_name}}"
-          }
-        ],
-        "gridPos": {"h": 12, "w": 24, "x": 0, "y": 16}
-      }
-    ],
-    "time": {
-      "from": "now-1h",
-      "to": "now"
-    },
-    "refresh": "30s"
-  }
-}
-```
+**Основные панели:**
+- Active Nodes — количество активных узлов
+- Battery Levels — уровень заряда по узлам
+- Temperature Trends — температурные тренды
+- Network Map — карта сети
 
 ## Мониторинг и алерты
 

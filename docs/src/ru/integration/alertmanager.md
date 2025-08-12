@@ -14,6 +14,10 @@ AlertManager интеграция позволяет отправлять але
 - `webhook_configs.url: 'http://localhost:8080/alerts/webhook'` — endpoint для получения алертов
 - `send_resolved: true` — отправка уведомлений о восстановлении
 
+```yaml title="alertmanager.yml"
+--8<-- "stack/alertmanager/alertmanager.yml"
+```
+
 ## Конфигурация экспортера
 
 ### Базовая конфигурация

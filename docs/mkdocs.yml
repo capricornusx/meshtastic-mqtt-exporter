@@ -12,7 +12,7 @@ docs_dir: 'src'
 site_dir: 'site'
 
 theme:
-  name: material
+  name: readthedocs
   language: ru
   features:
     - navigation.tabs

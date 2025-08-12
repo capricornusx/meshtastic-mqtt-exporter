@@ -34,118 +34,17 @@
 
 ## Правила алертов
 
-### Базовые правила
+Готовые правила алертов доступны в [stack/alertmanager/meshtastic-alerts.yml](../stack/alertmanager/meshtastic-alerts.yml)
 
-```yaml
-# /etc/prometheus/rules/meshtastic-basic.yml
-groups:
-  - name: meshtastic.basic
-    rules:
-      - alert: MeshtasticExporterDown
-        expr: up{job="meshtastic-exporter"} == 0
-        for: 1m
-        labels:
-          severity: critical
-        annotations:
-          summary: "Meshtastic экспортер недоступен"
-          description: "Экспортер не отвечает более 1 минуты"
+**Включают алерты для:**
+- Обнаружения офлайн узлов
+- Мониторинга уровня батареи  
+- Контроля температуры
+- Проверки качества сигнала
+- Доступности сервиса
 
-      - alert: NoActiveNodes
-        expr: meshtastic_nodes_active == 0
-        for: 5m
-        labels:
-          severity: warning
-        annotations:
-          summary: "Нет активных Meshtastic узлов"
-          description: "В сети нет активных узлов более 5 минут"
-```
-
-### Правила для узлов
-
-```yaml
-# /etc/prometheus/rules/meshtastic-nodes.yml
-groups:
-  - name: meshtastic.nodes
-    rules:
-      - alert: NodeOffline
-        expr: (time() - meshtastic_node_last_seen_timestamp) > 1200
-        for: 5m
-        labels:
-          severity: warning
-        annotations:
-          summary: "Узел {{ $labels.node_name }} офлайн"
-          description: "Узел {{ $labels.node_name }} ({{ $labels.node_id }}) не отвечает {{ $value | humanizeDuration }}"
-
-      - alert: CriticalBatteryLevel
-        expr: meshtastic_battery_level_percent < 10
-        for: 1m
-        labels:
-          severity: critical
-        annotations:
-          summary: "Критически низкий заряд батареи"
-          description: "Заряд батареи узла {{ $labels.node_name }} составляет {{ $value }}%"
-
-      - alert: LowBatteryLevel
-        expr: meshtastic_battery_level_percent < 20
-        for: 5m
-        labels:
-          severity: warning
-        annotations:
-          summary: "Низкий заряд батареи"
-          description: "Заряд батареи узла {{ $labels.node_name }} составляет {{ $value }}%"
-
-      - alert: HighTemperature
-        expr: meshtastic_temperature_celsius > 60
-        for: 10m
-        labels:
-          severity: warning
-        annotations:
-          summary: "Высокая температура узла"
-          description: "Температура узла {{ $labels.node_name }} составляет {{ $value }}°C"
-
-      - alert: ExtremeTemperature
-        expr: meshtastic_temperature_celsius > 80 or meshtastic_temperature_celsius < -20
-        for: 2m
-        labels:
-          severity: critical
-        annotations:
-          summary: "Экстремальная температура узла"
-          description: "Температура узла {{ $labels.node_name }} составляет {{ $value }}°C"
-```
-
-### Правила качества сигнала
-
-```yaml
-# /etc/prometheus/rules/meshtastic-signal.yml
-groups:
-  - name: meshtastic.signal
-    rules:
-      - alert: PoorSignalQuality
-        expr: meshtastic_snr_db < -10
-        for: 15m
-        labels:
-          severity: info
-        annotations:
-          summary: "Плохое качество сигнала"
-          description: "SNR между {{ $labels.node_name }} и {{ $labels.from_node }} составляет {{ $value }} dB"
-
-      - alert: VeryPoorSignalQuality
-        expr: meshtastic_snr_db < -15
-        for: 5m
-        labels:
-          severity: warning
-        annotations:
-          summary: "Очень плохое качество сигнала"
-          description: "SNR между {{ $labels.node_name }} и {{ $labels.from_node }} составляет {{ $value }} dB"
-
-      - alert: WeakSignalStrength
-        expr: meshtastic_rssi_dbm < -120
-        for: 10m
-        labels:
-          severity: info
-        annotations:
-          summary: "Слабый сигнал"
-          description: "RSSI между {{ $labels.node_name }} и {{ $labels.from_node }} составляет {{ $value }} dBm"
+```yaml title="meshtastic-alerts.yml"
+--8<-- "stack/alertmanager/meshtastic-alerts.yml"
 ```
 
 ## Запросы PromQL
@@ -193,129 +92,18 @@ rate(meshtastic_messages_processed_total[1m]) * 60
 
 ## Grafana интеграция
 
-### Datasource конфигурация
+### Grafana конфигурация
 
-```yaml
-# grafana/provisioning/datasources/prometheus.yml
-apiVersion: 1
+Готовые конфигурации Grafana доступны в [stack/grafana/](../stack/grafana/)
 
-datasources:
-  - name: Prometheus
-    type: prometheus
-    access: proxy
-    url: http://prometheus:9090
-    isDefault: true
-    editable: true
-```
+## Конфигурация Prometheus
 
-### Основные панели
+Полная конфигурация Prometheus доступна в [stack/prometheus/prometheus.yml](../stack/prometheus/prometheus.yml)
 
-```json
-{
-  "dashboard": {
-    "title": "Meshtastic Network Overview",
-    "panels": [
-      {
-        "title": "Active Nodes",
-        "type": "stat",
-        "targets": [
-          {
-            "expr": "count(meshtastic_node_last_seen_timestamp)",
-            "legendFormat": "Active Nodes"
-          }
-        ]
-      },
-      {
-        "title": "Average Battery Level",
-        "type": "stat",
-        "targets": [
-          {
-            "expr": "avg(meshtastic_battery_level_percent)",
-            "legendFormat": "Average Battery %"
-          }
-        ]
-      },
-      {
-        "title": "Battery Levels by Node",
-        "type": "bargauge",
-        "targets": [
-          {
-            "expr": "meshtastic_battery_level_percent",
-            "legendFormat": "{{node_name}}"
-          }
-        ]
-      },
-      {
-        "title": "Temperature Trends",
-        "type": "timeseries",
-        "targets": [
-          {
-            "expr": "meshtastic_temperature_celsius",
-            "legendFormat": "{{node_name}}"
-          }
-        ]
-      }
-    ]
-  }
-}
-```
-
-## Recording Rules
-
-### Агрегированные метрики
-
-```yaml
-# /etc/prometheus/rules/meshtastic-recording.yml
-groups:
-  - name: meshtastic.recording
-    interval: 30s
-    rules:
-      - record: meshtastic:nodes_active
-        expr: count(meshtastic_node_last_seen_timestamp)
-
-      - record: meshtastic:battery_avg
-        expr: avg(meshtastic_battery_level_percent)
-
-      - record: meshtastic:battery_min
-        expr: min(meshtastic_battery_level_percent)
-
-      - record: meshtastic:temperature_avg
-        expr: avg(meshtastic_temperature_celsius)
-
-      - record: meshtastic:temperature_max
-        expr: max(meshtastic_temperature_celsius)
-
-      - record: meshtastic:messages_rate_5m
-        expr: rate(meshtastic_messages_processed_total[5m])
-
-      - record: meshtastic:nodes_offline
-        expr: count((time() - meshtastic_node_last_seen_timestamp) > 1200)
-```
-
-## Retention и Storage
-
-### Конфигурация хранения
-
-```yaml
-# prometheus.yml
-global:
-  scrape_interval: 30s
-  evaluation_interval: 30s
-
-# Retention настройки
-storage:
-  tsdb:
-    retention.time: 30d
-    retention.size: 10GB
-    wal-compression: true
-
-# Удаленное хранение (опционально)
-remote_write:
-  - url: "https://prometheus-remote-write-endpoint"
-    queue_config:
-      max_samples_per_send: 1000
-      max_shards: 200
-```
+**Критичные параметры:**
+- `scrape_interval: 30s` — интервал сбора метрик
+- `targets: ['localhost:8100']` — адрес MQTT экспортера
+- `retention.time: 30d` — время хранения метрик
 
 ## Мониторинг производительности
 

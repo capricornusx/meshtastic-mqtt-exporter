@@ -36,65 +36,8 @@ services:
 
 ### Полный стек мониторинга
 
-```yaml
-# docker-compose.yml
-version: '3.8'
-
-services:
-  mqtt-exporter:
-    image: ghcr.io/capricornusx/meshtastic-mqtt-exporter:latest
-    ports:
-      - "1883:1883"
-      - "8100:8100"
-      - "8080:8080"
-    volumes:
-      - ./config.yaml:/config.yaml
-      - mqtt_data:/data
-    command: --config /config.yaml
-    restart: unless-stopped
-
-  prometheus:
-    image: prom/prometheus:latest
-    ports:
-      - "9090:9090"
-    volumes:
-      - ./prometheus.yml:/etc/prometheus/prometheus.yml
-      - ./rules:/etc/prometheus/rules
-      - prometheus_data:/prometheus
-    command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--storage.tsdb.path=/prometheus'
-      - '--web.console.libraries=/etc/prometheus/console_libraries'
-      - '--web.console.templates=/etc/prometheus/consoles'
-      - '--web.enable-lifecycle'
-    restart: unless-stopped
-
-  alertmanager:
-    image: prom/alertmanager:latest
-    ports:
-      - "9093:9093"
-    volumes:
-      - ./alertmanager.yml:/etc/alertmanager/alertmanager.yml
-      - alertmanager_data:/alertmanager
-    restart: unless-stopped
-
-  grafana:
-    image: grafana/grafana:latest
-    ports:
-      - "3000:3000"
-    volumes:
-      - grafana_data:/var/lib/grafana
-      - ./grafana/dashboards:/etc/grafana/provisioning/dashboards
-      - ./grafana/datasources:/etc/grafana/provisioning/datasources
-    environment:
-      - GF_SECURITY_ADMIN_PASSWORD=admin123
-    restart: unless-stopped
-
-volumes:
-  mqtt_data:
-  prometheus_data:
-  alertmanager_data:
-  grafana_data:
+```yaml title="docker-compose.yml"
+--8<-- "stack/docker-compose.yml"
 ```
 
 ## Конфигурационные файлы
@@ -103,7 +46,7 @@ volumes:
 
 - [stack/alertmanager/alertmanager.yml](../stack/alertmanager/alertmanager.yml) — конфигурация AlertManager
 - [stack/prometheus/prometheus.yml](../stack/prometheus/prometheus.yml) — конфигурация Prometheus
-- [stack/config.yaml](../stack/config.yaml) — конфигурация MQTT экспортера
+- [stack/docker-compose.yml](../stack/docker-compose.yml) — Docker Compose стек
 
 **Критичные параметры:**
 - `webhook_configs.url` — должен указывать на `http://mqtt-exporter:8080/alerts/webhook`
