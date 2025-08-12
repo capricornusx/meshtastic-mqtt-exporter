@@ -40,7 +40,7 @@ jobs:
       - name: Build documentation
         run: |
           cd docs
-          mkdocs build --verbose --clean
+          mkdocs build --clean
 
       - name: Setup Pages
         uses: actions/configure-pages@v5

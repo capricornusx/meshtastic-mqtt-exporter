@@ -41,6 +41,19 @@ theme:
         name: Переключить на светлую тему
 
 plugins:
+  - i18n:
+      docs_structure: suffix
+      fallback_to_default: true
+      reconfigure_material: true
+      reconfigure_search: true
+      languages:
+        - locale: ru
+          default: true
+          name: Русский
+          build: true
+        - locale: en
+          name: English
+          build: true
   - search:
       lang:
         - ru
@@ -48,10 +61,10 @@ plugins:
 
 
 nav:
-  - Главная: ru/index.md
-  - Быстрый старт: ru/quick-start.md
-  - Конфигурация: ru/configuration.md
-  - API: ru/api.md
+  - Главная: index.md
+  - Быстрый старт: quick-start.md
+  - Конфигурация: configuration.md
+  - API: api.md
 
 # Расширения Markdown
 markdown_extensions:
