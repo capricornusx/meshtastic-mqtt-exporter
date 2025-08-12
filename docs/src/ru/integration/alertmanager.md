@@ -13,90 +13,53 @@ global:
   smtp_smarthost: 'localhost:587'
 
 route:
-  group_by: ['alertname']
+  group_by: [ 'alertname' ]
   group_wait: 10s
   group_interval: 10s
   repeat_interval: 1h
   receiver: 'lora-alerts'
   routes:
-  - match:
-      severity: critical
-    receiver: 'lora-critical'
-  - match:
-      severity: warning
-    receiver: 'lora-warning'
+    - match:
+        severity: critical
+      receiver: 'lora-critical'
+    - match:
+        severity: warning
+      receiver: 'lora-warning'
 
 receivers:
-- name: 'lora-alerts'
-  webhook_configs:
-  - url: 'http://localhost:8080/alerts/webhook'
-    send_resolved: true
+  - name: 'lora-alerts'
+    webhook_configs:
+      - url: 'http://localhost:8080/alerts/webhook'
+        send_resolved: true
 
-- name: 'lora-critical'
-  webhook_configs:
-  - url: 'http://localhost:8080/alerts/webhook'
-    send_resolved: true
-    http_config:
-      headers:
-        X-Alert-Severity: critical
+  - name: 'lora-critical'
+    webhook_configs:
+      - url: 'http://localhost:8080/alerts/webhook'
+        send_resolved: true
+        http_config:
+          headers:
+            X-Alert-Severity: critical
 
-- name: 'lora-warning'
-  webhook_configs:
-  - url: 'http://localhost:8080/alerts/webhook'
-    send_resolved: true
-    http_config:
-      headers:
-        X-Alert-Severity: warning
+  - name: 'lora-warning'
+    webhook_configs:
+      - url: 'http://localhost:8080/alerts/webhook'
+        send_resolved: true
+        http_config:
+          headers:
+            X-Alert-Severity: warning
 ```
 
 ## Правила Prometheus
 
-### meshtastic.rules.yml
+Готовые правила алертов доступны в файле [meshtastic-alerts.yml](../../alertmanager/meshtastic-alerts.yml).
 
-```yaml
-groups:
-- name: meshtastic.rules
-  rules:
-  - alert: NodeOffline
-    expr: (time() - meshtastic_node_last_seen_timestamp) > 1200
-    for: 5m
-    labels:
-      severity: warning
-      service: meshtastic
-    annotations:
-      summary: "Узел Meshtastic {{ $labels.node_id }} офлайн"
-      description: "Узел {{ $labels.node_name }} ({{ $labels.node_id }}) не отвечает более 20 минут"
-      
-  - alert: LowBattery
-    expr: meshtastic_battery_level_percent < 20
-    for: 2m
-    labels:
-      severity: critical
-      service: meshtastic
-    annotations:
-      summary: "Низкий заряд батареи узла {{ $labels.node_id }}"
-      description: "Заряд батареи узла {{ $labels.node_name }} составляет {{ $value }}%"
-      
-  - alert: HighTemperature
-    expr: meshtastic_temperature_celsius > 60
-    for: 5m
-    labels:
-      severity: warning
-      service: meshtastic
-    annotations:
-      summary: "Высокая температура узла {{ $labels.node_id }}"
-      description: "Температура узла {{ $labels.node_name }} составляет {{ $value }}°C"
-      
-  - alert: LowSignalQuality
-    expr: meshtastic_snr_db < -10
-    for: 10m
-    labels:
-      severity: info
-      service: meshtastic
-    annotations:
-      summary: "Низкое качество сигнала узла {{ $labels.node_id }}"
-      description: "SNR узла {{ $labels.node_name }} составляет {{ $value }} dB"
-```
+Включают алерты для:
+
+- Обнаружения офлайн узлов
+- Мониторинга уровня батареи
+- Контроля температуры
+- Проверки качества сигнала
+- Доступности сервиса
 
 ## Конфигурация экспортера
 
@@ -123,7 +86,7 @@ alertmanager:
   http:
     port: 8080
     path: "/alerts/webhook"
-  
+
   # Маршрутизация по уровню важности
   routing:
     critical:
@@ -179,12 +142,12 @@ alertmanager:
 
 ### Типы каналов
 
-| Канал | Скорость | Дальность | Использование |
-|-------|----------|-----------|---------------|
-| `ShortFast` | Высокая | Низкая | Критические алерты |
-| `MediumFast` | Средняя | Средняя | Важные уведомления |
-| `LongFast` | Низкая | Высокая | Обычные алерты |
-| `LongSlow` | Очень низкая | Максимальная | Информационные сообщения |
+| Канал        | Скорость     | Дальность    | Использование            |
+|--------------|--------------|--------------|--------------------------|
+| `ShortFast`  | Высокая      | Низкая       | Критические алерты       |
+| `MediumFast` | Средняя      | Средняя      | Важные уведомления       |
+| `LongFast`   | Низкая       | Высокая      | Обычные алерты           |
+| `LongSlow`   | Очень низкая | Максимальная | Информационные сообщения |
 
 ### Выбор канала
 
@@ -198,7 +161,7 @@ critical:
 warning:
   channel: "LongFast"
   mode: "direct"
-  target_nodes: ["admin001"]
+  target_nodes: [ "admin001" ]
 
 # Информация - максимальная дальность
 info:
@@ -233,7 +196,8 @@ alertmanager:
     - "monitor02"
 ```
 
-Топики: 
+Топики:
+
 - `msh/2/c/ShortFast/!admin001`
 - `msh/2/c/ShortFast/!monitor02`
 
@@ -270,18 +234,6 @@ journalctl -u mqtt-exporter -f | grep alert
 
 ## Мониторинг AlertManager интеграции
 
-### Метрики
-
-```
-# Количество обработанных алертов
-meshtastic_alerts_processed_total{status="firing|resolved"}
-
-# Количество отправленных сообщений
-meshtastic_alerts_sent_total{channel="LongFast",mode="broadcast"}
-
-# Ошибки обработки алертов
-meshtastic_alerts_errors_total{error_type="parse|send"}
-```
 
 ### Grafana панель
 
@@ -318,16 +270,19 @@ meshtastic_alerts_errors_total{error_type="parse|send"}
 ### Алерты не доставляются
 
 1. Проверьте конфигурацию AlertManager:
+
 ```bash
 curl http://localhost:9093/api/v1/status
 ```
 
 2. Проверьте webhook endpoint:
+
 ```bash
 curl http://localhost:8080/alerts/webhook
 ```
 
 3. Проверьте MQTT топики:
+
 ```bash
 mosquitto_sub -h localhost -t "msh/2/c/+/!+" -v
 ```
@@ -335,11 +290,13 @@ mosquitto_sub -h localhost -t "msh/2/c/+/!+" -v
 ### Проблемы с форматированием
 
 1. Проверьте логи экспортера:
+
 ```bash
 journalctl -u mqtt-exporter -f | grep alert
 ```
 
 2. Тестируйте с простым алертом:
+
 ```bash
 curl -X POST http://localhost:8080/alerts/webhook \
   -H "Content-Type: application/json" \
@@ -400,7 +357,9 @@ rest_command:
     "type": "http request",
     "method": "POST",
     "url": "http://localhost:8080/alerts/webhook",
-    "headers": {"Content-Type": "application/json"},
+    "headers": {
+      "Content-Type": "application/json"
+    },
     "payload": "{\"alerts\":[{\"status\":\"firing\",\"labels\":{\"alertname\":\"NodeRED\"},\"annotations\":{\"summary\":\"{{payload}}\"}}]}"
   }
 ]

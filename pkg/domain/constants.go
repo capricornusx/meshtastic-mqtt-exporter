@@ -46,6 +46,11 @@ const (
 	DefaultMQTTConnTimeout  = 30 * time.Second
 	DefaultMQTTReconnectInt = 30 * time.Second
 	DefaultMQTTDisconnectMs = 250
+	DefaultMQTTClientID     = "meshtastic-exporter-standalone"
+
+	DefaultTLSInsecureSkipVerify = false
+	DefaultTLSMinVersion         = 0x0303
+	DefaultTLSVersionString      = "1.2"
 
 	MaxTopicLength  = 256
 	MaxNodeIDLength = 32
@@ -57,3 +62,7 @@ const (
 	MessageTypeTelemetry = "telemetry"
 	MessageTypeNodeInfo  = "nodeinfo"
 )
+
+func GetDefaultMQTTTopics() []string {
+	return []string{"msh/+/+/json/+/+", "msh/2/json/+/+"}
+}

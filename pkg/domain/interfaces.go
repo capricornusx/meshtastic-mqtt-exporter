@@ -44,6 +44,8 @@ type MQTTConfig interface {
 	GetRetainAvailable() bool
 	GetMessageExpiry() int64
 	GetMaxClients() int
+	GetClientID() string
+	GetTopics() []string
 }
 
 type TLSConfig interface {
@@ -52,6 +54,8 @@ type TLSConfig interface {
 	GetCertFile() string
 	GetKeyFile() string
 	GetCAFile() string
+	GetInsecureSkipVerify() bool
+	GetMinVersion() uint16
 }
 
 type PrometheusConfig interface {

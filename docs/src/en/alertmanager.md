@@ -59,98 +59,14 @@ alertmanager:
 
 ## Prometheus Rules
 
-### Basic Rules
+Ready-to-use Prometheus alert rules are available in [meshtastic-alerts.yml](../alertmanager/meshtastic-alerts.yml).
 
-```yaml
-# meshtastic.rules.yml
-groups:
-- name: meshtastic.rules
-  rules:
-  - alert: NodeOffline
-    expr: (time() - meshtastic_node_last_seen_timestamp) > 1200
-    for: 5m
-    labels:
-      severity: warning
-      service: meshtastic
-    annotations:
-      summary: "Meshtastic node {{ $labels.node_name }} is offline"
-      description: "Node {{ $labels.node_id }} has been unresponsive for {{ $value }} seconds"
-      
-  - alert: LowBattery
-    expr: meshtastic_battery_level_percent < 20
-    for: 2m
-    labels:
-      severity: critical
-      service: meshtastic
-    annotations:
-      summary: "Low battery: {{ $labels.node_name }}"
-      description: "Node {{ $labels.node_id }} battery level is {{ $value }}%"
-      
-  - alert: HighTemperature
-    expr: meshtastic_temperature_celsius > 50
-    for: 5m
-    labels:
-      severity: warning
-      service: meshtastic
-    annotations:
-      summary: "High temperature: {{ $labels.node_name }}"
-      description: "Node {{ $labels.node_id }} temperature is {{ $value }}°C"
-      
-  - alert: NetworkPartition
-    expr: count(meshtastic_node_last_seen_timestamp) < 3
-    for: 10m
-    labels:
-      severity: critical
-      service: meshtastic
-    annotations:
-      summary: "Mesh network partition"
-      description: "Active nodes in network: {{ $value }}"
-```
-
-### Advanced Rules
-
-```yaml
-# advanced.rules.yml
-groups:
-- name: meshtastic.advanced
-  rules:
-  - alert: BatteryDrainRate
-    expr: |
-      (
-        meshtastic_battery_level_percent - 
-        meshtastic_battery_level_percent offset 1h
-      ) < -10
-    for: 15m
-    labels:
-      severity: warning
-    annotations:
-      summary: "Fast battery drain: {{ $labels.node_name }}"
-      description: "Battery drained {{ $value }}% in one hour"
-      
-  - alert: TemperatureSpike
-    expr: |
-      abs(
-        meshtastic_temperature_celsius - 
-        avg_over_time(meshtastic_temperature_celsius[1h])
-      ) > 15
-    for: 5m
-    labels:
-      severity: warning
-    annotations:
-      summary: "Temperature spike: {{ $labels.node_name }}"
-      
-  - alert: HumidityAnomaly
-    expr: |
-      abs(
-        meshtastic_humidity_percent - 
-        avg_over_time(meshtastic_humidity_percent[6h])
-      ) > 30
-    for: 10m
-    labels:
-      severity: info
-    annotations:
-      summary: "Humidity anomaly: {{ $labels.node_name }}"
-```
+The file includes alerts for:
+- Node offline detection
+- Battery level monitoring
+- Temperature thresholds
+- Signal quality checks
+- Service availability
 
 ## Delivery Modes
 

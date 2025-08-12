@@ -18,21 +18,25 @@ type UnifiedConfig struct {
 	} `yaml:"logging"`
 
 	MQTT struct {
-		Host           string `yaml:"host"`
-		Port           int    `yaml:"port"`
-		AllowAnonymous bool   `yaml:"allow_anonymous"`
-		Username       string `yaml:"username"`
-		Password       string `yaml:"password"`
+		Host           string   `yaml:"host"`
+		Port           int      `yaml:"port"`
+		AllowAnonymous bool     `yaml:"allow_anonymous"`
+		Username       string   `yaml:"username"`
+		Password       string   `yaml:"password"`
+		ClientID       string   `yaml:"client_id"`
+		Topics         []string `yaml:"topics"`
 		Users          []struct {
 			Username string `yaml:"username"`
 			Password string `yaml:"password"`
 		} `yaml:"users"`
 		TLSConfig struct {
-			Enabled  bool   `yaml:"enabled"`
-			Port     int    `yaml:"port"`
-			CertFile string `yaml:"cert_file"`
-			KeyFile  string `yaml:"key_file"`
-			CAFile   string `yaml:"ca_file"`
+			Enabled            bool   `yaml:"enabled"`
+			Port               int    `yaml:"port"`
+			CertFile           string `yaml:"cert_file"`
+			KeyFile            string `yaml:"key_file"`
+			CAFile             string `yaml:"ca_file"`
+			InsecureSkipVerify bool   `yaml:"insecure_skip_verify"`
+			MinVersion         string `yaml:"min_version"`
 		} `yaml:"tls_config"`
 		Capabilities struct {
 			MaximumInflight              int    `yaml:"maximum_inflight"`
@@ -80,7 +84,11 @@ func setDefaults(config *UnifiedConfig) {
 	config.Logging.Level = "info"
 	config.MQTT.Host = "localhost"
 	config.MQTT.Port = 1883
+	config.MQTT.ClientID = domain.DefaultMQTTClientID
+	config.MQTT.Topics = domain.GetDefaultMQTTTopics()
 	config.MQTT.TLSConfig.Port = 8883
+	config.MQTT.TLSConfig.InsecureSkipVerify = domain.DefaultTLSInsecureSkipVerify
+	config.MQTT.TLSConfig.MinVersion = domain.DefaultTLSVersionString
 	config.MQTT.Capabilities.MaximumInflight = 1024
 	config.MQTT.Capabilities.MaximumClientWritesPending = 1000
 	config.MQTT.Capabilities.ReceiveMaximum = 512
@@ -96,8 +104,22 @@ func setDefaults(config *UnifiedConfig) {
 	config.Hook.AlertManager.Path = domain.DefaultAlertsPath
 }
 
+func chooseTLSVersion(config *UnifiedConfig) uint16 {
+	tlsMinVersion := uint16(domain.DefaultTLSMinVersion)
+	switch config.MQTT.TLSConfig.MinVersion {
+	case "1.0":
+		tlsMinVersion = 0x0301
+	case "1.1":
+		tlsMinVersion = 0x0302
+	case "1.2":
+		tlsMinVersion = 0x0303
+	case "1.3":
+		tlsMinVersion = 0x0304
+	}
+	return tlsMinVersion
+}
+
 func convertToAdapter(config *UnifiedConfig) (domain.Config, error) {
-	// Устанавливаем уровень логирования
 	logger.SetLogLevel(config.Logging.Level)
 
 	metricsTTL, err := time.ParseDuration(config.Hook.Prometheus.MetricsTTL)
@@ -150,12 +172,16 @@ func convertToAdapter(config *UnifiedConfig) (domain.Config, error) {
 		RetainAvailable: config.MQTT.Capabilities.RetainAvailable,
 		MaxClients:      config.MQTT.Capabilities.MaximumClients,
 		MessageExpiry:   messageExpiry,
+		ClientID:        config.MQTT.ClientID,
+		Topics:          config.MQTT.Topics,
 		TLSConfig: adapters.TLSConfigAdapter{
-			Enabled:  config.MQTT.TLSConfig.Enabled,
-			Port:     config.MQTT.TLSConfig.Port,
-			CertFile: config.MQTT.TLSConfig.CertFile,
-			KeyFile:  config.MQTT.TLSConfig.KeyFile,
-			CAFile:   config.MQTT.TLSConfig.CAFile,
+			Enabled:            config.MQTT.TLSConfig.Enabled,
+			Port:               config.MQTT.TLSConfig.Port,
+			CertFile:           config.MQTT.TLSConfig.CertFile,
+			KeyFile:            config.MQTT.TLSConfig.KeyFile,
+			CAFile:             config.MQTT.TLSConfig.CAFile,
+			InsecureSkipVerify: config.MQTT.TLSConfig.InsecureSkipVerify,
+			MinVersion:         chooseTLSVersion(config),
 		},
 	}
 

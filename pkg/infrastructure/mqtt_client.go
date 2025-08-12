@@ -32,7 +32,7 @@ func (c *MQTTClient) Connect() error {
 
 	broker := c.buildBrokerURL()
 	opts.AddBroker(broker)
-	opts.SetClientID("meshtastic-exporter-standalone")
+	opts.SetClientID(c.config.GetClientID())
 	opts.SetKeepAlive(c.config.GetKeepAlive())
 	opts.SetPingTimeout(domain.DefaultMQTTPingTimeout)
 	opts.SetConnectTimeout(domain.DefaultMQTTConnTimeout)
@@ -41,9 +41,10 @@ func (c *MQTTClient) Connect() error {
 
 	tlsConfig := c.config.GetTLSConfig()
 	if tlsConfig.GetEnabled() {
+		// #nosec G402 - InsecureSkipVerify is configurable
 		opts.SetTLSConfig(&tls.Config{
-			InsecureSkipVerify: false,
-			MinVersion:         tls.VersionTLS12,
+			InsecureSkipVerify: tlsConfig.GetInsecureSkipVerify(),
+			MinVersion:         tlsConfig.GetMinVersion(),
 		})
 	}
 
@@ -75,7 +76,7 @@ func (c *MQTTClient) buildBrokerURL() string {
 }
 
 func (c *MQTTClient) onConnect(client mqtt.Client) {
-	topics := []string{"msh/+/+/json/+/+", "msh/2/json/+/+"}
+	topics := c.config.GetTopics()
 	for _, topic := range topics {
 		if token := client.Subscribe(topic, 0, c.messageHandler); token.Wait() && token.Error() != nil {
 			c.logger.Error().Err(token.Error()).Str("topic", topic).Msg("failed to subscribe")

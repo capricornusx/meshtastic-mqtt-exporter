@@ -28,14 +28,18 @@ type MQTTConfigAdapter struct {
 	RetainAvailable bool
 	MessageExpiry   time.Duration
 	MaxClients      int
+	ClientID        string
+	Topics          []string
 }
 
 type TLSConfigAdapter struct {
-	Enabled  bool
-	Port     int
-	CertFile string
-	KeyFile  string
-	CAFile   string
+	Enabled            bool
+	Port               int
+	CertFile           string
+	KeyFile            string
+	CAFile             string
+	InsecureSkipVerify bool
+	MinVersion         uint16
 }
 
 type UserAuthAdapter struct {
@@ -105,12 +109,16 @@ func (m *MQTTConfigAdapter) GetMaxQoS() int                 { return m.MaxQoS }
 func (m *MQTTConfigAdapter) GetRetainAvailable() bool       { return m.RetainAvailable }
 func (m *MQTTConfigAdapter) GetMessageExpiry() int64        { return int64(m.MessageExpiry.Seconds()) }
 func (m *MQTTConfigAdapter) GetMaxClients() int             { return m.MaxClients }
+func (m *MQTTConfigAdapter) GetClientID() string            { return m.ClientID }
+func (m *MQTTConfigAdapter) GetTopics() []string            { return m.Topics }
 
-func (t *TLSConfigAdapter) GetEnabled() bool    { return t.Enabled }
-func (t *TLSConfigAdapter) GetPort() int        { return t.Port }
-func (t *TLSConfigAdapter) GetCertFile() string { return t.CertFile }
-func (t *TLSConfigAdapter) GetKeyFile() string  { return t.KeyFile }
-func (t *TLSConfigAdapter) GetCAFile() string   { return t.CAFile }
+func (t *TLSConfigAdapter) GetEnabled() bool            { return t.Enabled }
+func (t *TLSConfigAdapter) GetPort() int                { return t.Port }
+func (t *TLSConfigAdapter) GetCertFile() string         { return t.CertFile }
+func (t *TLSConfigAdapter) GetKeyFile() string          { return t.KeyFile }
+func (t *TLSConfigAdapter) GetCAFile() string           { return t.CAFile }
+func (t *TLSConfigAdapter) GetInsecureSkipVerify() bool { return t.InsecureSkipVerify }
+func (t *TLSConfigAdapter) GetMinVersion() uint16       { return t.MinVersion }
 func (m *MQTTConfigAdapter) GetUsers() []domain.UserAuth {
 	users := make([]domain.UserAuth, len(m.Users))
 	for i, u := range m.Users {
