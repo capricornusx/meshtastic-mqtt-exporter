@@ -2,6 +2,95 @@ package validator
 
 import "testing"
 
+func TestValidateMeshtasticMessage(t *testing.T) {
+	tests := []struct {
+		name    string
+		payload []byte
+		wantErr bool
+	}{
+		{"valid JSON", []byte(`{"from":123,"type":"telemetry"}`), false},
+		{"invalid JSON", []byte(`{invalid`), true},
+		{"empty payload", []byte(``), true},
+		{"non-JSON", []byte(`plain text`), true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := ValidateMeshtasticMessage(tt.payload)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("ValidateMeshtasticMessage() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestValidateTopicName(t *testing.T) {
+	tests := []struct {
+		name    string
+		topic   string
+		wantErr bool
+	}{
+		{"valid topic", "msh/123/json/LongFast/telemetry", false},
+		{"empty topic", "", true},
+		{"too long topic", string(make([]byte, 300)), true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := ValidateTopicName(tt.topic)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("ValidateTopicName() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestValidateNodeID(t *testing.T) {
+	tests := []struct {
+		name    string
+		nodeID  string
+		wantErr bool
+	}{
+		{"valid node ID", "123456789", false},
+		{"empty node ID", "", true},
+		{"too long node ID", string(make([]byte, 50)), true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := ValidateNodeID(tt.nodeID)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("ValidateNodeID() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestSanitizeString(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{"normal string", "test", "test"},
+		{"string with newlines", "test\nline", "testline"},
+		{"string with tabs", "test\tvalue", "testvalue"},
+		{"string with carriage return", "test\rvalue", "testvalue"},
+		{"mixed whitespace", "test\n\t\rvalue", "testvalue"},
+		{"ascii only", "Hello World!", "Hello World!"},
+		{"with non-ascii", "test\x01\x02", "test"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := SanitizeString(tt.input)
+			if result != tt.expected {
+				t.Errorf("SanitizeString() = %v, want %v", result, tt.expected)
+			}
+		})
+	}
+}
+
 func TestMatchesMQTTPattern(t *testing.T) {
 	tests := []struct {
 		name     string

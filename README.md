@@ -8,10 +8,8 @@
 
 ## Возможности
 
-- **mochi-mqtt хук**: Интеграция с существующими серверами (рекомендуется)
-- **Embedded режим**: Встроенный MQTT брокер с YAML конфигурацией
+- **Встроенный MQTT брокер** с YAML конфигурацией
 - **Prometheus метрики**: Батарея, температура, влажность, давление, качество сигнала
-  - [ ] добавить MQTT-специфичные метрики (обработано сообщений, uptime, расход памяти т.д.)
 - **AlertManager интеграция**: Отправка алертов в LoRa mesh сеть
 - **Персистентность состояния**: Сохранение/восстановление метрик между перезапусками
 
@@ -28,31 +26,13 @@ wget https://github.com/capricornusx/meshtastic-mqtt-exporter/releases/latest/do
 curl http://localhost:8100/metrics
 ```
 
-## Режимы работы
+## Запуск
 
-### 1. Embedded режим (рекомендуется)
 ```bash
-./mqtt-exporter-embedded --config config.yaml
-```
-
-### 2. mochi-mqtt хук
-```go
-// Простой хук
-hook := hooks.NewMeshtasticHookSimple()
-server.AddHook(hook, nil)
-
-// Современный хук с конфигурацией
-hook := hooks.NewMeshtasticHook(hooks.MeshtasticHookConfig{
-    ServerAddr:   ":8100",
-    EnableHealth: true,
-    TopicPrefix:  "msh/",
-})
-server.AddHook(hook, nil)
-```
-
-### 3. Standalone режим (для существующих MQTT серверов)
-```bash
-./mqtt-exporter-standalone --config config.yaml
+# Скачать и запустить
+wget https://github.com/capricornusx/meshtastic-mqtt-exporter/releases/latest/download/mqtt-exporter-linux-amd64
+chmod +x mqtt-exporter-linux-amd64
+./mqtt-exporter-linux-amd64 --config config.yaml
 ```
 
 ## Пример конфигурации
@@ -72,10 +52,7 @@ hook:
     path: "/metrics"
     topic:
       # MQTT topic pattern (поддерживает wildcards + и #)
-      pattern: "msh/#"  # Все сообщения начинающиеся с msh/
-      # Примеры других паттернов:
-      # "msh/+/json/+/+"  - только JSON сообщения
-      # "msh/+/c/+/+"     - только канальные сообщения
+      pattern: "msh/#"  # Все сообщения, начинающиеся с msh/
     debug:
       log_all_messages: false  # Логировать MQTT сообщения соответствующие pattern
     state:
@@ -86,23 +63,9 @@ hook:
 
 ## Документация
 
-### Конфигурация
-- [Основные параметры](docs/src/ru/configuration/basic.md) — Режимы работы и параметры
-- [YAML конфигурация](docs/src/ru/configuration/yaml.md) — Полное описание параметров
-- [Переменные окружения](docs/src/ru/configuration/environment.md) — Настройка через ENV
-
-### Развертывание
-- [Docker](docs/src/ru/deployment/docker.md) — Контейнеризация и Docker Compose
-- [Systemd](docs/src/ru/deployment/systemd.md) — Системный сервис
-
-### Интеграция
-- [mochi-mqtt хук](docs/src/ru/integration/hook.md) — Интеграция с MQTT сервером
-- [AlertManager](docs/src/ru/integration/alertmanager.md) — LoRa mesh алерты
-- [Prometheus](docs/src/ru/integration/prometheus.md) — Метрики и мониторинг
-
-### Примеры
-- [API документация](docs/src/ru/api.md) — REST API endpoints
-- [Примеры использования](docs/src/ru/examples.md) — Интеграция с различными системами
+- [Быстрый старт](docs/src/ru/quick-start.md) — Установка и первый запуск
+- [Конфигурация](docs/src/ru/configuration.md) — Настройка YAML файла
+- [API](docs/src/ru/api.md) — REST API endpoints
 
 ## Метрики
 
@@ -123,6 +86,11 @@ hook:
 - **JSON формат**: Читаемый формат для отладки
 
 Для отключения персистентности уберите параметр `hook.prometheus.state.file` из конфигурации.
+
+## TODO
+- [ ] добавить MQTT-специфичные метрики (обработано сообщений, uptime, расход памяти т.д.)
+- [ ] from_node vs node_id labels
+- [ ] синхронизация метрик с meshtastic .proto файлами
 
 ## Благодарности
 

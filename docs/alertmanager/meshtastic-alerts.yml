@@ -1,15 +1,6 @@
 groups:
   - name: meshtastic
     rules:
-      - alert: MeshtasticMQTTDown
-        expr: meshtastic_mqtt_up != 1
-        for: 1m
-        labels:
-          severity: critical
-        annotations:
-          summary: "Meshtastic MQTT connection is down"
-          description: "MQTT broker connection is not available"
-
       - alert: MeshtasticExporterDown
         expr: up{job="meshtastic"} == 0
         for: 1m
@@ -18,6 +9,15 @@ groups:
         annotations:
           summary: "Meshtastic exporter is down"
           description: "Cannot scrape metrics from Meshtastic exporter"
+
+      - alert: MeshtasticServiceDown
+        expr: meshtastic_exporter_info == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Meshtastic service is not running"
+          description: "Service info metric indicates the exporter is not functioning"
 
       - alert: MeshtasticBatteryCritical
         expr: meshtastic_battery_level_percent < 10
@@ -79,6 +79,6 @@ groups:
         labels:
           severity: info
         annotations:
-          summary: "Node {{ $labels.from_node }} weak signal: {{ $value }}dBm"
+          summary: "Node {{ $labels.node_id }} weak signal: {{ $value }}dBm"
           description: "RSSI is {{ $value }}dBm - poor connectivity"
 

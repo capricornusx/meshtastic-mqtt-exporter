@@ -45,36 +45,13 @@ plugins:
       lang:
         - ru
         - en
-  - i18n:
-      docs_structure: folder
-      fallback_to_default: true
-      reconfigure_material: true
-      reconfigure_search: true
-      languages:
-        - locale: ru
-          default: true
-          name: Русский
-          build: true
-        - locale: en
-          name: English
-          build: true
+
 
 nav:
   - Главная: ru/index.md
   - Быстрый старт: ru/quick-start.md
-  - Конфигурация:
-    - Основные параметры: ru/configuration/basic.md
-    - YAML конфигурация: ru/configuration/yaml.md
-    - Переменные окружения: ru/configuration/environment.md
-  - Развертывание:
-    - Docker: ru/deployment/docker.md
-    - Systemd: ru/deployment/systemd.md
-  - Интеграция:
-    - mochi-mqtt хук: ru/integration/hook.md
-    - AlertManager: ru/integration/alertmanager.md
-    - Prometheus: ru/integration/prometheus.md
+  - Конфигурация: ru/configuration.md
   - API: ru/api.md
-  - Примеры: ru/examples.md
 
 # Расширения Markdown
 markdown_extensions:

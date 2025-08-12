@@ -50,7 +50,7 @@ func NewPrometheusCollectorWithMode(mode string) *PrometheusCollector {
 
 func (c *PrometheusCollector) setupMetrics() {
 	c.messageCounter = prometheus.NewCounterVec(
-		prometheus.CounterOpts{Name: "meshtastic_messages_total", Help: "Total messages by type"},
+		prometheus.CounterOpts{Name: domain.MetricMessagesTotal, Help: "Total messages by type"},
 		[]string{"type", "from_node"})
 
 	c.batteryLevel = prometheus.NewGaugeVec(
@@ -110,7 +110,7 @@ func (c *PrometheusCollector) setupMetrics() {
 
 func (c *PrometheusCollector) setupServiceInfo(mode string) {
 	c.serviceInfo = prometheus.NewGaugeVec(
-		prometheus.GaugeOpts{Name: "meshtastic_exporter_info", Help: "Service information"},
+		prometheus.GaugeOpts{Name: domain.MetricExporterInfo, Help: "Service information"},
 		[]string{"version", "mode", "git_commit", "build_date"})
 	c.registry.MustRegister(c.serviceInfo)
 	c.updateServiceInfo(mode)

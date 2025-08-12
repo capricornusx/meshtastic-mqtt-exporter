@@ -27,42 +27,18 @@ make build
 
 ## Конфигурация
 
-Создайте файл `config.yaml`:
+Скопируйте пример конфигурации:
 
-```yaml
-logging:
-  level: "info"  # debug, info, warn, error, fatal
-
-mqtt:
-  host: 0.0.0.0
-  port: 1883
-  allow_anonymous: true
-  debug:
-    log_all_messages: false  # Логировать все MQTT сообщения
-
-prometheus:
-  enabled: true
-  port: 8100
-  topic:
-    pattern: "msh/#"  # Паттерн MQTT топиков с поддержкой wildcards
-
-alertmanager:
-  enabled: false
+```bash
+wget https://raw.githubusercontent.com/capricornusx/meshtastic-mqtt-exporter/main/config.yaml
 ```
+
+Или создайте минимальный `config.yaml`. Подробнее в разделе [Конфигурация](configuration.md).
 
 ## Запуск
 
-### Embedded режим
-
 ```bash
-./mqtt-exporter-embedded --config config.yaml
-```
-
-### Standalone режим
-
-```bash
-# Для подключения к внешнему MQTT брокеру
-./mqtt-exporter-standalone --config config.yaml
+./mqtt-exporter-linux-amd64 --config config.yaml
 ```
 
 ## Проверка работы
@@ -79,11 +55,11 @@ curl http://localhost:8100/metrics
 curl http://localhost:8100/health
 ```
 
-### Логи
+### Отладка
 
 ```bash
-# Embedded режим с отладкой
-./mqtt-exporter-embedded --config config.yaml --log-level debug
+# С отладочными логами
+./mqtt-exporter-linux-amd64 --config config.yaml --log-level debug
 ```
 
 ## Интеграция с Meshtastic
@@ -110,23 +86,8 @@ meshtastic --set mqtt.encryption_enabled false
 ## Docker
 
 ```bash
-# Запуск с Docker
 docker run -p 1883:1883 -p 8100:8100 -v $(pwd)/config.yaml:/config.yaml \
   ghcr.io/capricornusx/meshtastic-mqtt-exporter:latest --config /config.yaml
-```
-
-## Systemd сервис
-
-```bash
-# Копирование файлов
-sudo cp mqtt-exporter-embedded /usr/local/bin/
-sudo cp config.yaml /etc/mqtt-exporter/
-
-# Создание сервиса
-sudo cp docs/mqtt-exporter-embedded.service /etc/systemd/system/
-sudo systemctl daemon-reload
-sudo systemctl enable mqtt-exporter-embedded
-sudo systemctl start mqtt-exporter-embedded
 ```
 
 ## Troubleshooting

@@ -1,46 +1,74 @@
 # Конфигурация
 
-Данный раздел содержит подробную информацию о конфигурации Meshtastic MQTT Exporter.
+## Пример конфигурации
 
-## Разделы конфигурации
-
-- **[Основные параметры](basic.md)** - Режимы работы, параметры командной строки, переменные окружения
-- **[YAML конфигурация](yaml.md)** - Подробное описание всех параметров YAML файла
-- **[Переменные окружения](environment.md)** - Настройка через переменные окружения
-
-## Быстрый старт
+Полный пример конфигурации доступен в файле [`config.yaml`](https://github.com/capricornusx/meshtastic-mqtt-exporter/blob/main/config.yaml) в репозитории.
 
 ### Минимальная конфигурация
 
 ```yaml
+logging:
+  level: "info"
+
 mqtt:
   host: 0.0.0.0
   port: 1883
   allow_anonymous: true
 
-prometheus:
-  enabled: true
-  port: 8100
-  topic:
-    prefix: "msh/"
+hook:
+  listen: "0.0.0.0:8100"
+  prometheus:
+    path: "/metrics"
+    topic:
+      pattern: "msh/#"
 ```
 
-### Запуск
+## Параметры командной строки
+
+| Параметр | Описание | По умолчанию |
+|----------|------------|-------------|
+| `--config` | Путь к файлу конфигурации | `config.yaml` |
+| `--log-level` | Уровень логирования | `info` |
+| `--help` | Показать справку | - |
+
+## Переменные окружения
+
+| Переменная | Описание | Пример |
+|------------|------------|--------|
+| `MQTT_HOST` | Хост MQTT брокера | `localhost` |
+| `MQTT_PORT` | Порт MQTT брокера | `1883` |
+| `HOOK_LISTEN` | Адрес сервера метрик | `0.0.0.0:8100` |
+| `LOG_LEVEL` | Уровень логирования | `info` |
+
+## Основные параметры
+
+### MQTT топики
+
+Параметр `hook.prometheus.topic.pattern` поддерживает wildcards:
+- `+` — один уровень  
+- `#` — много уровней
+
+Примеры: `msh/#`, `msh/+/json/+/+`
+
+## Запуск
 
 ```bash
-# Embedded режим
-./mqtt-exporter-embedded --config config.yaml
+# Основной режим
+./mqtt-exporter-linux-amd64 --config config.yaml
 
-# Standalone режим  
-./mqtt-exporter-standalone --config config.yaml
+# С отладкой
+./mqtt-exporter-linux-amd64 --config config.yaml --log-level debug
 ```
 
-## Валидация конфигурации
+## Проверка работы
 
 ```bash
-# Проверка синтаксиса YAML
-yamllint config.yaml
+# Метрики
+curl http://localhost:8100/metrics
 
-# Проверка конфигурации приложением
-./mqtt-exporter-embedded --config config.yaml --validate
+# Health check
+curl http://localhost:8100/health
+
+# Проверка конфигурации
+./mqtt-exporter-linux-amd64 --config config.yaml --validate
 ```

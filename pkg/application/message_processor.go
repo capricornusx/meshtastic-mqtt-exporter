@@ -54,7 +54,7 @@ func (p *MeshtasticProcessor) ProcessMessage(ctx context.Context, topic string, 
 		return err
 	}
 
-	return p.processMessageByType(msg.Type, nodeID, msg.Payload)
+	return p.processMessageByType(msg, nodeID)
 }
 
 func (p *MeshtasticProcessor) logMessageIfEnabled(topic string, payload []byte) {
@@ -102,23 +102,24 @@ func (p *MeshtasticProcessor) validateAndFormatNodeID(from uint32) (string, erro
 	return nodeID, nil
 }
 
-func (p *MeshtasticProcessor) processMessageByType(msgType, nodeID string, payload map[string]interface{}) error {
-	switch msgType {
+func (p *MeshtasticProcessor) processMessageByType(msg domain.MeshtasticMessage, nodeID string) error {
+	switch msg.Type {
 	case domain.MessageTypeTelemetry:
-		return p.processTelemetry(nodeID, payload)
+		return p.processTelemetry(nodeID, msg)
 	case domain.MessageTypeNodeInfo:
-		return p.processNodeInfo(nodeID, payload)
+		return p.processNodeInfo(nodeID, msg.Payload)
 	}
 	return nil
 }
 
-func (p *MeshtasticProcessor) processTelemetry(nodeID string, payload map[string]interface{}) error {
+func (p *MeshtasticProcessor) processTelemetry(nodeID string, msg domain.MeshtasticMessage) error {
 	data := domain.TelemetryData{
 		NodeID:    nodeID,
 		Timestamp: time.Now(),
 	}
 
-	p.extractTelemetryFields(&data, payload)
+	p.extractTelemetryFields(&data, msg.Payload)
+	p.extractTopLevelFields(&data, msg)
 	return p.collector.CollectTelemetry(data)
 }
 
@@ -126,6 +127,15 @@ func (p *MeshtasticProcessor) extractTelemetryFields(data *domain.TelemetryData,
 	p.extractBasicFields(data, payload)
 	p.extractEnvironmentalFields(data, payload)
 	p.extractNetworkFields(data, payload)
+}
+
+func (p *MeshtasticProcessor) extractTopLevelFields(data *domain.TelemetryData, msg domain.MeshtasticMessage) {
+	if msg.RSSI != nil {
+		data.RSSI = msg.RSSI
+	}
+	if msg.SNR != nil {
+		data.SNR = msg.SNR
+	}
 }
 
 func (p *MeshtasticProcessor) extractBasicFields(data *domain.TelemetryData, payload map[string]interface{}) {

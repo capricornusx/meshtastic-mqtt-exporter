@@ -6,18 +6,20 @@ const (
 	DefaultBufferSize = 1024
 	MaxMessageSize    = 256
 
-	MetricBatteryLevel = "meshtastic_battery_level_percent"
-	MetricVoltage      = "meshtastic_voltage_volts"
-	MetricTemperature  = "meshtastic_temperature_celsius"
-	MetricHumidity     = "meshtastic_humidity_percent"
-	MetricPressure     = "meshtastic_pressure_hpa"
-	MetricChannelUtil  = "meshtastic_channel_utilization_percent"
-	MetricAirUtilTx    = "meshtastic_air_util_tx_percent"
-	MetricUptime       = "meshtastic_uptime_seconds"
-	MetricNodeLastSeen = "meshtastic_node_last_seen_timestamp"
-	MetricNodeInfo     = "meshtastic_node_info"
-	MetricRSSI         = "meshtastic_rssi_dbm"
-	MetricSNR          = "meshtastic_snr_db"
+	MetricBatteryLevel  = "meshtastic_battery_level_percent"
+	MetricVoltage       = "meshtastic_voltage_volts"
+	MetricTemperature   = "meshtastic_temperature_celsius"
+	MetricHumidity      = "meshtastic_humidity_percent"
+	MetricPressure      = "meshtastic_pressure_hpa"
+	MetricChannelUtil   = "meshtastic_channel_utilization_percent"
+	MetricAirUtilTx     = "meshtastic_air_util_tx_percent"
+	MetricUptime        = "meshtastic_uptime_seconds"
+	MetricNodeLastSeen  = "meshtastic_node_last_seen_timestamp"
+	MetricNodeInfo      = "meshtastic_node_info"
+	MetricRSSI          = "meshtastic_rssi_dbm"
+	MetricSNR           = "meshtastic_snr_db"
+	MetricMessagesTotal = "meshtastic_messages_total"
+	MetricExporterInfo  = "meshtastic_exporter_info"
 
 	DefaultStateSaveInterval = 5 * time.Minute
 	StateFilePermissions     = 0600

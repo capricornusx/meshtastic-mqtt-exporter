@@ -4,8 +4,7 @@
 
 ## Возможности
 
-- **mochi-mqtt хук**: Интеграция с существующими серверами (рекомендуется)
-- **Embedded режим**: Встроенный MQTT брокер с YAML конфигурацией  
+- **Встроенный MQTT брокер** с YAML конфигурацией
 - **Prometheus метрики**: Батарея, температура, влажность, давление, качество сигнала
 - **AlertManager интеграция**: Отправка алертов в LoRa mesh сеть
 - **Персистентность состояния**: Сохранение/восстановление метрик между перезапусками
@@ -23,26 +22,13 @@ wget https://github.com/capricornusx/meshtastic-mqtt-exporter/releases/latest/do
 curl http://localhost:8100/metrics
 ```
 
-## Режимы работы
+## Запуск
 
-### 1. Embedded режим (рекомендуется)
 ```bash
-./mqtt-exporter-embedded --config config.yaml
-```
-
-### 2. mochi-mqtt хук
-```go
-hook := hooks.NewMeshtasticHook(hooks.MeshtasticHookConfig{
-    PrometheusAddr: ":8100",
-    EnableHealth:   true,
-    TopicPrefix:    "msh/",
-})
-server.AddHook(hook, nil)
-```
-
-### 3. Standalone режим
-```bash
-./mqtt-exporter-standalone --config config.yaml
+# Скачать и запустить
+wget https://github.com/capricornusx/meshtastic-mqtt-exporter/releases/latest/download/mqtt-exporter-linux-amd64
+chmod +x mqtt-exporter-linux-amd64
+./mqtt-exporter-linux-amd64 --config config.yaml
 ```
 
 ## Метрики
@@ -53,30 +39,11 @@ server.AddHook(hook, nil)
 - `meshtastic_pressure_hpa` — Барометрическое давление
 - `meshtastic_node_last_seen_timestamp` — Время последней активности
 
-## Архитектура
+## Документация
 
-Проект следует принципам Clean Architecture и SOLID:
-
-- **Domain**: Бизнес-логика и интерфейсы
-- **Application**: Обработка сообщений и координация
-- **Infrastructure**: MQTT, HTTP, метрики
-- **Adapters**: Конфигурация и внешние интерфейсы
-
-## Навигация по документации
-
-### Конфигурация
-- **[Основные параметры](configuration/basic.md)** - Режимы работы и параметры командной строки
-- **[YAML конфигурация](configuration/yaml.md)** - Подробное описание всех параметров
-- **[Переменные окружения](configuration/environment.md)** - Настройка через переменные окружения
-
-### Развертывание
-- **[Docker](deployment/docker.md)** - Контейнеризация и Docker Compose
-- **[Systemd](deployment/systemd.md)** - Установка как системный сервис
-
-### Интеграция
-- **[mochi-mqtt хук](integration/hook.md)** - Интеграция с существующим MQTT сервером
-- **[AlertManager](integration/alertmanager.md)** - Отправка алертов в LoRa сеть
-- **[Prometheus](integration/prometheus.md)** - Настройка метрик и мониторинга
+- **[Быстрый старт](quick-start.md)** — Установка и первый запуск
+- **[Конфигурация](configuration.md)** — Настройка YAML файла
+- **[API](api.md)** — REST API endpoints
 
 ## Благодарности
 

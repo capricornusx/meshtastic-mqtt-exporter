@@ -6,6 +6,8 @@ type MeshtasticMessage struct {
 	From    uint32                 `json:"from"`
 	Type    string                 `json:"type"`
 	Payload map[string]interface{} `json:"payload"`
+	RSSI    *float64               `json:"rssi,omitempty"`
+	SNR     *float64               `json:"snr,omitempty"`
 }
 
 type TelemetryData struct {

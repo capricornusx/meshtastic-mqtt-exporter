@@ -27,37 +27,18 @@ make build
 
 ## Configuration
 
-Create `config.yaml`:
+Download example configuration:
 
-```yaml
-mqtt:
-  host: 0.0.0.0
-  port: 1883
-  allow_anonymous: true
-
-prometheus:
-  enabled: true
-  port: 8100
-  topic:
-    pattern: "msh/#"  # MQTT topic pattern with wildcards support
-
-alertmanager:
-  enabled: false
+```bash
+wget https://raw.githubusercontent.com/capricornusx/meshtastic-mqtt-exporter/main/config.yaml
 ```
+
+Or create minimal `config.yaml`. See [Configuration](configuration.md) for details.
 
 ## Running
 
-### Embedded Mode
-
 ```bash
-./mqtt-exporter-embedded --config config.yaml
-```
-
-### Standalone Mode
-
-```bash
-# Connect to external MQTT broker
-./mqtt-exporter-standalone --config config.yaml
+./mqtt-exporter-linux-amd64 --config config.yaml
 ```
 
 ## Verification
@@ -74,11 +55,11 @@ curl http://localhost:8100/metrics
 curl http://localhost:8100/health
 ```
 
-### Logs
+### Debug
 
 ```bash
-# Embedded mode with debug
-./mqtt-exporter-embedded --config config.yaml --log-level debug
+# With debug logs
+./mqtt-exporter-linux-amd64 --config config.yaml --log-level debug
 ```
 
 ## Meshtastic Integration
@@ -105,23 +86,8 @@ Devices should publish to:
 ## Docker
 
 ```bash
-# Run with Docker
 docker run -p 1883:1883 -p 8100:8100 -v $(pwd)/config.yaml:/config.yaml \
   ghcr.io/capricornusx/meshtastic-mqtt-exporter:latest --config /config.yaml
-```
-
-## Systemd Service
-
-```bash
-# Copy files
-sudo cp mqtt-exporter-embedded /usr/local/bin/
-sudo cp config.yaml /etc/mqtt-exporter/
-
-# Create service
-sudo cp docs/mqtt-exporter-embedded.service /etc/systemd/system/
-sudo systemctl daemon-reload
-sudo systemctl enable mqtt-exporter-embedded
-sudo systemctl start mqtt-exporter-embedded
 ```
 
 ## Troubleshooting
