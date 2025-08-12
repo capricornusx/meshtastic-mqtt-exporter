@@ -25,7 +25,11 @@ func TestNewMQTTClient(t *testing.T) {
 }
 
 func TestBuildBrokerURL_TCP(t *testing.T) {
-	config := &adapters.MQTTConfigAdapter{Host: "localhost", Port: 1883, TLS: false}
+	config := &adapters.MQTTConfigAdapter{
+		Host:      "localhost",
+		Port:      1883,
+		TLSConfig: adapters.TLSConfigAdapter{Enabled: false},
+	}
 	processor := &mocks.MockMessageProcessor{}
 
 	client := NewMQTTClient(config, processor)
@@ -38,7 +42,11 @@ func TestBuildBrokerURL_TCP(t *testing.T) {
 }
 
 func TestBuildBrokerURL_TLS(t *testing.T) {
-	config := &adapters.MQTTConfigAdapter{Host: "localhost", Port: 8883, TLS: true}
+	config := &adapters.MQTTConfigAdapter{
+		Host:      "localhost",
+		Port:      1883,
+		TLSConfig: adapters.TLSConfigAdapter{Enabled: true, Port: 8883},
+	}
 	processor := &mocks.MockMessageProcessor{}
 
 	client := NewMQTTClient(config, processor)

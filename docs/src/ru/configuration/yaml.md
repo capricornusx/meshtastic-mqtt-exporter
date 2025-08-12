@@ -9,17 +9,21 @@ logging:
 mqtt:
   host: 0.0.0.0
   port: 1883
-  tls: false
   allow_anonymous: true
   users:
     - username: "admin"
       password: "admin"
     - username: "monitor"
       password: "monitor"
+  tls_config:
+    enabled: false
+    port: 8883
+    cert_file: "certs/server.crt"
+    key_file: "certs/server.key"
+    ca_file: "certs/ca.crt"
   broker:
     max_inflight: 50
     max_queued: 1000
-    keep_alive: 60
 
 # HTTP Hook Server (Prometheus + AlertManager)
 hook:
@@ -27,6 +31,7 @@ hook:
   prometheus:
     path: "/metrics"
     metrics_ttl: "30m"
+    keep_alive: "60s"  # MQTT client keep alive (standalone mode only)
     topic:
       # MQTT topic pattern (поддерживает wildcards + и #)
       pattern: "msh/+/2/json/#"  # Только JSON сообщения Meshtastic v2
@@ -72,17 +77,17 @@ hook:
 
 ### MQTT Брокер
 
-| Параметр                 | Тип    | По умолчанию | Описание                                    |
-|--------------------------|--------|--------------|---------------------------------------------|
-| `host`                   | string | `localhost`  | Хост MQTT брокера (IPv4/IPv6)               |
-| `port`                   | int    | `1883`       | Порт MQTT брокера                           |
-| `tls`                    | bool   | `false`      | Включить TLS шифрование                     |
-| `allow_anonymous`        | bool   | `true`       | Разрешить анонимные подключения             |
-| `users`                  | array  | -            | Массив учетных записей пользователей        |
-| `broker.max_inflight`    | int    | `50`         | Макс. неподтвержденных сообщений на клиента |
-| `broker.max_queued`      | int    | `1000`       | Макс. сообщений в очереди на клиента        |
-| `broker.keep_alive`      | int    | `60`         | Интервал keep alive в секундах              |
-| `debug.log_all_messages` | bool   | `false`      | Логировать все входящие MQTT сообщения      |
+| Параметр              | Тип    | По умолчанию | Описание                                    |
+|-----------------------|--------|--------------|---------------------------------------------|
+| `host`                | string | `localhost`  | Хост MQTT брокера (IPv4/IPv6)               |
+| `port`                | int    | `1883`       | Порт MQTT брокера                           |
+| `tls`                 | bool   | `false`      | Включить TLS шифрование                     |
+| `allow_anonymous`     | bool   | `true`       | Разрешить анонимные подключения             |
+| `users`               | array  | -            | Массив учетных записей пользователей        |
+| `broker.max_inflight` | int    | `50`         | Макс. неподтвержденных сообщений на клиента |
+| `broker.max_queued`   | int    | `1000`       | Макс. сообщений в очереди на клиента        |
+
+| `debug.log_all_messages` | bool | `false`      | Логировать все входящие MQTT сообщения |
 
 ### HTTP Hook Server
 
@@ -97,6 +102,7 @@ hook:
 | `path`                   | string | `/metrics`   | Путь к endpoint метрик                                              |
 | `metrics_ttl`            | string | `30m`        | Время хранения метрик неактивных узлов                              |
 | `topic.pattern`          | string | `msh/#`      | Паттерн MQTT топиков (поддерживает wildcards + и #)                 |
+| `keep_alive`             | string | `"60s"`      | MQTT client keep alive (только standalone режим)                    |
 | `topic.log_all_messages` | bool   | `false`      | Логировать MQTT сообщения соответствующие pattern                   |
 | `state.file`             | string | -            | Путь к файлу состояния (если не указан - персистентность отключена) |
 

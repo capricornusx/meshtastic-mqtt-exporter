@@ -28,8 +28,7 @@ hook:
   listen: "localhost:0"
   prometheus:
     path: "/metrics"
-    state:
-      file: "` + stateFile + `"
+    state_file: "` + stateFile + `"
 `
 
 	// Создаем временный конфиг файл

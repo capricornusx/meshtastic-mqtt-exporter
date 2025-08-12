@@ -14,12 +14,28 @@ type ConfigAdapter struct {
 }
 
 type MQTTConfigAdapter struct {
-	Host           string
-	Port           int
-	TLS            bool
-	AllowAnonymous bool
-	Users          []UserAuthAdapter
-	Timeout        time.Duration
+	Host            string
+	Port            int
+	AllowAnonymous  bool
+	Users           []UserAuthAdapter
+	Timeout         time.Duration
+	KeepAlive       time.Duration
+	TLSConfig       TLSConfigAdapter
+	MaxInflight     int
+	MaxQueued       int
+	ReceiveMaximum  int
+	MaxQoS          int
+	RetainAvailable bool
+	MessageExpiry   time.Duration
+	MaxClients      int
+}
+
+type TLSConfigAdapter struct {
+	Enabled  bool
+	Port     int
+	CertFile string
+	KeyFile  string
+	CAFile   string
 }
 
 type UserAuthAdapter struct {
@@ -77,10 +93,24 @@ func (c *ConfigAdapter) Validate() error {
 	return nil
 }
 
-func (m *MQTTConfigAdapter) GetHost() string           { return m.Host }
-func (m *MQTTConfigAdapter) GetPort() int              { return m.Port }
-func (m *MQTTConfigAdapter) GetTLS() bool              { return m.TLS }
-func (m *MQTTConfigAdapter) GetTimeout() time.Duration { return m.Timeout }
+func (m *MQTTConfigAdapter) GetHost() string                { return m.Host }
+func (m *MQTTConfigAdapter) GetPort() int                   { return m.Port }
+func (m *MQTTConfigAdapter) GetTimeout() time.Duration      { return m.Timeout }
+func (m *MQTTConfigAdapter) GetKeepAlive() time.Duration    { return m.KeepAlive }
+func (m *MQTTConfigAdapter) GetTLSConfig() domain.TLSConfig { return &m.TLSConfig }
+func (m *MQTTConfigAdapter) GetMaxInflight() int            { return m.MaxInflight }
+func (m *MQTTConfigAdapter) GetMaxQueued() int              { return m.MaxQueued }
+func (m *MQTTConfigAdapter) GetReceiveMaximum() int         { return m.ReceiveMaximum }
+func (m *MQTTConfigAdapter) GetMaxQoS() int                 { return m.MaxQoS }
+func (m *MQTTConfigAdapter) GetRetainAvailable() bool       { return m.RetainAvailable }
+func (m *MQTTConfigAdapter) GetMessageExpiry() int64        { return int64(m.MessageExpiry.Seconds()) }
+func (m *MQTTConfigAdapter) GetMaxClients() int             { return m.MaxClients }
+
+func (t *TLSConfigAdapter) GetEnabled() bool    { return t.Enabled }
+func (t *TLSConfigAdapter) GetPort() int        { return t.Port }
+func (t *TLSConfigAdapter) GetCertFile() string { return t.CertFile }
+func (t *TLSConfigAdapter) GetKeyFile() string  { return t.KeyFile }
+func (t *TLSConfigAdapter) GetCAFile() string   { return t.CAFile }
 func (m *MQTTConfigAdapter) GetUsers() []domain.UserAuth {
 	users := make([]domain.UserAuth, len(m.Users))
 	for i, u := range m.Users {

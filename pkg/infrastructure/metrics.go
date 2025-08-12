@@ -209,6 +209,7 @@ func (c *PrometheusCollector) SaveState(filename string) error {
 		return err
 	}
 
+	log.Info().Int("nodes", len(state.Nodes)).Str("file", filename).Msg("saving metrics state")
 	return os.WriteFile(filename, data, domain.StateFilePermissions)
 }
 
@@ -303,7 +304,7 @@ func (c *PrometheusCollector) LoadState(filename string) error {
 		return nil
 	}
 
-	log.Info().Int("nodes", len(state.Nodes)).Str("version", state.Version).Msg("restoring metrics state")
+	log.Info().Int("nodes", len(state.Nodes)).Str("version", state.Version).Str("file", filename).Msg("restoring metrics state")
 	c.restoreMetrics(state.Nodes)
 	return nil
 }

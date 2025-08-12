@@ -1,8 +1,10 @@
 package main
 
 import (
+	"crypto/tls"
 	"flag"
 	"fmt"
+	"math"
 	"os"
 	"os/signal"
 	"syscall"
@@ -39,11 +41,23 @@ func main() {
 
 func setupMQTTServer(cfg domain.Config, logger zerolog.Logger) *mqtt.Server {
 	f := factory.NewFactory(cfg)
-	server := mqtt.New(&mqtt.Options{InlineClient: false})
+	mqttConfig := cfg.GetMQTTConfig()
+	server := mqtt.New(&mqtt.Options{
+		InlineClient: false,
+		Capabilities: &mqtt.Capabilities{
+			MaximumInflight:              safeUint16(mqttConfig.GetMaxInflight()),
+			MaximumClientWritesPending:   safeInt32(mqttConfig.GetMaxQueued()),
+			ReceiveMaximum:               safeUint16(mqttConfig.GetReceiveMaximum()),
+			MaximumQos:                   byte(mqttConfig.GetMaxQoS()),
+			RetainAvailable:              boolToByte(mqttConfig.GetRetainAvailable()),
+			MaximumMessageExpiryInterval: mqttConfig.GetMessageExpiry(),
+			MaximumClients:               int64(mqttConfig.GetMaxClients()),
+		},
+	})
 
 	addMeshtasticHook(server, cfg, f, logger)
 	addAuthHook(server, cfg, logger)
-	addTCPListener(server, cfg, logger)
+	addListener(server, cfg, logger)
 
 	return server
 }
@@ -92,17 +106,49 @@ func addAuthHook(server *mqtt.Server, cfg domain.Config, logger zerolog.Logger) 
 	}
 }
 
-func addTCPListener(server *mqtt.Server, cfg domain.Config, logger zerolog.Logger) {
+func addListener(server *mqtt.Server, cfg domain.Config, logger zerolog.Logger) {
 	mqttConfig := cfg.GetMQTTConfig()
+	tcpAddress := fmt.Sprintf("%s:%d", mqttConfig.GetHost(), mqttConfig.GetPort())
+	addTCPListener(server, tcpAddress, logger)
+
+	tlsConfig := mqttConfig.GetTLSConfig()
+	if tlsConfig.GetEnabled() {
+		tlsAddress := fmt.Sprintf("%s:%d", mqttConfig.GetHost(), tlsConfig.GetPort())
+		addTLSListener(server, tlsConfig, tlsAddress, logger)
+	}
+}
+
+func addTCPListener(server *mqtt.Server, address string, logger zerolog.Logger) {
 	tcp := listeners.NewTCP(listeners.Config{
 		ID:      "tcp",
-		Address: fmt.Sprintf("%s:%d", mqttConfig.GetHost(), mqttConfig.GetPort()),
+		Address: address,
 	})
 	if err := server.AddListener(tcp); err != nil {
-		logger.Fatal().Err(err).Msg("failed to add listener")
+		logger.Fatal().Err(err).Msg("failed to add tcp listener")
+	}
+	logger.Info().Str("address", address).Msg("tcp listener enabled")
+}
+
+func addTLSListener(server *mqtt.Server, tlsConfig domain.TLSConfig, address string, logger zerolog.Logger) {
+	cert, err := tls.LoadX509KeyPair(tlsConfig.GetCertFile(), tlsConfig.GetKeyFile())
+	if err != nil {
+		logger.Fatal().Err(err).Msg("failed to load TLS certificate")
 	}
 
-	logger.Info().Msg("prometheus metrics enabled")
+	tlsConf := &tls.Config{
+		Certificates: []tls.Certificate{cert},
+		MinVersion:   tls.VersionTLS12,
+	}
+
+	tcp := listeners.NewTCP(listeners.Config{
+		ID:        "tls",
+		Address:   address,
+		TLSConfig: tlsConf,
+	})
+	if err := server.AddListener(tcp); err != nil {
+		logger.Fatal().Err(err).Msg("failed to add tls listener")
+	}
+	logger.Info().Str("address", address).Msg("tls listener enabled")
 }
 
 func startServer(server *mqtt.Server, logger zerolog.Logger) {
@@ -120,4 +166,31 @@ func waitForShutdown(server *mqtt.Server, logger zerolog.Logger) {
 	<-c
 	logger.Info().Msg("shutting down")
 	server.Close()
+}
+
+func boolToByte(b bool) byte {
+	if b {
+		return 1
+	}
+	return 0
+}
+
+func safeUint16(val int) uint16 {
+	if val < 0 {
+		return 0
+	}
+	if val > math.MaxUint16 {
+		return math.MaxUint16
+	}
+	return uint16(val)
+}
+
+func safeInt32(val int) int32 {
+	if val < math.MinInt32 {
+		return math.MinInt32
+	}
+	if val > math.MaxInt32 {
+		return math.MaxInt32
+	}
+	return int32(val)
 }

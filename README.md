@@ -9,6 +9,7 @@
 ## Возможности
 
 - **Встроенный MQTT брокер** с YAML конфигурацией
+- **TLS поддержка** - TCP (1883) + TLS (8883) порты одновременно
 - **Prometheus метрики**: Батарея, температура, влажность, давление, качество сигнала
 - **AlertManager интеграция**: Отправка алертов в LoRa mesh сеть
 - **Персистентность состояния**: Сохранение/восстановление метрик между перезапусками
@@ -34,30 +35,15 @@ wget https://github.com/capricornusx/meshtastic-mqtt-exporter/releases/latest/do
 chmod +x mqtt-exporter-linux-amd64
 ./mqtt-exporter-linux-amd64 --config config.yaml
 ```
+    
+## Конфигурация
 
-## Пример конфигурации
+Полный пример конфигурации доступен в файле [`config.yaml`](config.yaml).
 
-```yaml
-logging:
-  level: "info"  # debug, info, warn, error, fatal
+Для быстрого старта скачайте готовую конфигурацию:
 
-mqtt:
-  host: 0.0.0.0
-  port: 1883
-  allow_anonymous: true
-
-hook:
-  listen: "0.0.0.0:8100"
-  prometheus:
-    path: "/metrics"
-    topic:
-      # MQTT topic pattern (поддерживает wildcards + и #)
-      pattern: "msh/#"  # Все сообщения, начинающиеся с msh/
-      log_all_messages: false  # Логировать MQTT сообщения соответствующие pattern
-    state:
-      file: "meshtastic_state.json"  # Файл для сохранения состояния метрик
-  alertmanager:
-    path: "/alerts/webhook"
+```bash
+wget https://raw.githubusercontent.com/capricornusx/meshtastic-mqtt-exporter/main/config.yaml
 ```
 
 ## Документация
@@ -84,12 +70,13 @@ hook:
 - **Восстановление при запуске**: Метрики загружаются из файла состояния
 - **JSON формат**: Читаемый формат для отладки
 
-Для отключения персистентности уберите параметр `hook.prometheus.state.file` из конфигурации.
+Для отключения персистентности уберите параметр `hook.prometheus.state_file` из конфигурации.
 
 ## TODO
 - [ ] добавить MQTT-специфичные метрики (обработано сообщений, uptime, расход памяти т.д.)
 - [ ] from_node vs node_id labels
 - [ ] синхронизация метрик с meshtastic .proto файлами
+- [x] TLS поддержка для MQTT брокера
 
 ## Благодарности
 

@@ -33,13 +33,14 @@ func (c *MQTTClient) Connect() error {
 	broker := c.buildBrokerURL()
 	opts.AddBroker(broker)
 	opts.SetClientID("meshtastic-exporter-standalone")
-	opts.SetKeepAlive(domain.DefaultMQTTKeepAlive)
+	opts.SetKeepAlive(c.config.GetKeepAlive())
 	opts.SetPingTimeout(domain.DefaultMQTTPingTimeout)
 	opts.SetConnectTimeout(domain.DefaultMQTTConnTimeout)
 	opts.SetAutoReconnect(true)
 	opts.SetMaxReconnectInterval(domain.DefaultMQTTReconnectInt)
 
-	if c.config.GetTLS() {
+	tlsConfig := c.config.GetTLSConfig()
+	if tlsConfig.GetEnabled() {
 		opts.SetTLSConfig(&tls.Config{
 			InsecureSkipVerify: false,
 			MinVersion:         tls.VersionTLS12,
@@ -66,11 +67,11 @@ func (c *MQTTClient) Connect() error {
 }
 
 func (c *MQTTClient) buildBrokerURL() string {
-	protocol := "tcp"
-	if c.config.GetTLS() {
-		protocol = "ssl"
+	tlsConfig := c.config.GetTLSConfig()
+	if tlsConfig.GetEnabled() {
+		return fmt.Sprintf("ssl://%s:%d", c.config.GetHost(), tlsConfig.GetPort())
 	}
-	return fmt.Sprintf("%s://%s:%d", protocol, c.config.GetHost(), c.config.GetPort())
+	return fmt.Sprintf("tcp://%s:%d", c.config.GetHost(), c.config.GetPort())
 }
 
 func (c *MQTTClient) onConnect(client mqtt.Client) {

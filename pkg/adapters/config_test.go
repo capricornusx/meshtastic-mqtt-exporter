@@ -111,12 +111,23 @@ func TestConfigAdapter_Validate_InvalidAlertManagerPort(t *testing.T) {
 
 func TestConfigAdapter_GetMethods(t *testing.T) {
 	mqttConfig := MQTTConfigAdapter{
-		Host:    "test-host",
-		Port:    1883,
-		TLS:     true,
-		Timeout: 30 * time.Second,
+		Host:            "test-host",
+		Port:            1883,
+		Timeout:         30 * time.Second,
+		KeepAlive:       60 * time.Second,
+		MaxInflight:     1024,
+		MaxQueued:       1000,
+		ReceiveMaximum:  512,
+		MaxQoS:          2,
+		RetainAvailable: true,
+		MessageExpiry:   24 * time.Hour,
+		MaxClients:      1000,
 		Users: []UserAuthAdapter{
 			{Username: "user1", Password: "pass1"},
+		},
+		TLSConfig: TLSConfigAdapter{
+			Enabled: true,
+			Port:    8883,
 		},
 	}
 
@@ -136,8 +147,16 @@ func TestConfigAdapter_GetMethods(t *testing.T) {
 	mqtt := config.GetMQTTConfig()
 	assert.Equal(t, "test-host", mqtt.GetHost())
 	assert.Equal(t, 1883, mqtt.GetPort())
-	assert.True(t, mqtt.GetTLS())
+	assert.True(t, mqtt.GetTLSConfig().GetEnabled())
 	assert.Equal(t, 30*time.Second, mqtt.GetTimeout())
+	assert.Equal(t, 60*time.Second, mqtt.GetKeepAlive())
+	assert.Equal(t, 1024, mqtt.GetMaxInflight())
+	assert.Equal(t, 1000, mqtt.GetMaxQueued())
+	assert.Equal(t, 512, mqtt.GetReceiveMaximum())
+	assert.Equal(t, 2, mqtt.GetMaxQoS())
+	assert.True(t, mqtt.GetRetainAvailable())
+	assert.Equal(t, int64(86400), mqtt.GetMessageExpiry()) // 24h in seconds
+	assert.Equal(t, 1000, mqtt.GetMaxClients())
 	assert.Len(t, mqtt.GetUsers(), 1)
 	assert.Equal(t, "user1", mqtt.GetUsers()[0].GetUsername())
 

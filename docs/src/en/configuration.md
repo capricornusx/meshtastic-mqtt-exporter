@@ -2,28 +2,27 @@
 
 ## Configuration Example
 
-Full configuration example is available in [`config.yaml`](https://github.com/capricornusx/meshtastic-mqtt-exporter/blob/main/config.yaml) file in the repository.
+Full configuration example with detailed comments is available in the root [`config.yaml`](../../../config.yaml) file.
 
-### Minimal Configuration
+For quick start, download the ready-to-use configuration:
 
-```yaml
-logging:
-  level: "info"
-
-mqtt:
-  host: 0.0.0.0
-  port: 1883
-  allow_anonymous: true
-
-hook:
-  listen: "0.0.0.0:8100"
-  prometheus:
-    path: "/metrics"
-    topic:
-      pattern: "msh/#"
+```bash
+wget https://raw.githubusercontent.com/capricornusx/meshtastic-mqtt-exporter/main/config.yaml
 ```
 
 ## Key Parameters
+
+### MQTT Capabilities
+
+The `mqtt.capabilities` section allows configuring the embedded MQTT broker capabilities:
+
+- `maximum_inflight` — maximum unacknowledged QoS 1/2 messages per client (default: 1024)
+- `maximum_client_writes_pending` — maximum messages in client queue (default: 1000)
+- `receive_maximum` — maximum concurrent QoS messages per client (default: 512)
+- `maximum_qos` — maximum QoS level: 0, 1, 2 (default: 2)
+- `retain_available` — support for retain messages (default: true)
+- `maximum_message_expiry_interval` — message lifetime: "24h", "1h", "0" (default: "24h")
+- `maximum_clients` — maximum concurrent clients (default: 1000)
 
 ### MQTT Topics
 
@@ -32,6 +31,10 @@ The `hook.prometheus.topic.pattern` parameter supports wildcards:
 - `#` — multiple levels
 
 Examples: `msh/#`, `msh/+/json/+/+`
+
+### State Persistence
+
+The `hook.prometheus.state_file` parameter specifies the file for saving metrics state between restarts.
 
 ## Command Line Parameters
 

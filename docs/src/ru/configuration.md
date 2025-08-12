@@ -2,25 +2,12 @@
 
 ## Пример конфигурации
 
-Полный пример конфигурации доступен в файле [`config.yaml`](https://github.com/capricornusx/meshtastic-mqtt-exporter/blob/main/config.yaml) в репозитории.
+Полный пример конфигурации с комментариями доступен в корневом файле [`config.yaml`](../../../config.yaml).
 
-### Минимальная конфигурация
+Для быстрого старта скачайте готовую конфигурацию:
 
-```yaml
-logging:
-  level: "info"
-
-mqtt:
-  host: 0.0.0.0
-  port: 1883
-  allow_anonymous: true
-
-hook:
-  listen: "0.0.0.0:8100"
-  prometheus:
-    path: "/metrics"
-    topic:
-      pattern: "msh/#"
+```bash
+wget https://raw.githubusercontent.com/capricornusx/meshtastic-mqtt-exporter/main/config.yaml
 ```
 
 ## Параметры командной строки
@@ -42,6 +29,18 @@ hook:
 
 ## Основные параметры
 
+### MQTT Capabilities
+
+Раздел `mqtt.capabilities` позволяет настроить возможности встроенного MQTT брокера:
+
+- `maximum_inflight` — максимум неподтвержденных QoS 1/2 сообщений на клиента (по умолчанию: 1024)
+- `maximum_client_writes_pending` — максимум сообщений в очереди клиента (по умолчанию: 1000)
+- `receive_maximum` — максимум concurrent QoS сообщений на клиента (по умолчанию: 512)
+- `maximum_qos` — максимальный уровень QoS: 0, 1, 2 (по умолчанию: 2)
+- `retain_available` — поддержка retain сообщений (по умолчанию: true)
+- `maximum_message_expiry_interval` — время жизни сообщений: "24h", "1h", "0" (по умолчанию: "24h")
+- `maximum_clients` — максимум одновременных клиентов (по умолчанию: 1000)
+
 ### MQTT топики
 
 Параметр `hook.prometheus.topic.pattern` поддерживает wildcards:
@@ -49,6 +48,10 @@ hook:
 - `#` — много уровней
 
 Примеры: `msh/#`, `msh/+/json/+/+`
+
+### Персистентность состояния
+
+Параметр `hook.prometheus.state_file` задает файл для сохранения метрик между перезапусками.
 
 ## Запуск
 

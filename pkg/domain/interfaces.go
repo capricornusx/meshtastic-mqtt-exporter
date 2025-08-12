@@ -33,9 +33,25 @@ type Config interface {
 type MQTTConfig interface {
 	GetHost() string
 	GetPort() int
-	GetTLS() bool
 	GetUsers() []UserAuth
 	GetTimeout() time.Duration
+	GetKeepAlive() time.Duration
+	GetTLSConfig() TLSConfig
+	GetMaxInflight() int
+	GetMaxQueued() int
+	GetReceiveMaximum() int
+	GetMaxQoS() int
+	GetRetainAvailable() bool
+	GetMessageExpiry() int64
+	GetMaxClients() int
+}
+
+type TLSConfig interface {
+	GetEnabled() bool
+	GetPort() int
+	GetCertFile() string
+	GetKeyFile() string
+	GetCAFile() string
 }
 
 type PrometheusConfig interface {
