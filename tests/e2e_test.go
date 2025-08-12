@@ -70,7 +70,7 @@ func TestE2E_MQTTToPrometheusMetrics(t *testing.T) {
 	time.Sleep(100 * time.Millisecond)
 
 	// Проверить, что HTTP сервер запустился
-	waitForHTTPServer(t, httpPort, 5*time.Second)
+	waitForHTTPServer(t, httpPort)
 
 	// Создать MQTT клиента
 	opts := paho.NewClientOptions()
@@ -209,7 +209,7 @@ func TestE2E_MultipleNodes(t *testing.T) {
 	}()
 
 	time.Sleep(100 * time.Millisecond)
-	waitForHTTPServer(t, httpPort, 5*time.Second)
+	waitForHTTPServer(t, httpPort)
 
 	// Создать MQTT клиента
 	opts := paho.NewClientOptions()
@@ -275,11 +275,11 @@ func findFreePort(t *testing.T) int {
 	return port
 }
 
-func waitForHTTPServer(t *testing.T, port int, timeout time.Duration) {
+func waitForHTTPServer(t *testing.T, port int) {
 	url := fmt.Sprintf("http://localhost:%d/health", port)
 	client := &http.Client{Timeout: 1 * time.Second}
 
-	deadline := time.Now().Add(timeout)
+	deadline := time.Now().Add(5 * time.Second)
 	for time.Now().Before(deadline) {
 		resp, err := client.Get(url)
 		if err == nil {
@@ -290,5 +290,5 @@ func waitForHTTPServer(t *testing.T, port int, timeout time.Duration) {
 		}
 		time.Sleep(100 * time.Millisecond)
 	}
-	t.Fatalf("HTTP server did not start on port %d within %v", port, timeout)
+	t.Fatalf("HTTP server did not start on port %d within %v", port, 5*time.Second)
 }

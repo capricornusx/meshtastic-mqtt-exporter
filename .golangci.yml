@@ -22,7 +22,7 @@ linters:
     - godot
   settings:
     gocyclo:
-      min-complexity: 12
+      min-complexity: 11
     goconst:
       min-len: 3
       min-occurrences: 2

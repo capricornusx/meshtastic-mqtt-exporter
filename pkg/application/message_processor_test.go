@@ -4,6 +4,9 @@ import (
 	"context"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"meshtastic-exporter/pkg/mocks"
 )
 
@@ -24,12 +27,8 @@ func TestMeshtasticProcessor_ProcessMessage_Telemetry(t *testing.T) {
 
 	err := processor.ProcessMessage(context.Background(), "msh/test", payload)
 
-	if err != nil {
-		t.Errorf("Expected no error, got %v", err)
-	}
-	if !mockCollector.CollectTelemetryCalled {
-		t.Error("Expected CollectTelemetry to be called")
-	}
+	require.NoError(t, err)
+	assert.True(t, mockCollector.CollectTelemetryCalled)
 }
 
 func TestMeshtasticProcessor_ProcessMessage_NodeInfo(t *testing.T) {
@@ -50,12 +49,8 @@ func TestMeshtasticProcessor_ProcessMessage_NodeInfo(t *testing.T) {
 
 	err := processor.ProcessMessage(context.Background(), "msh/test", payload)
 
-	if err != nil {
-		t.Errorf("Expected no error, got %v", err)
-	}
-	if !mockCollector.CollectNodeInfoCalled {
-		t.Error("Expected CollectNodeInfo to be called")
-	}
+	require.NoError(t, err)
+	assert.True(t, mockCollector.CollectNodeInfoCalled)
 }
 
 func TestMeshtasticProcessor_ProcessMessage_InvalidJSON(t *testing.T) {
@@ -68,15 +63,9 @@ func TestMeshtasticProcessor_ProcessMessage_InvalidJSON(t *testing.T) {
 
 	err := processor.ProcessMessage(context.Background(), "msh/test", payload)
 
-	if err != nil {
-		t.Errorf("Expected no error for non-JSON message, got %v", err)
-	}
-	if mockCollector.CollectTelemetryCalled {
-		t.Error("Expected CollectTelemetry not to be called")
-	}
-	if mockCollector.CollectNodeInfoCalled {
-		t.Error("Expected CollectNodeInfo not to be called")
-	}
+	require.NoError(t, err)
+	assert.False(t, mockCollector.CollectTelemetryCalled)
+	assert.False(t, mockCollector.CollectNodeInfoCalled)
 }
 
 func TestMeshtasticProcessor_ProcessMessage_ZeroFromNode(t *testing.T) {
@@ -92,12 +81,8 @@ func TestMeshtasticProcessor_ProcessMessage_ZeroFromNode(t *testing.T) {
 
 	err := processor.ProcessMessage(context.Background(), "msh/test", payload)
 
-	if err == nil {
-		t.Error("Expected error for zero from node")
-	}
-	if mockCollector.CollectTelemetryCalled {
-		t.Error("Expected CollectTelemetry not to be called")
-	}
+	require.Error(t, err)
+	assert.False(t, mockCollector.CollectTelemetryCalled)
 }
 
 func TestMeshtasticProcessor_LogAllMessages(t *testing.T) {
@@ -109,7 +94,5 @@ func TestMeshtasticProcessor_LogAllMessages(t *testing.T) {
 
 	err := processor.ProcessMessage(context.Background(), "msh/test", payload)
 
-	if err != nil {
-		t.Errorf("Expected no error, got %v", err)
-	}
+	require.NoError(t, err)
 }
