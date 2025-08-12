@@ -54,6 +54,7 @@ plugins:
         - locale: en
           name: English
           build: true
+  - include-markdown
   - search:
       lang:
         - ru
@@ -63,8 +64,21 @@ plugins:
 nav:
   - Главная: index.md
   - Быстрый старт: quick-start.md
-  - Конфигурация: configuration.md
+  - Конфигурация:
+    - Обзор: configuration.md
+    - YAML: configuration/yaml.md
+    - Окружение: configuration/environment.md
+    - Основные параметры: configuration/basic.md
+  - Развертывание:
+    - Docker: deployment/docker.md
+    - Systemd: deployment/systemd.md
+  - Интеграция:
+    - AlertManager: integration/alertmanager.md
+    - Prometheus: integration/prometheus.md
+    - Hook: integration/hook.md
   - API: api.md
+  - TLS: tls.md
+  - Примеры: examples.md
 
 # Расширения Markdown
 markdown_extensions:
@@ -106,6 +120,8 @@ extra:
       link: https://github.com/capricornusx
     - icon: fontawesome/brands/telegram
       link: https://t.me/capricornusx
+
+
 
 copyright: Copyright &copy; 2025 capricornusx
 

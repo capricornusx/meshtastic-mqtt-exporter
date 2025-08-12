@@ -4,22 +4,21 @@
 [![codecov](https://codecov.io/gh/capricornusx/meshtastic-mqtt-exporter/graph/badge.svg?token=P0409HCBFS)](https://codecov.io/gh/capricornusx/meshtastic-mqtt-exporter)
 [![Go Report Card](https://goreportcard.com/badge/github.com/capricornusx/meshtastic-mqtt-exporter)](https://goreportcard.com/report/github.com/capricornusx/meshtastic-mqtt-exporter)
 
-Экспорт телеметрии Meshtastic устройств в метрики Prometheus с интеграцией AlertManager для отправки алертов в LoRa сеть.
+Экспорт телеметрии Meshtastic устройств в Prometheus с интеграцией AlertManager для отправки алертов в LoRa сеть.
 
 ## Возможности
 
-- **Встроенный MQTT брокер** с YAML конфигурацией
-- **TLS поддержка** - TCP (1883) + TLS (8883) порты одновременно
+- **Встроенный MQTT брокер** на основе mochi-mqtt
+- **Поддержка TLS/QoS/Retention**
 - **Prometheus метрики**: Батарея, температура, влажность, давление, качество сигнала
 - **AlertManager интеграция**: Отправка алертов в LoRa mesh сеть
 - **Персистентность состояния**: Сохранение/восстановление метрик между перезапусками
 
 ## Быстрый старт
 
-### Docker Compose (полный стек)
+### Docker Compose (полный стек мониторинга)
 
 ```bash
-# Полный стек мониторинга
 cd docs/stack
 docker-compose up -d
 ```
@@ -27,20 +26,18 @@ docker-compose up -d
 ### Отдельный бинарник
 
 ```bash
-# Скачать бинарник
 wget https://github.com/capricornusx/meshtastic-mqtt-exporter/releases/latest/download/mqtt-exporter-linux-amd64
 
-# Запустить embedded режим
+# Запустить
 ./mqtt-exporter-linux-amd64 --config config.yaml
 
-# Проверить метрики
+# Проверить
 curl http://localhost:8100/metrics
 ```
 
 ## Запуск
 
 ```bash
-# Скачать и запустить
 wget https://github.com/capricornusx/meshtastic-mqtt-exporter/releases/latest/download/mqtt-exporter-linux-amd64
 chmod +x mqtt-exporter-linux-amd64
 ./mqtt-exporter-linux-amd64 --config config.yaml
@@ -57,10 +54,10 @@ wget https://raw.githubusercontent.com/capricornusx/meshtastic-mqtt-exporter/mai
 ```
 
 ## Документация
-
 - [Быстрый старт](docs/src/ru/quick-start.md) — Установка и первый запуск
 - [Конфигурация](docs/src/ru/configuration.md) — Настройка YAML файла
 - [API](docs/src/ru/api.md) — REST API endpoints
+- [Pages](https://capricornusx.github.io/meshtastic-mqtt-exporter/)
 
 ## Метрики
 
@@ -80,13 +77,10 @@ wget https://raw.githubusercontent.com/capricornusx/meshtastic-mqtt-exporter/mai
 - **Восстановление при запуске**: Метрики загружаются из файла состояния
 - **JSON формат**: Читаемый формат для отладки
 
-Для отключения персистентности уберите параметр `hook.prometheus.state_file` из конфигурации.
-
 ## TODO
 - [ ] добавить MQTT-специфичные метрики (обработано сообщений, uptime, расход памяти т.д.)
 - [ ] from_node vs node_id labels
 - [ ] синхронизация метрик с meshtastic .proto файлами
-- [x] TLS поддержка для MQTT брокера
 
 ## Благодарности
 
