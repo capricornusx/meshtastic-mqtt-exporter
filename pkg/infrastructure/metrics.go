@@ -223,30 +223,8 @@ func (c *PrometheusCollector) extractNodeMetrics(metricFamilies []*dto.MetricFam
 				continue
 			}
 
-			if _, exists := nodeMetrics[nodeID]; !exists {
-				nodeMetrics[nodeID] = domain.MetricState{
-					NodeID:    nodeID,
-					Timestamp: time.Now().Unix(),
-					Metrics:   make(map[string]float64),
-					Labels:    make(map[string]string),
-				}
-			}
-
-			value := c.extractMetricValue(metric)
-			nodeState := nodeMetrics[nodeID]
-			nodeState.Metrics[mf.GetName()] = value
-
-			// Сохраняем лейблы для node_info метрики
-			if mf.GetName() == domain.MetricNodeInfo {
-				for k, v := range labels {
-					nodeState.Labels[k] = v
-				}
-			} else {
-				// Для остальных метрик сохраняем только node_id
-				nodeState.Labels["node_id"] = nodeID
-			}
-
-			nodeMetrics[nodeID] = nodeState
+			c.ensureNodeState(nodeMetrics, nodeID)
+			c.updateNodeMetric(nodeMetrics, nodeID, mf.GetName(), metric, labels)
 		}
 	}
 
@@ -265,6 +243,34 @@ func (c *PrometheusCollector) extractLabels(metric *dto.Metric) (string, map[str
 	}
 
 	return nodeID, labels
+}
+
+func (c *PrometheusCollector) ensureNodeState(nodeMetrics map[string]domain.MetricState, nodeID string) {
+	if _, exists := nodeMetrics[nodeID]; !exists {
+		nodeMetrics[nodeID] = domain.MetricState{
+			NodeID:    nodeID,
+			Timestamp: time.Now().Unix(),
+			Metrics:   make(map[string]float64),
+			Labels:    make(map[string]string),
+		}
+	}
+}
+
+func (c *PrometheusCollector) updateNodeMetric(nodeMetrics map[string]domain.MetricState, nodeID, metricName string, metric *dto.Metric, labels map[string]string) {
+	nodeState := nodeMetrics[nodeID]
+	nodeState.Metrics[metricName] = c.extractMetricValue(metric)
+	c.updateNodeLabels(&nodeState, metricName, nodeID, labels)
+	nodeMetrics[nodeID] = nodeState
+}
+
+func (c *PrometheusCollector) updateNodeLabels(nodeState *domain.MetricState, metricName, nodeID string, labels map[string]string) {
+	if metricName == domain.MetricNodeInfo {
+		for k, v := range labels {
+			nodeState.Labels[k] = v
+		}
+	} else {
+		nodeState.Labels["node_id"] = nodeID
+	}
 }
 
 func (c *PrometheusCollector) extractMetricValue(metric *dto.Metric) float64 {
