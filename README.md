@@ -1,200 +1,97 @@
-# Meshtastic [mochi-mqtt](https://github.com/mochi-mqtt/server) Plugin
+# Meshtastic MQTT Exporter
 
 [![Build Status](https://github.com/capricornusx/meshtastic-mqtt-exporter/workflows/Build%20and%20Test/badge.svg)](https://github.com/capricornusx/meshtastic-mqtt-exporter/actions)
 [![codecov](https://codecov.io/gh/capricornusx/meshtastic-mqtt-exporter/graph/badge.svg?token=P0409HCBFS)](https://codecov.io/gh/capricornusx/meshtastic-mqtt-exporter)
 [![Go Report Card](https://goreportcard.com/badge/github.com/capricornusx/meshtastic-mqtt-exporter)](https://goreportcard.com/report/github.com/capricornusx/meshtastic-mqtt-exporter)
 
-A mochi-mqtt server plugin that exports Meshtastic device telemetry to Prometheus metrics.
+Экспорт телеметрии Meshtastic устройств в метрики Prometheus с интеграцией AlertManager для отправки алертов в LoRa сеть.
 
-## Features
+## Возможности
 
-- **Standalone mode**: Connect to external MQTT broker (for existing setups)
-- **Embedded mode**: Built-in MQTT broker with Prometheus hook (recommended)
-- **mochi-mqtt Hook**: Standalone hook for existing mochi-mqtt servers
-- **Prometheus metrics**: Battery, temperature, humidity, pressure, signal quality
-- **Authentication**: Support for multiple users and anonymous connections
-- **State persistence**: Save/restore metrics between restarts
+- **Встроенный MQTT брокер** с YAML конфигурацией
+- **TLS поддержка** - TCP (1883) + TLS (8883) порты одновременно
+- **Prometheus метрики**: Батарея, температура, влажность, давление, качество сигнала
+- **AlertManager интеграция**: Отправка алертов в LoRa mesh сеть
+- **Персистентность состояния**: Сохранение/восстановление метрик между перезапусками
 
-## Installation
+## Быстрый старт
 
-### Pre-built Binaries
-
-Download the latest release for your platform from [GitHub Releases](https://github.com/capricornusx/meshtastic-mqtt-exporter/releases).
-
-### Build from Source
+### Docker Compose (полный стек)
 
 ```bash
-git clone https://github.com/capricornusx/meshtastic-mqtt-exporter
-cd meshtastic-mqtt-exporter
-go mod download
+# Полный стек мониторинга
+cd docs/stack
+docker-compose up -d
 ```
 
-### Building for Raspberry Pi
+### Отдельный бинарник
 
 ```bash
-# Build for all Raspberry Pi variants
-make build-rpi
+# Скачать бинарник
+wget https://github.com/capricornusx/meshtastic-mqtt-exporter/releases/latest/download/mqtt-exporter-linux-amd64
 
-# Or build specific versions:
-make build-rpi-arm64  # Pi 4/5 (64-bit)
-make build-rpi-arm32  # Older Pi (32-bit)
+# Запустить embedded режим
+./mqtt-exporter-linux-amd64 --config config.yaml
+
+# Проверить метрики
+curl http://localhost:8100/metrics
 ```
 
-## Usage
-
-### Embedded Mode (Recommended)
+## Запуск
 
 ```bash
-go run ./cmd/embedded-hook --config config.yaml
+# Скачать и запустить
+wget https://github.com/capricornusx/meshtastic-mqtt-exporter/releases/latest/download/mqtt-exporter-linux-amd64
+chmod +x mqtt-exporter-linux-amd64
+./mqtt-exporter-linux-amd64 --config config.yaml
 ```
-
-### Standalone Mode
-
-```bash
-go run ./cmd/standalone --config config.yaml
-```
-
-### As mochi-mqtt Hook
-
-```go
-import "meshtastic-exporter/pkg/hooks"
-
-// Add to your existing mochi-mqtt server
-hook := hooks.NewMeshtasticHook(hooks.MeshtasticHookConfig{
-PrometheusAddr: ":8100",
-EnableHealth:   true,
-})
-server.AddHook(hook, nil)
-```
-
-See [example](examples/mochi-mqtt-integration/README.md) for complete integration.
-
-## Mode Comparison
-
-| Feature         | Embedded Mode              | Standalone Mode               |
-|-----------------|----------------------------|-------------------------------|
-| **Setup**       | Single binary              | Requires external MQTT broker |
-| **Performance** | Higher (direct processing) | Lower (network overhead)      |
-| **Resources**   | Lower                      | Higher                        |
-| **Use Case**    | New deployments            | Existing MQTT infrastructure  |
-| **Recommended** | ✅ Yes                      | For legacy setups             |
-
-## Configuration
-
-See [Configuration Guide](docs/CONFIGURATION.md) for detailed options.
-
-## Docker Deployment
-
-See docs/ for container deployment with health checks.
-
-Basic example:
-
-```yaml
-mqtt:
-  host: 0.0.0.0
-  port: 1883
-  allow_anonymous: true
-
-prometheus:
-  enabled: true
-  host: 0.0.0.0
-  port: 8100
-  metrics_ttl: "30m"  # Clean up stale metrics after 30 minutes
-
-state:
-  enabled: true
-  file: "meshtastic_state.json"
-```
-
-## Testing Connectivity
-
-```bash
-# IPv4
-curl -4 "http://127.0.0.1:8100/metrics"
-curl -4 "http://127.0.0.1:8100/health"
-
-# IPv6
-curl -6 "http://[::1]:8100/metrics"
-curl -6 "http://[::1]:8100/health"
-```
-
-## Metrics
-
-- `meshtastic_messages_total` - Total messages by type
-- `meshtastic_battery_level_percent` - Battery level
-- `meshtastic_temperature_celsius` - Temperature
-- `meshtastic_humidity_percent` - Humidity
-- `meshtastic_pressure_hpa` - Barometric pressure
-- `meshtastic_rssi_dbm` - Signal strength
-- `meshtastic_mqtt_up` - MQTT connection status
-- `meshtastic_node_last_seen_timestamp` - Last seen timestamp
-
-## Architecture
-
-### Embedded Mode (Recommended)
-
-```mermaid
-flowchart LR
-    A[📱 Meshtastic Devices] --> B[🔧 Built-in MQTT Broker]
-    B --> C[🎯 Prometheus Hook]
-    C --> D[📊 Metrics Endpoint]
-    E[📈 Prometheus] --> D
     
-    style A fill:#e1f5fe
-    style B fill:#f3e5f5
-    style C fill:#e8f5e8
-    style D fill:#fff3e0
+## Конфигурация
+
+Полный пример конфигурации доступен в файле [`config.yaml`](config.yaml).
+
+Для быстрого старта скачайте готовую конфигурацию:
+
+```bash
+wget https://raw.githubusercontent.com/capricornusx/meshtastic-mqtt-exporter/main/config.yaml
 ```
 
-### Standalone Mode
+## Документация
 
-```mermaid
-flowchart LR
-    A[📱 Meshtastic Devices] --> B[🌐 External MQTT Broker]
-    B --> C[🔌 MQTT Client]
-    C --> D[⚙️ Exporter]
-    D --> E[📊 Metrics Endpoint]
-    F[📈 Prometheus] --> E
-    
-    style A fill:#e1f5fe
-    style B fill:#ffebee
-    style C fill:#f3e5f5
-    style D fill:#e8f5e8
-    style E fill:#fff3e0
-```
+- [Быстрый старт](docs/src/ru/quick-start.md) — Установка и первый запуск
+- [Конфигурация](docs/src/ru/configuration.md) — Настройка YAML файла
+- [API](docs/src/ru/api.md) — REST API endpoints
 
-### Data Flow
+## Метрики
 
-```mermaid
-sequenceDiagram
-    participant M as Meshtastic Device
-    participant B as MQTT Broker
-    participant H as Hook/Exporter
-    participant P as Prometheus
-    
-    M->>B: Publish telemetry
-    B->>H: Forward message
-    H->>H: Parse & convert to metrics
-    P->>H: Scrape /metrics
-    H->>P: Return metrics data
-```
+- `meshtastic_battery_level_percent` — Уровень батареи
+- `meshtastic_temperature_celsius` — Температура
+- `meshtastic_humidity_percent` — Влажность
+- `meshtastic_pressure_hpa` — Барометрическое давление
+- `meshtastic_rssi_dbm` — Мощность сигнала (dBm)
+- `meshtastic_snr_db` — Отношение сигнал/шум (dB)
+- `meshtastic_node_last_seen_timestamp` — Время последней активности
 
+## Персистентность состояния
 
-### TODO:
- - [ ] 💯 Add support for all sensor types from [telemetry.proto](https://github.com/meshtastic/protobufs/blob/master/meshtastic/telemetry.proto)
- - [ ] ♻ Auto-release (sync) on upstream .proto 👆 changes 
- - [ ] 📊 Create an example Grafana dashboard
- - [ ] 🔥 Create basic AlertManager rules
-   - [ ] (time() - meshtastic_node_last_seen_timestamp) <= 1200
-   - [ ] meshtastic_mqtt_up != 1
-   - [ ] meshtastic_uptime_seconds < 600 more than 10min
-   - [ ] meshtastic_battery_level_percent < 20 OR meshtastic_voltage_volts < 3.8
-   - [ ] sum(rate(meshtastic_messages_total[10m])) by (from_node) == 0
+Метрики автоматически сохраняются и восстанавливаются между перезапусками:
 
-## Acknowledgments
+- **Автоматическое сохранение**: Каждые 5 минут и при завершении работы
+- **Восстановление при запуске**: Метрики загружаются из файла состояния
+- **JSON формат**: Читаемый формат для отладки
 
-Built using the excellent [mochi-mqtt](https://github.com/mochi-mqtt/server) MQTT broker by [@mochi-co](https://github.com/mochi-co).
+Для отключения персистентности уберите параметр `hook.prometheus.state_file` из конфигурации.
 
-## License
+## TODO
+- [ ] добавить MQTT-специфичные метрики (обработано сообщений, uptime, расход памяти т.д.)
+- [ ] from_node vs node_id labels
+- [ ] синхронизация метрик с meshtastic .proto файлами
+- [x] TLS поддержка для MQTT брокера
+
+## Благодарности
+
+Построен с использованием отличного MQTT брокера [mochi-mqtt](https://github.com/mochi-mqtt/server) от [@mochi-co](https://github.com/mochi-co).
+
+## Лицензия
 
 MIT License

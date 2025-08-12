@@ -1,27 +1,63 @@
+logging:
+  level: "debug"  # debug, info, warn, error, fatal
+
 mqtt:
   host: 0.0.0.0
   port: 1883
-  username: "exporter"
-  password: "123"
-  tls: false
   allow_anonymous: true
   users:
-    - username: "meshtastic"
-      password: "mesh456"
-    - username: "monitor"
-      password: "mon789"
     - username: "admin"
-      password: "admin000"
+      password: "admin"
+    - username: "monitor"
+      password: "monitor"
+  tls_config:
+    enabled: false
+    port: 8883
+    cert_file: "certs/server.crt"
+    key_file: "certs/server.key"
+    ca_file: "certs/ca.crt"
+  capabilities:
+    maximum_inflight: 1024                    # Максимум неподтвержденных сообщений QoS 1/2 на клиента
+    maximum_client_writes_pending: 1000       # Максимум сообщений в очереди клиента
+    receive_maximum: 512                      # Максимум concurrent QoS сообщений на клиента
+    maximum_qos: 2                            # Максимальный уровень QoS (0, 1, 2)
+    retain_available: true                    # Поддержка retain сообщений
+    maximum_message_expiry_interval: "24h"    # Время жизни сообщений (24h, 1h, 0 = без ограничений)
+    maximum_clients: 1000                     # Максимум одновременных клиентов
 
-prometheus:
-  enabled: true
-  host: 0.0.0.0
-  port: 8100
-  metrics_ttl: "4m"
-
-state:
-  enabled: true
-  file: "meshtastic_state.json"
-
-topic:
-  prefix: "msh/"
+# HTTP Hook Server (Prometheus + AlertManager)
+hook:
+  listen: "0.0.0.0:8100"
+  prometheus:
+    path: "/metrics"
+    metrics_ttl: "10m"
+    keep_alive: "60s"  # MQTT client keep alive (standalone mode only)
+    topic:
+      # Supports MQTT wildcards + and #
+      # "msh/+/+/+/+"     - точное соответствие структуре Meshtastic
+      # "msh/#"           - все сообщения начинающиеся с msh/
+      # "msh/+/json/+/+"  - только JSON сообщения
+      pattern: "msh/+/2/json/#"
+      log_all_messages: true  # Логировать все MQTT сообщения, соответствующие pattern
+    state_file: "meshtastic_state.json"  # Файл для сохранения состояния метрик
+  alertmanager:
+    path: "/alerts/webhook"
+    topics:
+      broadcast: "msh/2/c/%s/!broadcast"
+      direct: "msh/2/c/%s/!%s"
+    routing:
+      default: # for disable fallback set null or {}
+        channel: "LongFast"
+        mode: "broadcast"
+      critical:
+        channel: "ShortFast"    # Fast delivery for critical alerts
+        mode: "broadcast"       # Send it to all nodes
+      warning:
+        channel: "LongFast"     # Balanced range/speed
+        mode: "direct"          # Send it to admins only
+        target_nodes:
+          - "admin001"
+          - "monitor02"
+      info:
+        channel: "LongSlow"     # Maximum range for info
+        mode: "broadcast"       # Send it to all nodes

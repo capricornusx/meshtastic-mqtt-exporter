@@ -1,0 +1,16 @@
+global:
+  smtp_smarthost: 'localhost:587'
+
+route:
+  group_by: ['alertname']
+  group_wait: 10s
+  group_interval: 10s
+  repeat_interval: 1h
+  receiver: 'lora-alerts'
+
+receivers:
+# Single endpoint with severity-based routing inside hook
+- name: 'lora-alerts'
+  webhook_configs:
+  - url: 'http://localhost:8080/alerts/webhook'
+    send_resolved: true

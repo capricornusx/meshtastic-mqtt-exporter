@@ -5,7 +5,6 @@ linters:
     - durationcheck
     - errorlint
     - gocyclo
-    - godot
     - gosec
     - importas
     - misspell
@@ -16,8 +15,32 @@ linters:
     - usestdlibvars
     - wastedassign
     - whitespace
+    - goconst
+    - mnd
   disable:
     - errcheck
+    - godot
+  settings:
+    gocyclo:
+      min-complexity: 11
+    goconst:
+      min-len: 3
+      min-occurrences: 2
+    mnd:
+      ignored-numbers:
+        - '0'
+        - '1'
+        - '2'
+        - '10'
+        - '100'
+        - '1000'
+        - '1024'
+      ignored-functions:
+        - 'time.Second'
+        - 'time.Minute'
+        - 'time.Hour'
+        - 'make'
+        - 'append'
   exclusions:
     generated: lax
     presets:

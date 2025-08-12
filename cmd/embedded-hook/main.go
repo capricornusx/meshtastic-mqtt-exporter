@@ -1,118 +1,196 @@
 package main
 
 import (
+	"crypto/tls"
 	"flag"
+	"fmt"
+	"math"
 	"os"
 	"os/signal"
-	"strconv"
 	"syscall"
 	"time"
-
-	"meshtastic-exporter/pkg/exporter"
-	"meshtastic-exporter/pkg/hooks"
-	"meshtastic-exporter/pkg/logger"
 
 	mqtt "github.com/mochi-mqtt/server/v2"
 	"github.com/mochi-mqtt/server/v2/hooks/auth"
 	"github.com/mochi-mqtt/server/v2/listeners"
 	"github.com/rs/zerolog"
+
+	"meshtastic-exporter/pkg/config"
+	"meshtastic-exporter/pkg/domain"
+	"meshtastic-exporter/pkg/factory"
+	"meshtastic-exporter/pkg/hooks"
+	"meshtastic-exporter/pkg/logger"
 )
 
 func main() {
 	zerolog.TimeFieldFormat = time.RFC3339
-	zerolog.SetGlobalLevel(zerolog.InfoLevel)
-
-	appLogger := logger.ComponentLogger("embedded")
+	appLogger := logger.ComponentLogger("embedded-hook")
 
 	configFile := flag.String("config", "config.yaml", "Configuration file path")
 	flag.Parse()
 
-	config, err := exporter.LoadConfig(*configFile)
+	cfg, err := config.LoadUnifiedConfig(*configFile)
 	if err != nil {
-		appLogger.Fatal().Err(err).Msg("Failed to load config")
+		appLogger.Fatal().Err(err).Msg("failed to load config")
 	}
 
+	server := setupMQTTServer(cfg, appLogger)
+	startServer(server, appLogger)
+	waitForShutdown(server, appLogger)
+}
+
+func setupMQTTServer(cfg domain.Config, logger zerolog.Logger) *mqtt.Server {
+	f := factory.NewFactory(cfg)
+	mqttConfig := cfg.GetMQTTConfig()
 	server := mqtt.New(&mqtt.Options{
 		InlineClient: false,
+		Capabilities: &mqtt.Capabilities{
+			MaximumInflight:              safeUint16(mqttConfig.GetMaxInflight()),
+			MaximumClientWritesPending:   safeInt32(mqttConfig.GetMaxQueued()),
+			ReceiveMaximum:               safeUint16(mqttConfig.GetReceiveMaximum()),
+			MaximumQos:                   byte(mqttConfig.GetMaxQoS()),
+			RetainAvailable:              boolToByte(mqttConfig.GetRetainAvailable()),
+			MaximumMessageExpiryInterval: mqttConfig.GetMessageExpiry(),
+			MaximumClients:               int64(mqttConfig.GetMaxClients()),
+		},
 	})
 
-	// Add Prometheus hook
-	prometheusHook := hooks.NewPrometheusHook(config)
-	err = server.AddHook(prometheusHook, nil)
-	if err != nil {
-		appLogger.Fatal().Err(err).Msg("Failed to add Prometheus hook")
+	addMeshtasticHook(server, cfg, f, logger)
+	addAuthHook(server, cfg, logger)
+	addListener(server, cfg, logger)
+
+	return server
+}
+
+func addMeshtasticHook(server *mqtt.Server, cfg domain.Config, f *factory.Factory, logger zerolog.Logger) {
+	prometheusConfig := cfg.GetPrometheusConfig()
+	hookConfig := hooks.MeshtasticHookConfig{
+		ServerAddr:   prometheusConfig.GetListen(),
+		EnableHealth: true,
+		TopicPrefix:  prometheusConfig.GetTopicPattern(),
+		MetricsTTL:   prometheusConfig.GetMetricsTTL(),
 	}
 
-	// Configure authentication only if not allowing anonymous
-	if !config.MQTT.AllowAnonymous {
-		var authRules auth.AuthRules
-		if len(config.MQTT.Users) > 0 {
-			for _, user := range config.MQTT.Users {
-				authRules = append(authRules, auth.AuthRule{
-					Username: auth.RString(user.Username),
-					Password: auth.RString(user.Password),
-					Allow:    true,
-				})
-			}
-		} else if config.MQTT.Username != "" {
+	alertConfig := cfg.GetAlertManagerConfig()
+	hookConfig.AlertPath = alertConfig.GetPath()
+
+	hook := hooks.NewMeshtasticHook(hookConfig, f)
+	if err := server.AddHook(hook, nil); err != nil {
+		logger.Fatal().Err(err).Msg("failed to add meshtastic hook")
+	}
+	logger.Info().Msg("meshtastic hook enabled")
+}
+
+func addAuthHook(server *mqtt.Server, cfg domain.Config, logger zerolog.Logger) {
+	mqttConfig := cfg.GetMQTTConfig()
+	users := mqttConfig.GetUsers()
+	var authRules auth.AuthRules
+
+	if len(users) == 0 {
+		authRules = append(authRules, auth.AuthRule{Allow: true})
+	} else {
+		for _, user := range users {
 			authRules = append(authRules, auth.AuthRule{
-				Username: auth.RString(config.MQTT.Username),
-				Password: auth.RString(config.MQTT.Password),
+				Username: auth.RString(user.GetUsername()),
+				Password: auth.RString(user.GetPassword()),
 				Allow:    true,
 			})
 		}
-		if len(authRules) > 0 {
-			err := server.AddHook(new(auth.AllowHook), &auth.Options{
-				Ledger: &auth.Ledger{Auth: authRules},
-			})
-			if err != nil {
-				appLogger.Fatal().Err(err).Msg("Failed to add auth")
-			}
-		}
-	} else {
-		// Allow all connections when anonymous is enabled
-		err := server.AddHook(new(auth.AllowHook), &auth.Options{
-			Ledger: &auth.Ledger{
-				Auth: auth.AuthRules{{
-					Allow: true,
-				}},
-			},
-		})
-		if err != nil {
-			appLogger.Fatal().Err(err).Msg("Failed to add anonymous auth")
-		}
+		authRules = append(authRules, auth.AuthRule{Allow: true})
 	}
 
-	// Add TCP listener
-	var addr string
-	if config.MQTT.Host == "::" {
-		addr = "[::]:" + strconv.Itoa(config.MQTT.Port)
-	} else {
-		addr = config.MQTT.Host + ":" + strconv.Itoa(config.MQTT.Port)
+	if err := server.AddHook(new(auth.AllowHook), &auth.Options{
+		Ledger: &auth.Ledger{Auth: authRules},
+	}); err != nil {
+		logger.Fatal().Err(err).Msg("failed to add auth hook")
 	}
-	tcp := listeners.NewTCP(listeners.Config{ID: "tcp", Address: addr})
-	err = server.AddListener(tcp)
+}
+
+func addListener(server *mqtt.Server, cfg domain.Config, logger zerolog.Logger) {
+	mqttConfig := cfg.GetMQTTConfig()
+	tcpAddress := fmt.Sprintf("%s:%d", mqttConfig.GetHost(), mqttConfig.GetPort())
+	addTCPListener(server, tcpAddress, logger)
+
+	tlsConfig := mqttConfig.GetTLSConfig()
+	if tlsConfig.GetEnabled() {
+		tlsAddress := fmt.Sprintf("%s:%d", mqttConfig.GetHost(), tlsConfig.GetPort())
+		addTLSListener(server, tlsConfig, tlsAddress, logger)
+	}
+}
+
+func addTCPListener(server *mqtt.Server, address string, logger zerolog.Logger) {
+	tcp := listeners.NewTCP(listeners.Config{
+		ID:      "tcp",
+		Address: address,
+	})
+	if err := server.AddListener(tcp); err != nil {
+		logger.Fatal().Err(err).Msg("failed to add tcp listener")
+	}
+	logger.Info().Str("address", address).Msg("tcp listener enabled")
+}
+
+func addTLSListener(server *mqtt.Server, tlsConfig domain.TLSConfig, address string, logger zerolog.Logger) {
+	cert, err := tls.LoadX509KeyPair(tlsConfig.GetCertFile(), tlsConfig.GetKeyFile())
 	if err != nil {
-		appLogger.Fatal().Err(err).Msg("Failed to add listener")
+		logger.Fatal().Err(err).Msg("failed to load TLS certificate")
 	}
 
+	tlsConf := &tls.Config{
+		Certificates: []tls.Certificate{cert},
+		MinVersion:   tls.VersionTLS12,
+	}
+
+	tcp := listeners.NewTCP(listeners.Config{
+		ID:        "tls",
+		Address:   address,
+		TLSConfig: tlsConf,
+	})
+	if err := server.AddListener(tcp); err != nil {
+		logger.Fatal().Err(err).Msg("failed to add tls listener")
+	}
+	logger.Info().Str("address", address).Msg("tls listener enabled")
+}
+
+func startServer(server *mqtt.Server, logger zerolog.Logger) {
 	go func() {
-		err := server.Serve()
-		if err != nil {
-			appLogger.Error().Err(err).Msg("MQTT server error")
+		if err := server.Serve(); err != nil {
+			logger.Error().Err(err).Msg("mqtt server error")
 		}
 	}()
+	logger.Info().Msg("mqtt server with meshtastic hooks started")
+}
 
-	appLogger.Info().Str("address", addr).Msg("mqtt broker started")
-	appLogger.Info().Str("metrics_url", config.Prometheus.Host+":"+strconv.Itoa(config.Prometheus.Port)+"/metrics").Msg("prometheus metrics available")
-	time.Sleep(time.Second)
-
-	// Wait for interrupt
+func waitForShutdown(server *mqtt.Server, logger zerolog.Logger) {
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 	<-c
-
-	appLogger.Info().Msg("shutting down")
-	prometheusHook.SaveStateOnShutdown()
+	logger.Info().Msg("shutting down")
 	server.Close()
+}
+
+func boolToByte(b bool) byte {
+	if b {
+		return 1
+	}
+	return 0
+}
+
+func safeUint16(val int) uint16 {
+	if val < 0 {
+		return 0
+	}
+	if val > math.MaxUint16 {
+		return math.MaxUint16
+	}
+	return uint16(val)
+}
+
+func safeInt32(val int) int32 {
+	if val < math.MinInt32 {
+		return math.MinInt32
+	}
+	if val > math.MaxInt32 {
+		return math.MaxInt32
+	}
+	return int32(val)
 }

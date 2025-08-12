@@ -1,0 +1,19 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+rule_files:
+  - "/etc/prometheus/rules/meshtastic-alerts.yml"
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          - alertmanager:9093
+
+scrape_configs:
+  - job_name: 'meshtastic'
+    static_configs:
+      - targets: ['meshtastic-exporter:8100']
+    scrape_interval: 10s
+    metrics_path: /metrics

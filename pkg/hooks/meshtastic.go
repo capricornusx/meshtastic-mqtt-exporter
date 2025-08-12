@@ -1,246 +1,192 @@
-// Package hooks provide a standalone Meshtastic Prometheus hook for mochi-mqtt
 package hooks
 
 import (
-	"encoding/json"
-	"net/http"
-	"strconv"
+	"context"
+	"fmt"
 	"strings"
 	"time"
 
 	mqtt "github.com/mochi-mqtt/server/v2"
 	"github.com/mochi-mqtt/server/v2/packets"
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/zerolog"
 
+	"meshtastic-exporter/pkg/domain"
+	apperrors "meshtastic-exporter/pkg/errors"
+	"meshtastic-exporter/pkg/factory"
+	"meshtastic-exporter/pkg/infrastructure"
 	"meshtastic-exporter/pkg/logger"
 )
 
-// MeshtasticHookConfig configures the Meshtastic hook.
 type MeshtasticHookConfig struct {
-	PrometheusAddr string // Address to serve Prometheus metrics (e.g., ":8100")
-	EnableHealth   bool   // Enable /health endpoint
+	ServerAddr   string
+	EnableHealth bool
+	TopicPrefix  string
+	MetricsTTL   time.Duration
+	AlertPath    string
 }
 
-// MeshtasticHook is a mochi-mqtt hook that exports Meshtastic telemetry to Prometheus.
 type MeshtasticHook struct {
 	mqtt.HookBase
-	config MeshtasticHookConfig
-	logger zerolog.Logger
 
-	// Prometheus metrics
-	messageCounter *prometheus.CounterVec
-	batteryLevel   *prometheus.GaugeVec
-	voltage        *prometheus.GaugeVec
-	temperature    *prometheus.GaugeVec
-	humidity       *prometheus.GaugeVec
-	pressure       *prometheus.GaugeVec
-	channelUtil    *prometheus.GaugeVec
-	airUtilTx      *prometheus.GaugeVec
-	uptime         *prometheus.GaugeVec
-	nodeLastSeen   *prometheus.GaugeVec
-	mqttUp         prometheus.Gauge
-	nodeHardware   *prometheus.GaugeVec
+	processor domain.MessageProcessor
+	collector domain.MetricsCollector
+	alerter   domain.AlertSender
 
-	registry *prometheus.Registry
+	config   MeshtasticHookConfig
+	logger   zerolog.Logger
+	server   *infrastructure.UnifiedServer
+	factory  *factory.Factory
+	stopSave chan struct{}
 }
 
-// NewMeshtasticHook creates a new Meshtastic hook.
-func NewMeshtasticHook(config MeshtasticHookConfig) *MeshtasticHook {
-	h := &MeshtasticHook{
-		config:   config,
-		registry: prometheus.NewRegistry(),
-		logger:   logger.ComponentLogger("meshtastic-hook"),
+func NewMeshtasticHook(cfg MeshtasticHookConfig, f *factory.Factory) *MeshtasticHook {
+	if cfg.TopicPrefix == "" {
+		cfg.TopicPrefix = domain.DefaultTopicPrefix
 	}
-	h.setupMetrics()
-	return h
+	if cfg.MetricsTTL == 0 {
+		cfg.MetricsTTL = domain.DefaultMetricsTTL
+	}
+	if cfg.AlertPath == "" {
+		cfg.AlertPath = domain.DefaultAlertsPath
+	}
+
+	if f == nil {
+		return nil
+	}
+
+	collector := f.CreateMetricsCollectorWithMode("embedded")
+	alerter := f.CreateAlertSender()
+	processor := f.CreateMessageProcessor()
+
+	return &MeshtasticHook{
+		processor: processor,
+		collector: collector,
+		alerter:   alerter,
+		config:    cfg,
+		logger:    logger.ComponentLogger("meshtastic-hook"),
+		factory:   f,
+		stopSave:  make(chan struct{}),
+	}
 }
 
-// ID returns the hook identifier.
+func NewMeshtasticHookSimple(f *factory.Factory) *MeshtasticHook {
+	config := MeshtasticHookConfig{
+		ServerAddr:   fmt.Sprintf("%s:%d", domain.DefaultPrometheusHost, domain.DefaultPrometheusPort),
+		EnableHealth: true,
+		TopicPrefix:  domain.DefaultTopicPrefix,
+		AlertPath:    domain.DefaultAlertsPath,
+	}
+
+	if f != nil {
+		if promConfig := f.GetPrometheusConfig(); promConfig != nil {
+			config.ServerAddr = promConfig.GetListen()
+		}
+		if alertConfig := f.GetAlertManagerConfig(); alertConfig != nil {
+			config.AlertPath = alertConfig.GetPath()
+		}
+		return NewMeshtasticHook(config, f)
+	}
+
+	return NewMeshtasticHook(config, nil)
+}
+
 func (h *MeshtasticHook) ID() string {
-	return "meshtastic-prometheus"
+	return "meshtastic"
 }
 
-// Provides returns the hook events this hook provides.
 func (h *MeshtasticHook) Provides(b byte) bool {
-	return b == mqtt.OnPublish
+	return b == mqtt.OnPublish || b == mqtt.OnConnect || b == mqtt.OnDisconnect
 }
 
-// OnPublish processes published messages for Meshtastic telemetry.
-func (h *MeshtasticHook) OnPublish(_ *mqtt.Client, pk packets.Packet) (packets.Packet, error) {
-	// Only process Meshtastic topics
-	if !strings.HasPrefix(pk.TopicName, "msh/") {
-		return pk, nil
-	}
-
-	var data map[string]interface{}
-	if err := json.Unmarshal(pk.Payload, &data); err != nil {
-		return pk, nil // Ignore invalid JSON
-	}
-
-	h.processMessage(data)
-	return pk, nil
-}
-
-// Init starts the Prometheus server.
 func (h *MeshtasticHook) Init(config any) error {
-	h.mqttUp.Set(1) // MQTT server is up when the hook initializes
-	if h.config.PrometheusAddr != "" {
-		go h.startServer()
+	if h.config.ServerAddr != "" {
+		h.startUnifiedServer()
 	}
+	h.startStateSaver()
 	return nil
 }
 
-func (h *MeshtasticHook) setupMetrics() {
-	h.messageCounter = prometheus.NewCounterVec(
-		prometheus.CounterOpts{Name: "meshtastic_messages_total", Help: "Total messages by type"},
-		[]string{"type", "from_node"})
-
-	h.batteryLevel = prometheus.NewGaugeVec(
-		prometheus.GaugeOpts{Name: "meshtastic_battery_level_percent", Help: "Battery level"},
-		[]string{"node_id"})
-
-	h.voltage = prometheus.NewGaugeVec(
-		prometheus.GaugeOpts{Name: "meshtastic_voltage_volts", Help: "Battery voltage"},
-		[]string{"node_id"})
-
-	h.temperature = prometheus.NewGaugeVec(
-		prometheus.GaugeOpts{Name: "meshtastic_temperature_celsius", Help: "Temperature"},
-		[]string{"node_id"})
-
-	h.humidity = prometheus.NewGaugeVec(
-		prometheus.GaugeOpts{Name: "meshtastic_humidity_percent", Help: "Humidity"},
-		[]string{"node_id"})
-
-	h.pressure = prometheus.NewGaugeVec(
-		prometheus.GaugeOpts{Name: "meshtastic_pressure_hpa", Help: "Pressure"},
-		[]string{"node_id"})
-
-	h.channelUtil = prometheus.NewGaugeVec(
-		prometheus.GaugeOpts{Name: "meshtastic_channel_utilization_percent", Help: "Channel utilization"},
-		[]string{"node_id"})
-
-	h.airUtilTx = prometheus.NewGaugeVec(
-		prometheus.GaugeOpts{Name: "meshtastic_air_util_tx_percent", Help: "Air utilization TX"},
-		[]string{"node_id"})
-
-	h.uptime = prometheus.NewGaugeVec(
-		prometheus.GaugeOpts{Name: "meshtastic_uptime_seconds", Help: "Uptime"},
-		[]string{"node_id"})
-
-	h.nodeLastSeen = prometheus.NewGaugeVec(
-		prometheus.GaugeOpts{Name: "meshtastic_node_last_seen_timestamp", Help: "Last seen timestamp"},
-		[]string{"node_id"})
-
-	h.nodeHardware = prometheus.NewGaugeVec(
-		prometheus.GaugeOpts{Name: "meshtastic_node_info", Help: "Node information"},
-		[]string{"node_id", "longname", "shortname", "hardware", "role"})
-
-	h.mqttUp = prometheus.NewGauge(
-		prometheus.GaugeOpts{Name: "meshtastic_mqtt_up", Help: "MQTT connection status"})
-
-	// Register all metrics
-	h.registry.MustRegister(
-		h.messageCounter, h.batteryLevel, h.voltage, h.temperature,
-		h.humidity, h.pressure, h.channelUtil, h.airUtilTx,
-		h.uptime, h.nodeLastSeen, h.mqttUp, h.nodeHardware,
-	)
+func (h *MeshtasticHook) OnConnect(cl *mqtt.Client, pk packets.Packet) error {
+	h.logger.Debug().Str("client_id", cl.ID).Msg("client connected")
+	return nil
 }
 
-func (h *MeshtasticHook) processMessage(data map[string]interface{}) {
-	fromNode := getUint32(data, "from")
-	if fromNode == 0 {
+func (h *MeshtasticHook) OnDisconnect(cl *mqtt.Client, err error, expire bool) {
+	h.logger.Debug().Str("client_id", cl.ID).Bool("expire", expire).Msg("client disconnected")
+}
+
+func (h *MeshtasticHook) OnPublish(_ *mqtt.Client, pk packets.Packet) (packets.Packet, error) {
+	if !strings.HasPrefix(pk.TopicName, h.config.TopicPrefix) {
+		return pk, nil
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), domain.DefaultTimeout)
+	defer cancel()
+
+	if err := h.processor.ProcessMessage(ctx, pk.TopicName, pk.Payload); err != nil {
+		appErr := apperrors.NewProcessingError("message processing failed", err)
+		h.logger.Error().Err(appErr).Str("topic", pk.TopicName).Msg("message processing failed")
+	}
+
+	return pk, nil
+}
+
+func (h *MeshtasticHook) startUnifiedServer() {
+	serverConfig := infrastructure.UnifiedServerConfig{
+		Addr:         h.config.ServerAddr,
+		EnableHealth: h.config.EnableHealth,
+		AlertPath:    h.config.AlertPath,
+	}
+
+	h.server = infrastructure.NewUnifiedServer(serverConfig, h.collector, h.alerter)
+	if err := h.server.Start(context.Background()); err != nil {
+		h.logger.Error().Err(err).Msg("failed to start unified server")
+	}
+}
+
+func (h *MeshtasticHook) startStateSaver() {
+	if h.factory == nil {
 		return
 	}
 
-	nodeID := strconv.FormatUint(uint64(fromNode), 10)
-	msgType := getString(data, "type")
-
-	h.nodeLastSeen.WithLabelValues(nodeID).SetToCurrentTime()
-	h.messageCounter.WithLabelValues(msgType, nodeID).Inc()
-
-	if payload, ok := data["payload"].(map[string]interface{}); ok {
-		h.processPayload(nodeID, msgType, payload)
+	prometheusConfig := h.factory.GetPrometheusConfig()
+	if prometheusConfig == nil || prometheusConfig.GetStateFile() == "" {
+		return
 	}
+
+	go func() {
+		ticker := time.NewTicker(domain.DefaultStateSaveInterval)
+		defer ticker.Stop()
+
+		for {
+			select {
+			case <-ticker.C:
+				if err := h.collector.SaveState(prometheusConfig.GetStateFile()); err != nil {
+					h.logger.Error().Err(err).Msg("failed to save metrics state")
+				} else {
+					h.logger.Debug().Msg("metrics state saved")
+				}
+			case <-h.stopSave:
+				return
+			}
+		}
+	}()
 }
 
-func (h *MeshtasticHook) processPayload(nodeID, msgType string, payload map[string]interface{}) {
-	switch msgType {
-	case "telemetry":
-		h.processTelemetry(nodeID, payload)
-	case "nodeinfo":
-		h.processNodeInfo(nodeID, payload)
+func (h *MeshtasticHook) Shutdown(ctx context.Context) error {
+	close(h.stopSave)
+
+	if h.factory != nil {
+		prometheusConfig := h.factory.GetPrometheusConfig()
+		if prometheusConfig != nil && prometheusConfig.GetStateFile() != "" {
+			if err := h.collector.SaveState(prometheusConfig.GetStateFile()); err != nil {
+				h.logger.Error().Err(err).Msg("failed to save final state")
+			}
+		}
 	}
+
+	if h.server != nil {
+		return h.server.Shutdown(ctx)
+	}
+	return nil
 }
-
-func (h *MeshtasticHook) processTelemetry(nodeID string, payload map[string]interface{}) {
-	if val, ok := payload["battery_level"].(float64); ok {
-		h.batteryLevel.WithLabelValues(nodeID).Set(val)
-	}
-	if val, ok := payload["voltage"].(float64); ok {
-		h.voltage.WithLabelValues(nodeID).Set(roundFloat(val, 2))
-	}
-	if val, ok := payload["temperature"].(float64); ok {
-		h.temperature.WithLabelValues(nodeID).Set(roundFloat(val, 1))
-	}
-	if val, ok := payload["relative_humidity"].(float64); ok {
-		h.humidity.WithLabelValues(nodeID).Set(roundFloat(val, 1))
-	}
-	if val, ok := payload["barometric_pressure"].(float64); ok {
-		h.pressure.WithLabelValues(nodeID).Set(roundFloat(val, 1))
-	}
-	if val, ok := payload["channel_utilization"].(float64); ok {
-		h.channelUtil.WithLabelValues(nodeID).Set(roundFloat(val, 2))
-	}
-	if val, ok := payload["air_util_tx"].(float64); ok {
-		h.airUtilTx.WithLabelValues(nodeID).Set(roundFloat(val, 2))
-	}
-	if val, ok := payload["uptime_seconds"].(float64); ok {
-		h.uptime.WithLabelValues(nodeID).Set(val)
-	}
-}
-
-func (h *MeshtasticHook) processNodeInfo(nodeID string, payload map[string]interface{}) {
-	longname := getString(payload, "longname")
-	shortname := getString(payload, "shortname")
-	hardware := "unknown"
-	role := "unknown"
-
-	if val, ok := payload["hardware"].(float64); ok {
-		hardware = strconv.FormatFloat(val, 'f', 0, 64)
-	}
-	if val, ok := payload["role"].(float64); ok {
-		role = strconv.FormatFloat(val, 'f', 0, 64)
-	}
-
-	h.nodeHardware.WithLabelValues(nodeID, longname, shortname, hardware, role).Set(1)
-}
-
-func (h *MeshtasticHook) startServer() {
-	mux := http.NewServeMux()
-	mux.Handle("/metrics", promhttp.HandlerFor(h.registry, promhttp.HandlerOpts{}))
-
-	if h.config.EnableHealth {
-		mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusOK)
-			json.NewEncoder(w).Encode(map[string]string{
-				"status":  "ok",
-				"service": "meshtastic-hook",
-			})
-		})
-	}
-
-	h.logger.Info().Str("address", h.config.PrometheusAddr).Msg("prometheus server starting")
-	server := &http.Server{
-		Addr:              h.config.PrometheusAddr,
-		Handler:           mux,
-		ReadHeaderTimeout: 10 * time.Second,
-	}
-	if err := server.ListenAndServe(); err != nil {
-		h.logger.Error().Err(err).Msg("failed to start server")
-	}
-}
-
-// Helper functions are shared with prometheus.go

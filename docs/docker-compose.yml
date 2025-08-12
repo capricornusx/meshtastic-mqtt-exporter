@@ -2,13 +2,13 @@ services:
   meshtastic-exporter:
     build: ..
     ports:
-      - "8100:8100"
-      - "1883:1883"
+      - "1883:1883"   # MQTT server TCP
+      - "8883:8883"   # MQTT server TLS
+      - "8100:8100"   # Prometheus metrics
+      - "8080:8080"   # AlertManager webhook (optional)
     volumes:
-      - ./config.yaml:/app/config.yaml
+      - ./config.yaml:/app/config.yaml:ro
       - ./data:/app/data
-    environment:
-      - CONFIG_FILE=/app/config.yaml
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:8100/health" ]
       interval: 30s
@@ -16,3 +16,28 @@ services:
       retries: 3
       start_period: 10s
     restart: unless-stopped
+    
+  # Optional: Prometheus for metrics collection
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./examples/alertmanager/meshtastic-alerts.yml:/etc/prometheus/rules/meshtastic.yml:ro
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+    profiles: ["monitoring"]
+    
+  # Optional: AlertManager for alerts
+  alertmanager:
+    image: prom/alertmanager:latest
+    ports:
+      - "9093:9093"
+    volumes:
+      - ./examples/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+    profiles: ["monitoring"]

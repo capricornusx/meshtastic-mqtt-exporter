@@ -19,6 +19,14 @@ Thumbs.db
 json/
 meshtastic_state.json
 
+# TLS certificates
+certs/
+*.crt
+*.key
+*.pem
+*.p12
+*.pfx
+
 
 ### JetBrains template
 # Covers JetBrains IDEs: IntelliJ, RubyMine, PhpStorm, AppCode, PyCharm, CLion, Android Studio, WebStorm and Rider
@@ -116,3 +124,4 @@ go.work.sum
 # env file
 .env
 dist/
+.out

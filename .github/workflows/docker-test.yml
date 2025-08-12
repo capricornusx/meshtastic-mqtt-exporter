@@ -1,0 +1,56 @@
+name: Docker Test
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - '**/*.go'
+      - 'go.mod'
+      - 'go.sum'
+      - 'docs/Dockerfile'
+      - 'docs/docker-compose.yml'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - '**/*.go'
+      - 'go.mod'
+      - 'go.sum'
+      - 'docs/Dockerfile'
+      - 'docs/docker-compose.yml'
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  docker-test:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Build Docker image
+        run: docker build -f docs/Dockerfile -t meshtastic-exporter:test .
+        
+      - name: Test Docker image
+        run: |
+          # Start container in background
+          docker run -d --name test-container \
+            -p 8100:8100 -p 1883:1883 \
+            meshtastic-exporter:test
+          
+          # Wait for startup
+          sleep 10
+          
+          # Test health endpoint
+          curl -f http://localhost:8100/health || exit 1
+          
+          # Cleanup
+          docker stop test-container
+          docker rm test-container
+          
+      - name: Test docker-compose
+        run: |
+          cd docs
+          docker-compose config
+          # Basic validation that compose file is valid

@@ -41,9 +41,8 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Run GoReleaser
-        uses: goreleaser/goreleaser-action@v6
+        uses: goreleaser/goreleaser-action@v6.3.0
         with:
-          version: latest
           distribution: goreleaser
 #          args: release --clean --release-notes=misc/release/notes.md
           args: release --clean

@@ -2,10 +2,21 @@ name: CI
 
 on:
   push:
-    tags-ignore:
-      - '**'
     branches:
-      - '**'
+      - main
+      - master
+      - develop
+    paths:
+      - '**/*.go'
+      - 'go.mod'
+      - 'go.sum'
+      - '.golangci.yml'
+  pull_request:
+    paths:
+      - '**/*.go'
+      - 'go.mod'
+      - 'go.sum'
+      - '.golangci.yml'
 
 permissions:
   contents: read
@@ -33,13 +44,23 @@ jobs:
       - name: Test with coverage
         run: go test -v -race -coverprofile=coverage.txt -covermode=atomic ./...
 
+      - name: Integration tests
+        run: go test -v ./tests/ -timeout 30s
+
       - name: Upload results to Codecov
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           slug: capricornusx/meshtastic-mqtt-exporter
 
-      - name: Check GoReleaser config
+      - name: Build examples
+        run: make build-examples
+
+      - name: Test examples compile
         run: |
-          go install github.com/goreleaser/goreleaser@latest
-          goreleaser check
+          cd docs/mochi-mqtt-integration && go build .
+
+      - name: Check GoReleaser config
+        uses: goreleaser/goreleaser-action@v6.3.0
+        with:
+          args: check
