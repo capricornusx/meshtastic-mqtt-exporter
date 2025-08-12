@@ -16,6 +16,8 @@ import (
 	"meshtastic-exporter/pkg/validator"
 )
 
+const unknownValue = "unknown"
+
 type MeshtasticProcessor struct {
 	collector      domain.MetricsCollector
 	alerter        domain.AlertSender
@@ -188,9 +190,17 @@ func (p *MeshtasticProcessor) processNodeInfo(nodeID string, payload map[string]
 		NodeID:    nodeID,
 		LongName:  validator.SanitizeString(p.getString(payload, "longname")),
 		ShortName: validator.SanitizeString(p.getString(payload, "shortname")),
-		Hardware:  "unknown",
-		Role:      "unknown",
+		Hardware:  unknownValue,
+		Role:      unknownValue,
 		Timestamp: time.Now(),
+	}
+
+	// Устанавливаем значения по умолчанию, если поля пустые
+	if info.LongName == "" {
+		info.LongName = unknownValue
+	}
+	if info.ShortName == "" {
+		info.ShortName = unknownValue
 	}
 
 	if val, ok := payload["hardware"].(float64); ok {

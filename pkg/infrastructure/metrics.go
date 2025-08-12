@@ -13,6 +13,8 @@ import (
 	"meshtastic-exporter/pkg/version"
 )
 
+const unknownValue = "unknown"
+
 type PrometheusCollector struct {
 	registry *prometheus.Registry
 
@@ -225,13 +227,24 @@ func (c *PrometheusCollector) extractNodeMetrics(metricFamilies []*dto.MetricFam
 					NodeID:    nodeID,
 					Timestamp: time.Now().Unix(),
 					Metrics:   make(map[string]float64),
-					Labels:    labels,
+					Labels:    make(map[string]string),
 				}
 			}
 
 			value := c.extractMetricValue(metric)
 			nodeState := nodeMetrics[nodeID]
 			nodeState.Metrics[mf.GetName()] = value
+
+			// Сохраняем лейблы для node_info метрики
+			if mf.GetName() == domain.MetricNodeInfo {
+				for k, v := range labels {
+					nodeState.Labels[k] = v
+				}
+			} else {
+				// Для остальных метрик сохраняем только node_id
+				nodeState.Labels["node_id"] = nodeID
+			}
+
 			nodeMetrics[nodeID] = nodeState
 		}
 	}
@@ -339,10 +352,23 @@ func (c *PrometheusCollector) restoreMetric(metricName string, value float64, no
 	if gauge, exists := metricMap[metricName]; exists {
 		gauge.WithLabelValues(nodeState.NodeID).Set(value)
 	} else if metricName == domain.MetricNodeInfo {
+		// Используем значения по умолчанию, если лейблы отсутствуют
 		longname := nodeState.Labels["longname"]
+		if longname == "" {
+			longname = unknownValue
+		}
 		shortname := nodeState.Labels["shortname"]
+		if shortname == "" {
+			shortname = unknownValue
+		}
 		hardware := nodeState.Labels["hardware"]
+		if hardware == "" {
+			hardware = unknownValue
+		}
 		role := nodeState.Labels["role"]
+		if role == "" {
+			role = unknownValue
+		}
 		c.nodeHardware.WithLabelValues(nodeState.NodeID, longname, shortname, hardware, role).Set(value)
 	}
 }
