@@ -1,8 +1,10 @@
 package infrastructure
 
 import (
+	"context"
 	"encoding/json"
 	"os"
+	"sync"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -13,7 +15,12 @@ import (
 	"meshtastic-exporter/pkg/version"
 )
 
-const unknownValue = "unknown"
+const (
+	unknownValue              = "unknown"
+	metricsCollectorComponent = "metrics-collector"
+	minCleanupInterval        = 500 * time.Millisecond
+	maxCleanupInterval        = 30 * time.Second
+)
 
 type PrometheusCollector struct {
 	registry *prometheus.Registry
@@ -32,21 +39,43 @@ type PrometheusCollector struct {
 	nodeLastSeen   *prometheus.GaugeVec
 	nodeHardware   *prometheus.GaugeVec
 	serviceInfo    *prometheus.GaugeVec
+
+	metricTimestamps map[string]map[string]time.Time // nodeID -> metricName -> timestamp
+	metricsTTL       time.Duration
+	cleanupCancel    context.CancelFunc
+	mu               sync.RWMutex
 }
 
 func NewPrometheusCollector() *PrometheusCollector {
-	return NewPrometheusCollectorWithMode("hook")
+	return NewPrometheusCollectorWithTTL("hook", domain.DefaultMetricsTTL)
+}
+
+func NewPrometheusCollectorWithTTL(mode string, ttl time.Duration) *PrometheusCollector {
+	return NewPrometheusCollectorWithConfig(mode, ttl)
 }
 
 func NewPrometheusCollectorWithMode(mode string) *PrometheusCollector {
+	return NewPrometheusCollectorWithConfig(mode, domain.DefaultMetricsTTL)
+}
+
+func NewPrometheusCollectorWithConfig(mode string, ttl time.Duration) *PrometheusCollector {
 	registry := prometheus.NewRegistry()
 
+	if ttl <= 0 {
+		ttl = domain.DefaultMetricsTTL
+	}
+
 	collector := &PrometheusCollector{
-		registry: registry,
+		registry:         registry,
+		metricTimestamps: make(map[string]map[string]time.Time),
+		metricsTTL:       ttl,
 	}
 
 	collector.setupMetrics()
 	collector.setupServiceInfo(mode)
+	if ttl > 0 {
+		go collector.startMetricsTTLCleanup()
+	}
 	return collector
 }
 
@@ -128,9 +157,8 @@ func getVersionInfo() (string, string, string) {
 }
 
 func (c *PrometheusCollector) CollectTelemetry(data domain.TelemetryData) error {
-	c.nodeLastSeen.WithLabelValues(data.NodeID).Set(float64(time.Now().Unix()))
-	c.messageCounter.WithLabelValues(domain.MessageTypeTelemetry, data.NodeID).Inc()
-
+	c.UpdateNodeLastSeen(data.NodeID, time.Now())
+	c.UpdateMessageCounter(data.NodeID, domain.MessageTypeTelemetry)
 	c.setTelemetryMetrics(data)
 	return nil
 }
@@ -156,12 +184,15 @@ func (c *PrometheusCollector) setBasicMetrics(data domain.TelemetryData) {
 func (c *PrometheusCollector) setEnvironmentalMetrics(data domain.TelemetryData) {
 	if data.Temperature != nil {
 		c.temperature.WithLabelValues(data.NodeID).Set(*data.Temperature)
+		c.updateMetricTimestamp(data.NodeID, domain.MetricTemperature)
 	}
 	if data.RelativeHumidity != nil {
 		c.humidity.WithLabelValues(data.NodeID).Set(*data.RelativeHumidity)
+		c.updateMetricTimestamp(data.NodeID, domain.MetricHumidity)
 	}
 	if data.BarometricPressure != nil {
 		c.pressure.WithLabelValues(data.NodeID).Set(*data.BarometricPressure)
+		c.updateMetricTimestamp(data.NodeID, domain.MetricPressure)
 	}
 }
 
@@ -181,10 +212,18 @@ func (c *PrometheusCollector) setNetworkMetrics(data domain.TelemetryData) {
 }
 
 func (c *PrometheusCollector) CollectNodeInfo(info domain.NodeInfo) error {
-	c.nodeLastSeen.WithLabelValues(info.NodeID).Set(float64(time.Now().Unix()))
-	c.messageCounter.WithLabelValues(domain.MessageTypeNodeInfo, info.NodeID).Inc()
+	c.UpdateNodeLastSeen(info.NodeID, time.Now())
+	c.UpdateMessageCounter(info.NodeID, domain.MessageTypeNodeInfo)
 	c.nodeHardware.WithLabelValues(info.NodeID, info.LongName, info.ShortName, info.Hardware, info.Role).Set(1)
 	return nil
+}
+
+func (c *PrometheusCollector) UpdateNodeLastSeen(nodeID string, timestamp time.Time) {
+	c.nodeLastSeen.WithLabelValues(nodeID).Set(float64(timestamp.Unix()))
+}
+
+func (c *PrometheusCollector) UpdateMessageCounter(nodeID string, messageType string) {
+	c.messageCounter.WithLabelValues(messageType, nodeID).Inc()
 }
 
 func (c *PrometheusCollector) GetRegistry() *prometheus.Registry {
@@ -202,6 +241,10 @@ func (c *PrometheusCollector) SaveState(filename string) error {
 	}
 
 	nodeMetrics := c.extractNodeMetrics(metricFamilies)
+	if len(nodeMetrics) == 0 {
+		return nil
+	}
+
 	state := c.buildStateSnapshot(nodeMetrics)
 
 	data, err := json.MarshalIndent(state, "", "  ")
@@ -209,7 +252,7 @@ func (c *PrometheusCollector) SaveState(filename string) error {
 		return err
 	}
 
-	log := logger.ComponentLogger("metrics-collector")
+	log := logger.ComponentLogger(metricsCollectorComponent)
 	log.Info().Int("nodes", len(state.Nodes)).Str("file", filename).Msg("saving metrics state")
 	return os.WriteFile(filename, data, domain.StateFilePermissions)
 }
@@ -311,7 +354,7 @@ func (c *PrometheusCollector) LoadState(filename string) error {
 		return nil
 	}
 
-	log := logger.ComponentLogger("metrics-collector")
+	log := logger.ComponentLogger(metricsCollectorComponent)
 	log.Info().Int("nodes", len(state.Nodes)).Str("version", state.Version).Str("file", filename).Msg("restoring metrics state")
 	c.restoreMetrics(state.Nodes)
 	return nil
@@ -321,8 +364,8 @@ func (c *PrometheusCollector) readStateFile(filename string) (*domain.StateSnaps
 	data, err := os.ReadFile(filename)
 	if err != nil {
 		if os.IsNotExist(err) {
-			log := logger.ComponentLogger("metrics-collector")
-			log.Info().Str("file", filename).Msg("state file not found, starting fresh")
+			log := logger.ComponentLogger(metricsCollectorComponent)
+			log.Debug().Str("file", filename).Msg("state file not found, starting fresh")
 			return nil, nil
 		}
 		return nil, err
@@ -362,7 +405,6 @@ func (c *PrometheusCollector) restoreMetric(metricName string, value float64, no
 	if gauge, exists := metricMap[metricName]; exists {
 		gauge.WithLabelValues(nodeState.NodeID).Set(value)
 	} else if metricName == domain.MetricNodeInfo {
-		// Используем значения по умолчанию, если лейблы отсутствуют
 		longname := nodeState.Labels["longname"]
 		if longname == "" {
 			longname = unknownValue
@@ -380,5 +422,79 @@ func (c *PrometheusCollector) restoreMetric(metricName string, value float64, no
 			role = unknownValue
 		}
 		c.nodeHardware.WithLabelValues(nodeState.NodeID, longname, shortname, hardware, role).Set(value)
+	}
+}
+func (c *PrometheusCollector) updateMetricTimestamp(nodeID, metricName string) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.metricTimestamps[nodeID] == nil {
+		c.metricTimestamps[nodeID] = make(map[string]time.Time)
+	}
+	c.metricTimestamps[nodeID][metricName] = time.Now()
+}
+
+func (c *PrometheusCollector) startMetricsTTLCleanup() {
+	ctx, cancel := context.WithCancel(context.Background())
+	c.mu.Lock()
+	c.cleanupCancel = cancel
+	c.mu.Unlock()
+
+	cleanupInterval := c.metricsTTL / 2
+	if cleanupInterval < minCleanupInterval {
+		cleanupInterval = minCleanupInterval
+	}
+	if cleanupInterval > maxCleanupInterval {
+		cleanupInterval = maxCleanupInterval
+	}
+
+	ticker := time.NewTicker(cleanupInterval)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			c.cleanupExpiredMetrics()
+		}
+	}
+}
+
+func (c *PrometheusCollector) cleanupExpiredMetrics() {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	now := time.Now()
+
+	for nodeID, metrics := range c.metricTimestamps {
+		for metricName, timestamp := range metrics {
+			if now.Sub(timestamp) > c.metricsTTL {
+				c.deleteMetric(nodeID, metricName)
+				delete(metrics, metricName)
+			}
+		}
+		if len(metrics) == 0 {
+			delete(c.metricTimestamps, nodeID)
+		}
+	}
+}
+
+func (c *PrometheusCollector) deleteMetric(nodeID, metricName string) {
+	switch metricName {
+	case domain.MetricTemperature:
+		c.temperature.DeleteLabelValues(nodeID)
+	case domain.MetricHumidity:
+		c.humidity.DeleteLabelValues(nodeID)
+	case domain.MetricPressure:
+		c.pressure.DeleteLabelValues(nodeID)
+	}
+}
+
+func (c *PrometheusCollector) Shutdown() {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.cleanupCancel != nil {
+		c.cleanupCancel()
+		c.cleanupCancel = nil
 	}
 }

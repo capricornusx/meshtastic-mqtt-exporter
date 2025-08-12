@@ -85,6 +85,18 @@ func (a *App) Shutdown() error {
 	ctx, cancel := context.WithTimeout(context.Background(), domain.DefaultTimeout/domain.ShutdownTimeoutDivider)
 	defer cancel()
 
+	// Сохраняем состояние метрик перед завершением
+	if a.collector != nil {
+		prometheusConfig := a.config.GetPrometheusConfig()
+		if stateFile := prometheusConfig.GetStateFile(); stateFile != "" {
+			if err := a.collector.SaveState(stateFile); err != nil {
+				a.logger.Error().Err(err).Str("file", stateFile).Msg("failed to save metrics state")
+			} else {
+				a.logger.Info().Str("file", stateFile).Msg("metrics state saved")
+			}
+		}
+	}
+
 	if a.httpServer != nil {
 		if err := a.httpServer.Shutdown(ctx); err != nil {
 			a.logger.Error().Err(err).Msg("http server shutdown error")

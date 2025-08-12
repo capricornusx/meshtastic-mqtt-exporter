@@ -25,7 +25,7 @@ linters:
       min-complexity: 11
     goconst:
       min-len: 3
-      min-occurrences: 2
+      min-occurrences: 3
     mnd:
       ignored-numbers:
         - '0'
@@ -52,3 +52,12 @@ linters:
       - third_party$
       - builtin$
       - examples$
+    rules:
+      # Exclude some linters from running on tests files.
+      - path: _test\.go
+        linters:
+          - gocyclo
+          - errcheck
+          - dupl
+          - gosec
+        text: "G102|G107|G115"

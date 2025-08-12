@@ -1,6 +1,8 @@
 package factory
 
 import (
+	mqtt "github.com/mochi-mqtt/server/v2"
+
 	"meshtastic-exporter/pkg/application"
 	"meshtastic-exporter/pkg/domain"
 	"meshtastic-exporter/pkg/infrastructure"
@@ -26,15 +28,18 @@ func (f *Factory) CreateMetricsCollector() domain.MetricsCollector {
 
 func (f *Factory) CreateMetricsCollectorWithMode(mode string) domain.MetricsCollector {
 	if f.collector == nil {
-		f.collector = infrastructure.NewPrometheusCollectorWithMode(mode)
-
 		if f.config != nil {
 			prometheusConfig := f.config.GetPrometheusConfig()
+			ttl := prometheusConfig.GetMetricsTTL()
+			f.collector = infrastructure.NewPrometheusCollectorWithConfig(mode, ttl)
+
 			if stateFile := prometheusConfig.GetStateFile(); stateFile != "" {
 				if err := f.collector.LoadState(stateFile); err != nil {
 					_ = err
 				}
 			}
+		} else {
+			f.collector = infrastructure.NewPrometheusCollectorWithMode(mode)
 		}
 	}
 	return f.collector
@@ -42,6 +47,13 @@ func (f *Factory) CreateMetricsCollectorWithMode(mode string) domain.MetricsColl
 
 func (f *Factory) CreateAlertSender() domain.AlertSender {
 	return infrastructure.NewLoRaAlertSender(nil, infrastructure.LoRaConfig{})
+}
+
+func (f *Factory) CreateAlertSenderWithMQTT(mqttServer interface{}) domain.AlertSender {
+	if server, ok := mqttServer.(*mqtt.Server); ok {
+		return infrastructure.NewLoRaAlertSender(server, infrastructure.LoRaConfig{})
+	}
+	return f.CreateAlertSender()
 }
 
 func (f *Factory) CreateMessageProcessor() domain.MessageProcessor {

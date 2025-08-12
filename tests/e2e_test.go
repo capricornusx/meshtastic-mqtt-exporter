@@ -25,9 +25,9 @@ func TestE2E_MQTTToPrometheusMetrics(t *testing.T) {
 		t.Skip("Skipping E2E test in short mode")
 	}
 
-	// Найти свободные порты
+	// Найти свободные порты с разделением
 	mqttPort := findFreePort(t)
-	httpPort := findFreePort(t)
+	httpPort := findFreePortExcluding(t, mqttPort)
 
 	// Создать MQTT сервер с хуком
 	server := mqtt.New(&mqtt.Options{InlineClient: false})
@@ -102,7 +102,7 @@ func TestE2E_MQTTToPrometheusMetrics(t *testing.T) {
 			"longname":  "E2E Test Node",
 			"shortname": "E2E",
 			"hardware":  1,
-			"role":      1,
+			"role":      1, // client_mute
 		},
 	}
 
@@ -150,6 +150,9 @@ func TestE2E_MQTTToPrometheusMetrics(t *testing.T) {
 	assert.Contains(t, metrics, `meshtastic_temperature_celsius{node_id="123456789"} 23.4`)
 	assert.Contains(t, metrics, `meshtastic_messages_total{from_node="123456789",type="telemetry"} 1`)
 	assert.Contains(t, metrics, `meshtastic_messages_total{from_node="123456789",type="nodeinfo"} 1`)
+	// Проверить, что роль преобразована в читаемое имя (1 = "client_mute")
+	assert.Contains(t, metrics, `role="client_mute"`)
+	assert.NotContains(t, metrics, `role="1"`)
 
 	// Проверить health endpoint
 	healthURL := fmt.Sprintf("http://localhost:%d/health", httpPort)
@@ -171,9 +174,9 @@ func TestE2E_MultipleNodes(t *testing.T) {
 		t.Skip("Skipping E2E test in short mode")
 	}
 
-	// Найти свободные порты
+	// Найти свободные порты с разделением
 	mqttPort := findFreePort(t)
-	httpPort := findFreePort(t)
+	httpPort := findFreePortExcluding(t, mqttPort)
 
 	// Создать MQTT сервер с хуком
 	server := mqtt.New(&mqtt.Options{InlineClient: false})
@@ -267,20 +270,41 @@ func TestE2E_MultipleNodes(t *testing.T) {
 }
 
 func findFreePort(t *testing.T) int {
-	// #nosec G102 - Binding to all interfaces is needed for testing
-	listener, err := net.Listen("tcp", ":0")
-	require.NoError(t, err)
-	port := listener.Addr().(*net.TCPAddr).Port
-	listener.Close()
-	return port
+	return findFreePortExcluding(t, 0)
+}
+
+func findFreePortExcluding(t *testing.T, excludePort int) int {
+	for i := 0; i < 20; i++ {
+		// #nosec G102 - Binding to all interfaces is needed for testing
+		listener, err := net.Listen("tcp", ":0")
+		if err != nil {
+			continue
+		}
+		port := listener.Addr().(*net.TCPAddr).Port
+		listener.Close()
+
+		if port == excludePort {
+			continue
+		}
+
+		// Проверяем, что порт действительно свободен
+		time.Sleep(10 * time.Millisecond)
+		conn, err := net.Dial("tcp", fmt.Sprintf(":%d", port))
+		if err != nil {
+			// Порт свободен
+			return port
+		}
+		conn.Close()
+	}
+	t.Fatal("could not find free port after 20 attempts")
+	return 0
 }
 
 func waitForHTTPServer(t *testing.T, port int) {
 	url := fmt.Sprintf("http://localhost:%d/health", port)
-	client := &http.Client{Timeout: 1 * time.Second}
+	client := &http.Client{Timeout: 500 * time.Millisecond}
 
-	deadline := time.Now().Add(5 * time.Second)
-	for time.Now().Before(deadline) {
+	for i := 0; i < 50; i++ {
 		resp, err := client.Get(url)
 		if err == nil {
 			resp.Body.Close()
@@ -290,5 +314,5 @@ func waitForHTTPServer(t *testing.T, port int) {
 		}
 		time.Sleep(100 * time.Millisecond)
 	}
-	t.Fatalf("HTTP server did not start on port %d within %v", port, 5*time.Second)
+	t.Fatalf("HTTP server did not start on port %d within 5s", port)
 }

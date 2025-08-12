@@ -16,15 +16,6 @@
 
 ## Быстрый старт
 
-### Docker Compose (полный стек мониторинга)
-
-```bash
-cd docs/stack
-docker-compose up -d
-```
-
-### Отдельный бинарник
-
 ```bash
 wget https://github.com/capricornusx/meshtastic-mqtt-exporter/releases/latest/download/mqtt-exporter-linux-amd64
 
@@ -35,23 +26,9 @@ wget https://github.com/capricornusx/meshtastic-mqtt-exporter/releases/latest/do
 curl http://localhost:8100/metrics
 ```
 
-## Запуск
-
-```bash
-wget https://github.com/capricornusx/meshtastic-mqtt-exporter/releases/latest/download/mqtt-exporter-linux-amd64
-chmod +x mqtt-exporter-linux-amd64
-./mqtt-exporter-linux-amd64 --config config.yaml
-```
-    
 ## Конфигурация
 
 Полный пример конфигурации доступен в файле [`config.yaml`](config.yaml).
-
-Для быстрого старта скачайте готовую конфигурацию:
-
-```bash
-wget https://raw.githubusercontent.com/capricornusx/meshtastic-mqtt-exporter/main/config.yaml
-```
 
 ## Документация
 - [Быстрый старт](docs/src/ru/quick-start.md) — Установка и первый запуск
@@ -78,9 +55,11 @@ wget https://raw.githubusercontent.com/capricornusx/meshtastic-mqtt-exporter/mai
 - **JSON формат**: Читаемый формат для отладки
 
 ## TODO
+- [ ] настроить formatter через .golangci.yml 
 - [ ] добавить MQTT-специфичные метрики (обработано сообщений, uptime, расход памяти т.д.)
 - [ ] from_node vs node_id labels
 - [ ] синхронизация метрик с meshtastic .proto файлами
+- [ ] проверить код на избыточные функции, которые могут быть в стандартной библиотеке
 
 ## Благодарности
 

@@ -4,8 +4,8 @@
 
 ## Возможности
 
-- **Встроенный MQTT брокер** с YAML конфигурацией
-- **TLS поддержка** - TCP (1883) + TLS (8883) порты одновременно
+- **Встроенный MQTT брокер** на основе mochi-mqtt
+- **Поддержка TLS/QoS/Retention**
 - **Prometheus метрики**: Батарея, температура, влажность, давление, качество сигнала
 - **AlertManager интеграция**: Отправка алертов в LoRa mesh сеть
 - **Персистентность состояния**: Сохранение/восстановление метрик между перезапусками
@@ -32,9 +32,3 @@ wget https://github.com/capricornusx/meshtastic-mqtt-exporter/releases/latest/do
 # Проверить метрики
 curl http://localhost:8100/metrics
 ```
-
-## Документация
-
-- [Быстрый старт](quick-start/) — Установка и первый запуск
-- [Конфигурация](configuration/) — Настройка YAML файла
-- [API](api/) — REST API endpoints

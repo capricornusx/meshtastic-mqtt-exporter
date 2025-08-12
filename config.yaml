@@ -31,10 +31,9 @@ hook:
   prometheus:
     path: "/metrics"
     metrics_ttl: "10m"
-    keep_alive: "60s"  # MQTT client keep alive (standalone mode only)
+    keep_alive: "60s"  # standalone mode only
     topic:
       # Supports MQTT wildcards + and #
-      # "msh/+/+/+/+"     - точное соответствие структуре Meshtastic
       # "msh/#"           - все сообщения начинающиеся с msh/
       # "msh/+/json/+/+"  - только JSON сообщения
       pattern: "msh/+/2/json/#"

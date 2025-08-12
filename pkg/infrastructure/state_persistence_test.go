@@ -96,8 +96,17 @@ func TestPrometheusCollector_StateEmptyFile(t *testing.T) {
 func TestPrometheusCollector_StatePermissionDenied(t *testing.T) {
 	collector := NewPrometheusCollector()
 
-	// Попытка сохранить в директорию без прав записи
-	err := collector.SaveState("/root/no_permission.json")
+	// Добавляем данные чтобы было что сохранять
+	data := domain.TelemetryData{
+		NodeID:       "test_node",
+		BatteryLevel: floatPtr(50.0),
+		Timestamp:    time.Now(),
+	}
+	err := collector.CollectTelemetry(data)
+	require.NoError(t, err)
+
+	// Попытка сохранить в несуществующую директорию
+	err = collector.SaveState("/nonexistent/directory/state.json")
 	require.Error(t, err)
 }
 

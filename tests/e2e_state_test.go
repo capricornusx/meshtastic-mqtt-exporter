@@ -15,8 +15,8 @@ import (
 )
 
 func TestE2E_StatePersistence(t *testing.T) {
-	stateFile := "test_e2e_state.json"
-	defer os.Remove(stateFile)
+	tempDir := t.TempDir()
+	stateFile := tempDir + "/test_e2e_state.json"
 
 	configYAML := `
 logging:
@@ -32,8 +32,7 @@ hook:
 `
 
 	// Создаем временный конфиг файл
-	configFile := "test_config.yaml"
-	defer os.Remove(configFile)
+	configFile := tempDir + "/test_config.yaml"
 	require.NoError(t, os.WriteFile(configFile, []byte(configYAML), 0600))
 
 	// Загружаем конфигурацию
@@ -103,6 +102,7 @@ hook:
 }
 
 func TestE2E_StateDisabled(t *testing.T) {
+	tempDir := t.TempDir()
 	configYAML := `
 logging:
   level: "info"
@@ -115,8 +115,7 @@ hook:
     path: "/metrics"
 `
 
-	configFile := "test_config_no_state.yaml"
-	defer os.Remove(configFile)
+	configFile := tempDir + "/test_config_no_state.yaml"
 	require.NoError(t, os.WriteFile(configFile, []byte(configYAML), 0600))
 
 	cfg, err := config.LoadUnifiedConfig(configFile)

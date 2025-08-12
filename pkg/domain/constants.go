@@ -1,6 +1,9 @@
 package domain
 
-import "time"
+import (
+	"math"
+	"time"
+)
 
 const (
 	DefaultBufferSize = 1024
@@ -33,6 +36,7 @@ const (
 	DefaultHeaderTimeout = 5 * time.Second
 
 	DefaultTopicPrefix = "msh/"
+
 	DefaultHealthPath  = "/health"
 	DefaultMetricsPath = "/metrics"
 	DefaultAlertsPath  = "/alerts"
@@ -46,7 +50,7 @@ const (
 	DefaultMQTTConnTimeout  = 30 * time.Second
 	DefaultMQTTReconnectInt = 30 * time.Second
 	DefaultMQTTDisconnectMs = 250
-	DefaultMQTTClientID     = "meshtastic-exporter-standalone"
+	DefaultMQTTClientID     = "meshtastic-exporter"
 
 	DefaultTLSInsecureSkipVerify = false
 	DefaultTLSMinVersion         = 0x0303
@@ -55,12 +59,14 @@ const (
 	MaxTopicLength  = 256
 	MaxNodeIDLength = 32
 
-	LoRaBroadcastNodeID = uint32(4294967295)
+	// LoRaBroadcastNodeID 4294967295 or 0xFFFFFFFF
+	LoRaBroadcastNodeID = math.MaxUint32
 
-	ShutdownTimeoutDivider = 3
+	ShutdownTimeoutDivider = 4
 
-	MessageTypeTelemetry = "telemetry"
-	MessageTypeNodeInfo  = "nodeinfo"
+	MessageTypeTelemetry   = "telemetry"
+	MessageTypeNodeInfo    = "nodeinfo"
+	MessageTypeUnsupported = "unsupported"
 )
 
 func GetDefaultMQTTTopics() []string {

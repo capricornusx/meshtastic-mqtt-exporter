@@ -74,9 +74,9 @@ func (s *LoRaAlertSender) SendAlert(ctx context.Context, alert domain.Alert) err
 func (s *LoRaAlertSender) sendBroadcast(_ context.Context, message, channel string) error {
 	topic := fmt.Sprintf("msh/2/c/%s/!broadcast", channel)
 	payload := map[string]interface{}{
-		"type":    "text",
+		"type":    "text", //TODO возможно это поле лишнее.
 		"payload": fmt.Sprintf("[ALERT] %s", message),
-		"from":    domain.LoRaBroadcastNodeID,
+		"from":    domain.LoRaBroadcastNodeID, //TODO возможно это поле лишнее.
 		"to":      domain.LoRaBroadcastNodeID,
 	}
 

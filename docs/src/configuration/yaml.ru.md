@@ -19,17 +19,16 @@ wget https://raw.githubusercontent.com/capricornusx/meshtastic-mqtt-exporter/mai
 
 ### MQTT Брокер
 
-| Параметр              | Тип    | По умолчанию | Описание                                    |
-|-----------------------|--------|--------------|---------------------------------------------|
-| `host`                | string | `localhost`  | Хост MQTT брокера (IPv4/IPv6)               |
-| `port`                | int    | `1883`       | Порт MQTT брокера                           |
-| `tls`                 | bool   | `false`      | Включить TLS шифрование                     |
-| `allow_anonymous`     | bool   | `true`       | Разрешить анонимные подключения             |
-| `users`               | array  | -            | Массив учетных записей пользователей        |
-| `broker.max_inflight` | int    | `50`         | Макс. неподтвержденных сообщений на клиента |
-| `broker.max_queued`   | int    | `1000`       | Макс. сообщений в очереди на клиента        |
-
-| `debug.log_all_messages` | bool | `false`      | Логировать все входящие MQTT сообщения |
+| Параметр                 | Тип    | По умолчанию | Описание                                    |
+|--------------------------|--------|--------------|---------------------------------------------|
+| `host`                   | string | `localhost`  | Хост MQTT брокера (IPv4/IPv6)               |
+| `port`                   | int    | `1883`       | Порт MQTT брокера                           |
+| `tls`                    | bool   | `false`      | Включить TLS шифрование                     |
+| `allow_anonymous`        | bool   | `true`       | Разрешить анонимные подключения             |
+| `users`                  | array  | -            | Массив учетных записей пользователей        |
+| `broker.max_inflight`    | int    | `50`         | Макс. неподтвержденных сообщений на клиента |
+| `broker.max_queued`      | int    | `1000`       | Макс. сообщений в очереди на клиента        |
+| `debug.log_all_messages` | bool   | `false`      | Логировать все входящие MQTT сообщения      |
 
 ### HTTP Hook Server
 
@@ -70,27 +69,10 @@ wget https://raw.githubusercontent.com/capricornusx/meshtastic-mqtt-exporter/mai
 
 ### Примеры паттернов
 
-```yaml
-# Все сообщения начинающиеся с msh/
-prometheus:
-  topic:
-    pattern: "msh/#"
-
-# Только JSON сообщения Meshtastic
-prometheus:
-  topic:
-    pattern: "msh/+/json/+/+"
-
-# Только канальные сообщения
-prometheus:
-  topic:
-    pattern: "msh/+/c/+/+"
-
-# Конкретная структура топиков
-prometheus:
-  topic:
-    pattern: "mesh/+/data/#"
-```
+* `"msh/#"` — Все сообщения, начинающиеся с msh/
+* `"msh/+/json/+/+"` — Только JSON сообщения
+* `"msh/+/c/+/+"` — Только канальные сообщения
+* `"mesh/+/data/#"` - Конкретная структура топиков
 
 ## Персистентность состояния
 
@@ -99,8 +81,7 @@ prometheus:
 ```yaml
 hook:
   prometheus:
-    state:
-      file: "meshtastic_state.json"  # Включает персистентность
+    state_file: "meshtastic_state.json"
 ```
 
 ### Особенности:
@@ -108,7 +89,7 @@ hook:
 - **Автоматическое сохранение**: Каждые 5 минут и при завершении работы
 - **Восстановление при запуске**: Метрики загружаются из файла
 - **JSON формат**: Читаемый формат для отладки
-- **Отключение**: Уберите параметр `state.file` для отключения
+- **Отключение**: Уберите параметр `state_file` для отключения
 
 ### Пример файла состояния:
 
@@ -182,12 +163,7 @@ alertmanager:
 
 ## Валидация YAML
 
-Проверка синтаксиса конфигурации:
-
 ```bash
-# Проверка YAML синтаксиса
-yamllint config.yaml
-
 # Проверка конфигурации приложением
 ./mqtt-exporter-embedded --config config.yaml --validate
 ```

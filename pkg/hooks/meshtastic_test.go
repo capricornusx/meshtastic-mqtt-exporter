@@ -119,6 +119,12 @@ func TestMeshtasticHook_Init(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func TestMeshtasticHook_Init_StateFileValidation(t *testing.T) {
+	// Тест с nil factory
+	hook := NewMeshtasticHook(MeshtasticHookConfig{ServerAddr: ""}, nil)
+	assert.Nil(t, hook) // NewMeshtasticHook возвращает nil при nil factory
+}
+
 func TestOnConnect(t *testing.T) {
 	f := factory.NewDefaultFactory() // Mock factory
 	hook := NewMeshtasticHook(MeshtasticHookConfig{ServerAddr: ""}, f)

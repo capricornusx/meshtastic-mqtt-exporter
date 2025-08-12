@@ -10,6 +10,8 @@ import (
 type MetricsCollector interface {
 	CollectTelemetry(data TelemetryData) error
 	CollectNodeInfo(info NodeInfo) error
+	UpdateNodeLastSeen(nodeID string, timestamp time.Time)
+	UpdateMessageCounter(nodeID string, messageType string)
 	GetRegistry() *prometheus.Registry
 	SaveState(filename string) error
 	LoadState(filename string) error

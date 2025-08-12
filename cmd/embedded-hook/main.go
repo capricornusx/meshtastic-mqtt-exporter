@@ -78,7 +78,6 @@ func addMeshtasticHook(server *mqtt.Server, cfg domain.Config, f *factory.Factor
 	if err := server.AddHook(hook, nil); err != nil {
 		logger.Fatal().Err(err).Msg("failed to add meshtastic hook")
 	}
-	logger.Info().Msg("meshtastic hook enabled")
 }
 
 func addAuthHook(server *mqtt.Server, cfg domain.Config, logger zerolog.Logger) {
@@ -157,7 +156,7 @@ func startServer(server *mqtt.Server, logger zerolog.Logger) {
 			logger.Error().Err(err).Msg("mqtt server error")
 		}
 	}()
-	logger.Info().Msg("mqtt server with meshtastic hooks started")
+	logger.Debug().Msg("mqtt server with meshtastic hooks started")
 }
 
 func waitForShutdown(server *mqtt.Server, logger zerolog.Logger) {

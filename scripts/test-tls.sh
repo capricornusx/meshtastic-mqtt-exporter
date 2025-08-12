@@ -12,8 +12,11 @@ sleep 2
 echo "Тестирование TCP подключения (порт 1883)..."
 mosquitto_pub -h localhost -p 1883 -t "msh/test/2/json/tcp" -m '{"test": "tcp works"}' -u admin -P admin
 
-echo "Тестирование TLS подключения (порт 8883)..."
-mosquitto_pub -h localhost -p 8883 --cafile certs/ca.crt -t "msh/test/2/json/tls" -m '{"test": "tls works"}' -u admin -P admin
+echo "Тестирование TLS подключения с ca.crt (порт 8883)..."
+mosquitto_pub -h localhost -p 8883 --cafile certs/ca.crt -t "msh/test/2/json/tls" -m '{"test": "tls with ca works"}' -u admin -P admin
+
+echo "Тестирование TLS подключения без ca.crt (--insecure)..."
+mosquitto_pub -h localhost -p 8883 --insecure -t "msh/test/2/json/tls" -m '{"test": "tls insecure works"}' -u admin -P admin
 
 echo "Остановка сервера..."
 kill $SERVER_PID

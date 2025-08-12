@@ -1,6 +1,5 @@
-# Docker развертывание
+# Docker 
 
-## Быстрый запуск
 
 ```bash
 # Простой запуск
@@ -13,9 +12,7 @@ docker run -p 1883:1883 -p 8100:8100 \
   ghcr.io/capricornusx/meshtastic-mqtt-exporter:latest --config /config.yaml
 ```
 
-## Docker Compose
-
-### Минимальная конфигурация
+### Docker Compose
 
 ```yaml
 # docker-compose.yml
@@ -40,7 +37,7 @@ services:
 --8<-- "stack/docker-compose.yml"
 ```
 
-## Конфигурационные файлы
+### Конфигурационные файлы
 
 Полный стек мониторинга с готовыми конфигурациями доступен в [stack/](../stack/):
 
@@ -52,7 +49,7 @@ services:
 - `webhook_configs.url` — должен указывать на `http://mqtt-exporter:8080/alerts/webhook`
 - `send_resolved: true` — для получения уведомлений о восстановлении
 
-## Запуск стека
+### Запуск стека
 
 ```bash
 cd docs/stack
@@ -65,9 +62,3 @@ docker-compose up -d
 - AlertManager: http://localhost:9093
 - Grafana: http://localhost:3000 (admin/admin123)
 
-## Критичные параметры
-
-- `volumes: - ./config.yaml:/config.yaml` — монтирование конфигурации
-- `ports: - "1883:1883"` — MQTT порт
-- `ports: - "8100:8100"` — Prometheus метрики
-- `ports: - "8080:8080"` — AlertManager webhook

@@ -65,6 +65,24 @@ func (m *MockMetricsCollector) LoadState(filename string) error {
 	return nil
 }
 
+func (m *MockMetricsCollector) UpdateNodeLastSeen(nodeID string, timestamp time.Time) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+}
+
+func (m *MockMetricsCollector) UpdateMessageCounter(nodeID string, messageType string) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+}
+
+func (m *MockMetricsCollector) GetNodeInfos() []domain.NodeInfo {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	result := make([]domain.NodeInfo, len(m.NodeInfoData))
+	copy(result, m.NodeInfoData)
+	return result
+}
+
 // MockMetricsCollectorWithErrors расширенный mock с возможностью симуляции ошибок
 type MockMetricsCollectorWithErrors struct {
 	MockMetricsCollector
@@ -147,6 +165,16 @@ func (m *MockMetricsCollectorWithErrors) SetNodeInfoError(shouldFail bool, messa
 	defer m.mu.Unlock()
 	m.ShouldFailNodeInfo = shouldFail
 	m.NodeInfoErrorMessage = message
+}
+
+func (m *MockMetricsCollectorWithErrors) UpdateNodeLastSeen(nodeID string, timestamp time.Time) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+}
+
+func (m *MockMetricsCollectorWithErrors) UpdateMessageCounter(nodeID string, messageType string) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
 }
 
 // MockAlertSender базовый mock для AlertSender

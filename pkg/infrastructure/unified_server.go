@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net"
 	"net/http"
 	"sync"
 	"time"
@@ -90,7 +91,14 @@ func (s *UnifiedServer) Start(ctx context.Context) error {
 
 	go func() {
 		s.logger.Info().Str("address", s.config.Addr).Msg("unified server starting")
-		if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+
+		listener, err := net.Listen("tcp", s.config.Addr)
+		if err != nil {
+			s.logger.Error().Err(err).Msg("failed to create listener")
+			return
+		}
+
+		if err := server.Serve(listener); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			s.logger.Error().Err(err).Msg("unified server error")
 		}
 	}()

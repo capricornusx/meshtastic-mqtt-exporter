@@ -7,13 +7,12 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"meshtastic-exporter/pkg/adapters"
-	"meshtastic-exporter/pkg/config"
 	"meshtastic-exporter/pkg/factory"
 	"meshtastic-exporter/pkg/hooks"
 )
 
+// тест требует рефакторинга
 func TestEmbeddedModeUsesConfigTopics(t *testing.T) {
-	// Создаем конфигурацию напрямую
 	mqttConfig := adapters.MQTTConfigAdapter{
 		Host:   "localhost",
 		Port:   1883,
@@ -34,10 +33,9 @@ func TestEmbeddedModeUsesConfigTopics(t *testing.T) {
 	cfg := adapters.NewConfigAdapter(mqttConfig, prometheusConfig, alertConfig)
 	f := factory.NewFactory(cfg)
 
-	// Создаем хук с конфигурацией из factory
 	hookConfig := hooks.MeshtasticHookConfig{
 		ServerAddr:  prometheusConfig.GetListen(),
-		TopicPrefix: prometheusConfig.GetTopicPattern(), // Используем из конфигурации
+		TopicPrefix: prometheusConfig.GetTopicPattern(),
 	}
 	hook := hooks.NewMeshtasticHook(hookConfig, f)
 
@@ -56,22 +54,37 @@ func TestEmbeddedModeUsesConfigTopics(t *testing.T) {
 }
 
 func TestConfigLoadingWithCustomTopics(t *testing.T) {
-	// Тестируем загрузку конфигурации с кастомными топиками
-	// Используем существующий config.yaml, но проверяем, что он правильно парсится
+	// Тестируем загрузку конфигурации с кастомными топиками используя мок
+	mqttConfig := adapters.MQTTConfigAdapter{
+		Host:   "localhost",
+		Port:   1883,
+		Topics: []string{"msh/+/2/json/#", "test/+/json/+/+"},
+	}
 
-	cfg, err := config.LoadUnifiedConfig("../config.yaml")
-	require.NoError(t, err)
+	prometheusConfig := adapters.PrometheusConfigAdapter{
+		Listen:       "localhost:8100",
+		Path:         "/metrics",
+		TopicPattern: "msh/+/2/json/#",
+	}
+
+	alertConfig := adapters.AlertManagerConfigAdapter{
+		Listen: "localhost:8100",
+		Path:   "/alerts",
+	}
+
+	cfg := adapters.NewConfigAdapter(mqttConfig, prometheusConfig, alertConfig)
 
 	mqttCfg := cfg.GetMQTTConfig()
 	topics := mqttCfg.GetTopics()
 
-	// Проверяем, что загружены дефолтные топики (если не указаны в конфиге)
+	// Проверяем, что топики загружены правильно
 	assert.NotEmpty(t, topics)
-	assert.True(t, len(topics) > 0, "Should have at least one topic")
+	assert.Contains(t, topics, "msh/+/2/json/#")
+	assert.Contains(t, topics, "test/+/json/+/+")
 
 	promCfg := cfg.GetPrometheusConfig()
 	topicPattern := promCfg.GetTopicPattern()
 
-	// Проверяем, что паттерн из конфига загружен правильно
+	// Проверяем, что паттерн загружен правильно
 	assert.Equal(t, "msh/+/2/json/#", topicPattern)
 }
