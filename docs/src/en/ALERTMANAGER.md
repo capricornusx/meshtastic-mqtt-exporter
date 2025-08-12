@@ -53,8 +53,8 @@ alertmanager:
 
 ## Setup
 
-1. **AlertManager config**: [alertmanager/alertmanager.yml](../alertmanager/alertmanager.yml)
-2. **Prometheus rules**: [alertmanager/meshtastic-alerts.yml](../alertmanager/meshtastic-alerts.yml)
+1. **AlertManager config**: [alertmanager.yml](../alertmanager/alertmanager.yml)
+2. **Prometheus rules**: [meshtastic-alerts.yml](../alertmanager/meshtastic-alerts.yml)
 
 ## Alert Routing
 

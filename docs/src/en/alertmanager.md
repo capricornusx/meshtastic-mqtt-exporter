@@ -6,28 +6,7 @@ Send Prometheus alerts to LoRa mesh network via Meshtastic devices.
 
 ### 1. AlertManager Configuration
 
-```yaml
-# alertmanager.yml
-global:
-  smtp_smarthost: 'localhost:587'
-
-route:
-  group_by: ['alertname']
-  group_wait: 10s
-  group_interval: 10s
-  repeat_interval: 1h
-  receiver: 'lora-alerts'
-
-receivers:
-- name: 'lora-alerts'
-  webhook_configs:
-  - url: 'http://localhost:8080/alerts/webhook'
-    send_resolved: true
-    http_config:
-      basic_auth:
-        username: 'alertmanager'
-        password: 'secret123'
-```
+Ready-to-use AlertManager configuration is available in [alertmanager.yml](../alertmanager/alertmanager.yml).
 
 ### 2. Exporter Configuration
 
@@ -197,33 +176,9 @@ curl -X POST http://localhost:8080/alerts/webhook \
   }'
 ```
 
-## Monitoring AlertManager Integration
+## TODO
 
-### Metrics
-
-```
-# Number of sent alerts
-meshtastic_alertmanager_alerts_sent_total{severity="critical"} 5
-meshtastic_alertmanager_alerts_sent_total{severity="warning"} 12
-
-# Send errors
-meshtastic_alertmanager_errors_total{type="mqtt_publish"} 2
-
-# Last alert timestamp
-meshtastic_alertmanager_last_alert_timestamp 1640995200
-```
-
-### Logs
-
-```bash
-# View AlertManager integration logs
-journalctl -u mqtt-exporter -f | grep alertmanager
-
-# Example logs
-2024-01-15T10:30:00Z INFO AlertManager webhook received alert: NodeOffline
-2024-01-15T10:30:01Z INFO Sending alert to LoRa network: channel=LongFast mode=broadcast
-2024-01-15T10:30:02Z INFO Alert sent successfully: message_id=abc123
-```
+- [ ] Add MQTT-specific metrics for AlertManager integration monitoring
 
 ## Troubleshooting
 

@@ -6,73 +6,7 @@ mochi-mqtt хук позволяет интегрировать экспорте
 
 ## Простая интеграция
 
-```go
-package main
-
-import (
-    "log"
-    "os"
-    "os/signal"
-    "syscall"
-
-    mqtt "github.com/mochi-mqtt/server/v2"
-    "github.com/mochi-mqtt/server/v2/hooks/auth"
-    "github.com/mochi-mqtt/server/v2/listeners"
-    
-    "meshtastic-exporter/pkg/config"
-    "meshtastic-exporter/pkg/factory"
-    "meshtastic-exporter/pkg/hooks"
-)
-
-func main() {
-    // Создание MQTT сервера
-    server := mqtt.New(&mqtt.Options{
-        InlineClient: true,
-    })
-
-    // Добавление TCP листенера
-    tcp := listeners.NewTCP("tcp1", ":1883", nil)
-    err := server.AddListener(tcp)
-    if err != nil {
-        log.Fatal(err)
-    }
-
-    // Добавление базовой аутентификации
-    err = server.AddHook(new(auth.AllowHook), nil)
-    if err != nil {
-        log.Fatal(err)
-    }
-
-    // Загрузка конфигурации для factory
-    cfg, err := config.LoadUnifiedConfig("config.yaml")
-    if err != nil {
-        log.Printf("Config not found, using defaults: %v", err)
-    }
-    f := factory.NewFactory(cfg)
-
-    // Добавление Meshtastic хука
-    hook := hooks.NewMeshtasticHookSimple(f)
-    err = server.AddHook(hook, nil)
-    if err != nil {
-        log.Fatal(err)
-    }
-
-    // Запуск сервера
-    go func() {
-        err := server.Serve()
-        if err != nil {
-            log.Fatal(err)
-        }
-    }()
-
-    // Ожидание сигнала завершения
-    c := make(chan os.Signal, 1)
-    signal.Notify(c, os.Interrupt, syscall.SIGTERM)
-    <-c
-
-    server.Close()
-}
-```
+Готовый пример простой интеграции доступен в файле [mochi-mqtt-integration/main.go](../mochi-mqtt-integration/main.go).
 
 ## Расширенная конфигурация
 

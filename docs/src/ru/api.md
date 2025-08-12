@@ -42,14 +42,7 @@ curl http://localhost:8100/health
 
 ## Prometheus интеграция
 
-```yaml
-# prometheus.yml
-scrape_configs:
-  - job_name: 'meshtastic'
-    static_configs:
-      - targets: [ 'localhost:8100' ]
-    scrape_interval: 30s
-```
+Готовая конфигурация Prometheus доступна в файле [prometheus.yml](../prometheus.yml).
 
 ## AlertManager правила
 

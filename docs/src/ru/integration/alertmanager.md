@@ -6,48 +6,7 @@ AlertManager интеграция позволяет отправлять але
 
 ## Конфигурация AlertManager
 
-### alertmanager.yml
-
-```yaml
-global:
-  smtp_smarthost: 'localhost:587'
-
-route:
-  group_by: [ 'alertname' ]
-  group_wait: 10s
-  group_interval: 10s
-  repeat_interval: 1h
-  receiver: 'lora-alerts'
-  routes:
-    - match:
-        severity: critical
-      receiver: 'lora-critical'
-    - match:
-        severity: warning
-      receiver: 'lora-warning'
-
-receivers:
-  - name: 'lora-alerts'
-    webhook_configs:
-      - url: 'http://localhost:8080/alerts/webhook'
-        send_resolved: true
-
-  - name: 'lora-critical'
-    webhook_configs:
-      - url: 'http://localhost:8080/alerts/webhook'
-        send_resolved: true
-        http_config:
-          headers:
-            X-Alert-Severity: critical
-
-  - name: 'lora-warning'
-    webhook_configs:
-      - url: 'http://localhost:8080/alerts/webhook'
-        send_resolved: true
-        http_config:
-          headers:
-            X-Alert-Severity: warning
-```
+Готовая конфигурация AlertManager доступна в файле [alertmanager.yml](../../alertmanager/alertmanager.yml).
 
 ## Правила Prometheus
 
@@ -232,38 +191,9 @@ mosquitto_sub -h localhost -t "msh/2/c/+/!+" -v
 journalctl -u mqtt-exporter -f | grep alert
 ```
 
-## Мониторинг AlertManager интеграции
+## TODO
 
-
-### Grafana панель
-
-```json
-{
-  "title": "AlertManager Integration",
-  "panels": [
-    {
-      "title": "Alerts Processed",
-      "type": "stat",
-      "targets": [
-        {
-          "expr": "rate(meshtastic_alerts_processed_total[5m])",
-          "legendFormat": "{{status}}"
-        }
-      ]
-    },
-    {
-      "title": "Alert Delivery",
-      "type": "timeseries",
-      "targets": [
-        {
-          "expr": "meshtastic_alerts_sent_total",
-          "legendFormat": "{{channel}} - {{mode}}"
-        }
-      ]
-    }
-  ]
-}
-```
+- [ ] Добавить MQTT-специфичные метрики для мониторинга AlertManager интеграции
 
 ## Troubleshooting
 

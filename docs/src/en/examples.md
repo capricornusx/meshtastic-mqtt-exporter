@@ -67,32 +67,7 @@ volumes:
 
 ### Prometheus Configuration
 
-```yaml
-# prometheus.yml
-global:
-  scrape_interval: 30s
-  evaluation_interval: 30s
-
-rule_files:
-  - "/etc/prometheus/rules/*.yml"
-
-scrape_configs:
-  - job_name: 'meshtastic'
-    static_configs:
-      - targets: ['mqtt-exporter:8100']
-    scrape_interval: 30s
-    metrics_path: /metrics
-
-  - job_name: 'prometheus'
-    static_configs:
-      - targets: ['localhost:9090']
-
-alerting:
-  alertmanagers:
-    - static_configs:
-        - targets:
-          - alertmanager:9093
-```
+Ready-to-use Prometheus configuration is available in [prometheus.yml](../prometheus.yml).
 
 ## Grafana Dashboard
 

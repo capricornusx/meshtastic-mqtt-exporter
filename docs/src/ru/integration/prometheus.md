@@ -2,40 +2,7 @@
 
 ## Конфигурация Prometheus
 
-### prometheus.yml
-
-```yaml
-global:
-  scrape_interval: 30s
-  evaluation_interval: 30s
-  external_labels:
-    cluster: 'meshtastic'
-    region: 'local'
-
-rule_files:
-  - "/etc/prometheus/rules/*.yml"
-
-scrape_configs:
-  - job_name: 'meshtastic-exporter'
-    static_configs:
-      - targets: [ 'localhost:8100' ]
-    scrape_interval: 30s
-    scrape_timeout: 10s
-    metrics_path: /metrics
-    honor_labels: true
-
-  - job_name: 'meshtastic-exporter-health'
-    static_configs:
-      - targets: [ 'localhost:8100' ]
-    metrics_path: /health
-    scrape_interval: 60s
-
-alerting:
-  alertmanagers:
-    - static_configs:
-        - targets:
-            - localhost:9093
-```
+Готовая конфигурация Prometheus доступна в файле [prometheus.yml](../prometheus.yml).
 
 ## Доступные метрики
 

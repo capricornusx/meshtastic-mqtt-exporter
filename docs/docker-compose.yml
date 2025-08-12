@@ -2,7 +2,8 @@ services:
   meshtastic-exporter:
     build: ..
     ports:
-      - "1883:1883"   # MQTT broker
+      - "1883:1883"   # MQTT server TCP
+      - "8883:8883"   # MQTT server TLS
       - "8100:8100"   # Prometheus metrics
       - "8080:8080"   # AlertManager webhook (optional)
     volumes:

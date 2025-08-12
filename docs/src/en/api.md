@@ -41,14 +41,7 @@ Response:
 
 ## Prometheus Integration
 
-```yaml
-# prometheus.yml
-scrape_configs:
-  - job_name: 'meshtastic'
-    static_configs:
-      - targets: ['localhost:8100']
-    scrape_interval: 30s
-```
+Ready-to-use Prometheus configuration is available in [prometheus.yml](../prometheus.yml).
 
 ## AlertManager Rules
 

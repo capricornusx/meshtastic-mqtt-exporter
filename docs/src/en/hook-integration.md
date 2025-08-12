@@ -4,35 +4,7 @@ Integration with existing mochi-mqtt servers via hook.
 
 ## Quick Start
 
-```go
-package main
-
-import (
-    "log"
-    "time"
-    
-    mqtt "github.com/mochi-mqtt/server/v2"
-    "github.com/mochi-mqtt/server/v2/listeners"
-    "github.com/capricornusx/meshtastic-mqtt-exporter/pkg/hooks"
-)
-
-func main() {
-    server := mqtt.New(nil)
-    
-    hook := hooks.NewMeshtasticHook(hooks.MeshtasticHookConfig{
-        PrometheusAddr: ":8100",
-        EnableHealth:   true,
-        TopicPrefix:    "msh/",
-        MetricsTTL:     30 * time.Minute,
-    })
-    server.AddHook(hook, nil)
-    
-    tcp := listeners.NewTCP("tcp", ":1883", nil)
-    server.AddListener(tcp)
-    
-    log.Fatal(server.Serve())
-}
-```
+Ready-to-use example is available in [mochi-mqtt-integration/main.go](../mochi-mqtt-integration/main.go).
 
 ## Hook Configuration
 
@@ -72,71 +44,12 @@ config := hooks.MeshtasticHookConfig{
 ## Integration Examples
 
 ### Basic Server
-```go
-package main
 
-import (
-    "log"
-    
-    mqtt "github.com/mochi-mqtt/server/v2"
-    "github.com/mochi-mqtt/server/v2/listeners"
-    "github.com/capricornusx/meshtastic-mqtt-exporter/pkg/hooks"
-)
-
-func main() {
-    server := mqtt.New(nil)
-    
-    // Simple hook
-    hook := hooks.NewMeshtasticHookSimple()
-    server.AddHook(hook, nil)
-    
-    tcp := listeners.NewTCP("tcp", ":1883", nil)
-    server.AddListener(tcp)
-    
-    log.Fatal(server.Serve())
-}
-```
+See [mochi-mqtt-integration/main.go](../mochi-mqtt-integration/main.go) for a complete example.
 
 ### With AlertManager
-```go
-package main
 
-import (
-    "log"
-    "time"
-    
-    mqtt "github.com/mochi-mqtt/server/v2"
-    "github.com/mochi-mqtt/server/v2/listeners"
-    "github.com/capricornusx/meshtastic-mqtt-exporter/pkg/hooks"
-)
-
-func main() {
-    server := mqtt.New(nil)
-    
-    hook := hooks.NewMeshtasticHook(hooks.MeshtasticHookConfig{
-        PrometheusAddr: ":8100",
-        TopicPrefix:    "msh/",
-        EnableHealth:   true,
-        MetricsTTL:     30 * time.Minute,
-        
-        AlertManager: struct {
-            Enabled bool
-            Addr    string
-            Path    string
-        }{
-            Enabled: true,
-            Addr:    ":8080",
-            Path:    "/alerts/webhook",
-        },
-    })
-    server.AddHook(hook, nil)
-    
-    tcp := listeners.NewTCP("tcp", ":1883", nil)
-    server.AddListener(tcp)
-    
-    log.Fatal(server.Serve())
-}
-```
+For AlertManager integration example, see the configuration section above.
 
 ## Endpoints
 
