@@ -34,7 +34,6 @@ hook:
       # "msh/#"           - все сообщения начинающиеся с msh/
       # "msh/+/json/+/+"  - только JSON сообщения
       # "msh/+/c/+/+"     - только канальные сообщения
-    debug:
       log_all_messages: true  # Логировать MQTT сообщения соответствующие pattern
     state:
       file: "meshtastic_state.json"  # Файл для сохранения состояния метрик
@@ -98,7 +97,7 @@ hook:
 | `path`                   | string | `/metrics`   | Путь к endpoint метрик                                              |
 | `metrics_ttl`            | string | `30m`        | Время хранения метрик неактивных узлов                              |
 | `topic.pattern`          | string | `msh/#`      | Паттерн MQTT топиков (поддерживает wildcards + и #)                 |
-| `debug.log_all_messages` | bool   | `false`      | Логировать MQTT сообщения соответствующие pattern                   |
+| `topic.log_all_messages` | bool   | `false`      | Логировать MQTT сообщения соответствующие pattern                   |
 | `state.file`             | string | -            | Путь к файлу состояния (если не указан - персистентность отключена) |
 
 ### AlertManager интеграция
@@ -198,7 +197,7 @@ logging:
 
 hook:
   prometheus:
-    debug:
+    topic:
       log_all_messages: true
 ```
 

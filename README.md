@@ -53,7 +53,6 @@ hook:
     topic:
       # MQTT topic pattern (поддерживает wildcards + и #)
       pattern: "msh/#"  # Все сообщения, начинающиеся с msh/
-    debug:
       log_all_messages: false  # Логировать MQTT сообщения соответствующие pattern
     state:
       file: "meshtastic_state.json"  # Файл для сохранения состояния метрик

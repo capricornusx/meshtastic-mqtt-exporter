@@ -21,14 +21,13 @@ hook:
   listen: "0.0.0.0:8100"
   prometheus:
     path: "/metrics"
-    metrics_ttl: "30m"
+    metrics_ttl: "10m"
     topic:
       # Supports MQTT wildcards + and #
       # "msh/+/+/+/+"     - точное соответствие структуре Meshtastic
       # "msh/#"           - все сообщения начинающиеся с msh/
       # "msh/+/json/+/+"  - только JSON сообщения
       pattern: "msh/+/2/json/#"
-    debug:
       log_all_messages: true  # Логировать все MQTT сообщения, соответствующие pattern
     state:
       file: "meshtastic_state.json"

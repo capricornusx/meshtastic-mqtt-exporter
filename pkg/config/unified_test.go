@@ -116,8 +116,8 @@ func TestSetDefaults(t *testing.T) {
 	if config.Logging.Level != testLogLevel {
 		t.Errorf("Expected default logging level '%s', got '%s'", testLogLevel, config.Logging.Level)
 	}
-	if config.Hook.Prometheus.Debug.LogAllMessages != false {
-		t.Errorf("Expected default log_all_messages 'false', got '%v'", config.Hook.Prometheus.Debug.LogAllMessages)
+	if config.Hook.Prometheus.Topic.LogAllMessages != false {
+		t.Errorf("Expected default log_all_messages 'false', got '%v'", config.Hook.Prometheus.Topic.LogAllMessages)
 	}
 }
 
@@ -196,7 +196,7 @@ func TestConvertToAdapter_LoggingLevel(t *testing.T) {
 func TestConvertToAdapter_LogAllMessages(t *testing.T) {
 	config := &UnifiedConfig{}
 	setDefaults(config)
-	config.Hook.Prometheus.Debug.LogAllMessages = true
+	config.Hook.Prometheus.Topic.LogAllMessages = true
 
 	adapter, err := convertToAdapter(config)
 	if err != nil {

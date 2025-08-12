@@ -36,11 +36,9 @@ type UnifiedConfig struct {
 			Path       string `yaml:"path"`
 			MetricsTTL string `yaml:"metrics_ttl"`
 			Topic      struct {
-				Pattern string `yaml:"pattern"`
+				Pattern        string `yaml:"pattern"`
+				LogAllMessages bool   `yaml:"log_all_messages"`
 			} `yaml:"topic"`
-			Debug struct {
-				LogAllMessages bool `yaml:"log_all_messages"`
-			} `yaml:"debug"`
 			State struct {
 				File string `yaml:"file"`
 			} `yaml:"state"`
@@ -72,7 +70,7 @@ func setDefaults(config *UnifiedConfig) {
 	config.Hook.Prometheus.Path = "/metrics"
 	config.Hook.Prometheus.MetricsTTL = "30m"
 	config.Hook.Prometheus.Topic.Pattern = domain.DefaultTopicPrefix
-	config.Hook.Prometheus.Debug.LogAllMessages = false
+	config.Hook.Prometheus.Topic.LogAllMessages = false
 	config.Hook.AlertManager.Path = domain.DefaultAlertsPath
 }
 
@@ -114,7 +112,7 @@ func convertToAdapter(config *UnifiedConfig) (domain.Config, error) {
 		Path:           config.Hook.Prometheus.Path,
 		MetricsTTL:     metricsTTL,
 		TopicPattern:   config.Hook.Prometheus.Topic.Pattern,
-		LogAllMessages: config.Hook.Prometheus.Debug.LogAllMessages,
+		LogAllMessages: config.Hook.Prometheus.Topic.LogAllMessages,
 		StateFile:      config.Hook.Prometheus.State.File,
 	}
 
