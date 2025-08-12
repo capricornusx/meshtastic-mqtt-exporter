@@ -15,7 +15,7 @@ func NewFactory(config domain.Config) *Factory {
 	return &Factory{config: config}
 }
 
-// NewDefaultFactory creates factory with empty config for tests.
+// NewDefaultFactory creates a factory with empty config for tests.
 func NewDefaultFactory() *Factory {
 	return &Factory{config: nil}
 }

@@ -15,7 +15,6 @@ import (
 	"meshtastic-exporter/pkg/domain"
 	"meshtastic-exporter/pkg/factory"
 	"meshtastic-exporter/pkg/hooks"
-	"meshtastic-exporter/pkg/infrastructure"
 )
 
 func TestAlertingIntegration(t *testing.T) {
@@ -29,23 +28,22 @@ func TestAlertingIntegration(t *testing.T) {
 	go server.Serve()
 	defer server.Close()
 
-	// Create LoRa AlertSender
-	alerter := infrastructure.NewLoRaAlertSender(server, infrastructure.LoRaConfig{
-		DefaultChannel: "LongFast",
-		DefaultMode:    "broadcast",
-	})
+	// Create factory for tests
+	f := factory.NewDefaultFactory()
 
-	// Create AlertManager hook
-	alertHook := hooks.NewAlertmanagerHook(alerter, hooks.AlertManagerConfig{
-		HTTPHost: "localhost",
-		HTTPPort: 0, // Random port
-		HTTPPath: "/webhook",
-	})
+	// Create MeshtasticHook with AlertManager
+	hookConfig := hooks.MeshtasticHookConfig{
+		ServerAddr:   "localhost:0",
+		EnableHealth: false,
+		AlertPath:    "/webhook",
+	}
+	alertHook := hooks.NewMeshtasticHook(hookConfig, f)
 
 	require.NoError(t, alertHook.Init(nil))
 	defer alertHook.Shutdown(context.Background())
 
-	// Test alert sending
+	// Test alert through factory's alerter
+	alerter := f.CreateAlertSender()
 	alert := domain.Alert{
 		Severity:  "critical",
 		Message:   "Test alert message",

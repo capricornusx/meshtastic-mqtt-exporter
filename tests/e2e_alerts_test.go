@@ -14,6 +14,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"meshtastic-exporter/pkg/factory"
 	"meshtastic-exporter/pkg/hooks"
 	"meshtastic-exporter/pkg/infrastructure"
 )
@@ -36,18 +37,16 @@ func TestE2E_AlertManagerWebhook(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	// Создать LoRa AlertSender
-	alerter := infrastructure.NewLoRaAlertSender(server, infrastructure.LoRaConfig{
-		DefaultChannel: "LongFast",
-		DefaultMode:    "broadcast",
-	})
+	// Создать фабрику для тестов
+	f := factory.NewDefaultFactory()
 
-	// Создать AlertManager хук
-	alertHook := hooks.NewAlertmanagerHook(alerter, hooks.AlertManagerConfig{
-		HTTPHost: "localhost",
-		HTTPPort: alertPort,
-		HTTPPath: "/alerts/webhook",
-	})
+	// Создать MeshtasticHook с AlertManager
+	hookConfig := hooks.MeshtasticHookConfig{
+		ServerAddr:   fmt.Sprintf("localhost:%d", alertPort),
+		EnableHealth: false,
+		AlertPath:    "/alerts/webhook",
+	}
+	alertHook := hooks.NewMeshtasticHook(hookConfig, f)
 
 	err = server.AddHook(alertHook, nil)
 	require.NoError(t, err)
@@ -117,16 +116,14 @@ func TestE2E_AlertManagerMultipleAlerts(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	alerter := infrastructure.NewLoRaAlertSender(server, infrastructure.LoRaConfig{
-		DefaultChannel: "ShortFast",
-		DefaultMode:    "broadcast",
-	})
+	f := factory.NewDefaultFactory()
 
-	alertHook := hooks.NewAlertmanagerHook(alerter, hooks.AlertManagerConfig{
-		HTTPHost: "localhost",
-		HTTPPort: alertPort,
-		HTTPPath: "/webhook",
-	})
+	hookConfig := hooks.MeshtasticHookConfig{
+		ServerAddr:   fmt.Sprintf("localhost:%d", alertPort),
+		EnableHealth: false,
+		AlertPath:    "/webhook",
+	}
+	alertHook := hooks.NewMeshtasticHook(hookConfig, f)
 
 	err = server.AddHook(alertHook, nil)
 	require.NoError(t, err)
@@ -197,12 +194,14 @@ func TestE2E_AlertManagerInvalidRequests(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	alerter := infrastructure.NewLoRaAlertSender(server, infrastructure.LoRaConfig{})
-	alertHook := hooks.NewAlertmanagerHook(alerter, hooks.AlertManagerConfig{
-		HTTPHost: "localhost",
-		HTTPPort: alertPort,
-		HTTPPath: "/alerts",
-	})
+	f := factory.NewDefaultFactory()
+
+	hookConfig := hooks.MeshtasticHookConfig{
+		ServerAddr:   fmt.Sprintf("localhost:%d", alertPort),
+		EnableHealth: false,
+		AlertPath:    "/alerts",
+	}
+	alertHook := hooks.NewMeshtasticHook(hookConfig, f)
 
 	err = server.AddHook(alertHook, nil)
 	require.NoError(t, err)
