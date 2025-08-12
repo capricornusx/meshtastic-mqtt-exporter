@@ -67,7 +67,7 @@ func addMeshtasticHook(server *mqtt.Server, cfg domain.Config, f *factory.Factor
 	hookConfig := hooks.MeshtasticHookConfig{
 		ServerAddr:   prometheusConfig.GetListen(),
 		EnableHealth: true,
-		TopicPrefix:  "msh/",
+		TopicPrefix:  prometheusConfig.GetTopicPattern(),
 		MetricsTTL:   prometheusConfig.GetMetricsTTL(),
 	}
 
