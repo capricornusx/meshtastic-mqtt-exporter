@@ -1,5 +1,5 @@
 site_name: Meshtastic MQTT Exporter
-site_description: Экспорт телеметрии Meshtastic устройств в метрики Prometheus с интеграцией AlertManager
+site_description: Экспорт телеметрии Meshtastic устройств в Prometheus + LoRa AlertManager
 site_author: capricornusx
 site_url: https://capricornusx.github.io/meshtastic-mqtt-exporter/
 

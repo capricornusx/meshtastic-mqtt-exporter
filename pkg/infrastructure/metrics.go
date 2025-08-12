@@ -7,9 +7,9 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus"
 	dto "github.com/prometheus/client_model/go"
-	"github.com/rs/zerolog/log"
 
 	"meshtastic-exporter/pkg/domain"
+	"meshtastic-exporter/pkg/logger"
 	"meshtastic-exporter/pkg/version"
 )
 
@@ -209,6 +209,7 @@ func (c *PrometheusCollector) SaveState(filename string) error {
 		return err
 	}
 
+	log := logger.ComponentLogger("metrics-collector")
 	log.Info().Int("nodes", len(state.Nodes)).Str("file", filename).Msg("saving metrics state")
 	return os.WriteFile(filename, data, domain.StateFilePermissions)
 }
@@ -310,6 +311,7 @@ func (c *PrometheusCollector) LoadState(filename string) error {
 		return nil
 	}
 
+	log := logger.ComponentLogger("metrics-collector")
 	log.Info().Int("nodes", len(state.Nodes)).Str("version", state.Version).Str("file", filename).Msg("restoring metrics state")
 	c.restoreMetrics(state.Nodes)
 	return nil
@@ -319,6 +321,7 @@ func (c *PrometheusCollector) readStateFile(filename string) (*domain.StateSnaps
 	data, err := os.ReadFile(filename)
 	if err != nil {
 		if os.IsNotExist(err) {
+			log := logger.ComponentLogger("metrics-collector")
 			log.Info().Str("file", filename).Msg("state file not found, starting fresh")
 			return nil, nil
 		}

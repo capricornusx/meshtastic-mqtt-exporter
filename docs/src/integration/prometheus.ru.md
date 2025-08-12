@@ -49,8 +49,6 @@
 
 ## Запросы PromQL
 
-### Основные запросы
-
 ```promql
 # Количество активных узлов
 count(meshtastic_node_last_seen_timestamp)
@@ -69,11 +67,8 @@ avg(meshtastic_temperature_celsius)
 
 # Максимальная температура за последний час
 max_over_time(meshtastic_temperature_celsius[1h])
-```
 
-### Продвинутые запросы
 
-```promql
 # Топ-5 узлов с самым низким зарядом батареи
 topk(5, meshtastic_battery_level_percent)
 
@@ -90,92 +85,7 @@ avg_over_time(meshtastic_snr_db[1h]) < -10
 rate(meshtastic_messages_processed_total[1m]) * 60
 ```
 
-## Grafana интеграция
 
-### Grafana конфигурация
+## Конфигурация
 
-Готовые конфигурации Grafana доступны в [stack/grafana/](../stack/grafana/)
-
-## Конфигурация Prometheus
-
-Полная конфигурация Prometheus доступна в [stack/prometheus/prometheus.yml](../stack/prometheus/prometheus.yml)
-
-**Критичные параметры:**
-- `scrape_interval: 30s` — интервал сбора метрик
-- `targets: ['localhost:8100']` — адрес MQTT экспортера
-- `retention.time: 30d` — время хранения метрик
-
-## Мониторинг производительности
-
-### Метрики экспортера
-
-```promql
-# Время обработки запросов
-prometheus_http_request_duration_seconds{job="meshtastic-exporter"}
-
-# Использование памяти
-process_resident_memory_bytes{job="meshtastic-exporter"}
-
-# Количество горутин
-go_goroutines{job="meshtastic-exporter"}
-
-# Сборка мусора
-rate(go_gc_duration_seconds_count{job="meshtastic-exporter"}[5m])
-```
-
-### Оптимизация запросов
-
-```promql
-# Используйте recording rules для часто используемых запросов
-meshtastic:nodes_active
-
-# Ограничивайте временные диапазоны
-meshtastic_battery_level_percent[1h]
-
-# Используйте агрегацию для больших наборов данных
-avg by (node_id) (meshtastic_temperature_celsius)
-```
-
-## Troubleshooting
-
-### Отсутствующие метрики
-
-1. Проверьте статус экспортера:
-
-```bash
-curl http://localhost:8100/health
-```
-
-2. Проверьте доступность метрик:
-
-```bash
-curl http://localhost:8100/metrics | grep meshtastic
-```
-
-3. Проверьте конфигурацию Prometheus:
-
-```bash
-curl http://localhost:9090/api/v1/targets
-```
-
-### Проблемы с производительностью
-
-1. Мониторинг времени scrape:
-
-```promql
-prometheus_target_scrape_duration_seconds{job="meshtastic-exporter"}
-```
-
-2. Проверка размера ответа:
-
-```promql
-prometheus_target_scrape_samples_scraped{job="meshtastic-exporter"}
-```
-
-3. Оптимизация интервала сбора:
-
-```yaml
-scrape_configs:
-  - job_name: 'meshtastic-exporter'
-    scrape_interval: 60s  # Увеличить интервал
-```
+Полная конфигурация Prometheus: [stack/prometheus/prometheus.yml](../stack/prometheus/prometheus.yml)

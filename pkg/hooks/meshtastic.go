@@ -163,8 +163,6 @@ func (h *MeshtasticHook) startStateSaver() {
 			case <-ticker.C:
 				if err := h.collector.SaveState(prometheusConfig.GetStateFile()); err != nil {
 					h.logger.Error().Err(err).Msg("failed to save metrics state")
-				} else {
-					h.logger.Debug().Msg("metrics state saved")
 				}
 			case <-h.stopSave:
 				return
