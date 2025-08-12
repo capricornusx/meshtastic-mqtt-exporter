@@ -128,7 +128,7 @@ func getVersionInfo() (string, string, string) {
 }
 
 func (c *PrometheusCollector) CollectTelemetry(data domain.TelemetryData) error {
-	c.nodeLastSeen.WithLabelValues(data.NodeID).SetToCurrentTime()
+	c.nodeLastSeen.WithLabelValues(data.NodeID).Set(float64(time.Now().Unix()))
 	c.messageCounter.WithLabelValues(domain.MessageTypeTelemetry, data.NodeID).Inc()
 
 	c.setTelemetryMetrics(data)
@@ -181,7 +181,7 @@ func (c *PrometheusCollector) setNetworkMetrics(data domain.TelemetryData) {
 }
 
 func (c *PrometheusCollector) CollectNodeInfo(info domain.NodeInfo) error {
-	c.nodeLastSeen.WithLabelValues(info.NodeID).SetToCurrentTime()
+	c.nodeLastSeen.WithLabelValues(info.NodeID).Set(float64(time.Now().Unix()))
 	c.messageCounter.WithLabelValues(domain.MessageTypeNodeInfo, info.NodeID).Inc()
 	c.nodeHardware.WithLabelValues(info.NodeID, info.LongName, info.ShortName, info.Hardware, info.Role).Set(1)
 	return nil
