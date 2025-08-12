@@ -7,19 +7,26 @@ cat > "$HOOK_FILE" << 'EOF'
 
 set -e
 
-echo "Running pre-commit checks..."
-
-# Run linter
-echo "Running golangci-lint..."
-make lint
-
-# Run tests
-echo "Running tests..."
-make test
-
-# Build binaries
-echo "Building binaries..."
-make build
+# Check if any .go files are being committed
+if git diff --cached --name-only | grep -q '\.go$'; then
+    echo "Running pre-commit checks for Go files..."
+    
+    # Run linter
+    echo "Running golangci-lint..."
+    make lint
+    
+    # Run tests
+    echo "Running tests..."
+    make test
+    
+    # Build binaries
+    echo "Building binaries..."
+    make build
+    
+    echo "Go checks passed!"
+else
+    echo "No Go files modified, skipping Go checks"
+fi
 
 # Check GoReleaser configuration if modified
 if git diff --cached --name-only | grep -q "\.goreleaser\.yaml"; then
