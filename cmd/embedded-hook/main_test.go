@@ -1,6 +1,7 @@
 package main
 
 import (
+	"math"
 	"os"
 	"testing"
 
@@ -58,4 +59,66 @@ func TestMainWithInvalidConfig(t *testing.T) {
 	// Should not panic - main function should handle missing config gracefully
 	// by using defaults
 	assert.Equal(t, 3, len(os.Args))
+}
+
+func TestBoolToByte(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    bool
+		expected byte
+	}{
+		{"true to 1", true, 1},
+		{"false to 0", false, 0},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := boolToByte(tt.input)
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}
+
+func TestSafeInt32(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    int
+		expected int32
+	}{
+		{"normal value", 1000, 1000},
+		{"zero", 0, 0},
+		{"negative", -1000, -1000},
+		{"max int32", math.MaxInt32, math.MaxInt32},
+		{"min int32", math.MinInt32, math.MinInt32},
+		{"overflow max", math.MaxInt32 + 1, math.MaxInt32},
+		{"underflow min", math.MinInt32 - 1, math.MinInt32},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := safeInt32(tt.input)
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}
+
+func TestSafeUint16(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    int
+		expected uint16
+	}{
+		{"normal value", 1000, 1000},
+		{"zero", 0, 0},
+		{"negative to zero", -1, 0},
+		{"max uint16", math.MaxUint16, math.MaxUint16},
+		{"overflow", math.MaxUint16 + 1, math.MaxUint16},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := safeUint16(tt.input)
+			assert.Equal(t, tt.expected, result)
+		})
+	}
 }
