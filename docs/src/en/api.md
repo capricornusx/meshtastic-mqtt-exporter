@@ -41,11 +41,11 @@ Response:
 
 ## Prometheus Integration
 
-Ready-to-use Prometheus configuration is available in [prometheus.yml](../prometheus.yml).
+Ready-to-use Prometheus configuration is available in [prometheus.yml](../stack/prometheus/prometheus.yml).
 
 ## AlertManager Rules
 
-Full set of alert rules is available in [`docs/alertmanager/meshtastic-alerts.yml`](https://github.com/capricornusx/meshtastic-mqtt-exporter/blob/main/docs/alertmanager/meshtastic-alerts.yml).
+Full set of alert rules is available in [meshtastic-alerts.yml](../stack/alertmanager/meshtastic-alerts.yml).
 
 Includes alerts for:
 - Node offline

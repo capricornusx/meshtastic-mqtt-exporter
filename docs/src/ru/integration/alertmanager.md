@@ -6,11 +6,11 @@ AlertManager интеграция позволяет отправлять але
 
 ## Конфигурация AlertManager
 
-Готовая конфигурация AlertManager доступна в файле [alertmanager.yml](../../alertmanager/alertmanager.yml).
+Готовая конфигурация AlertManager доступна в файле [alertmanager.yml](../../stack/alertmanager/alertmanager.yml).
 
 ## Правила Prometheus
 
-Готовые правила алертов доступны в файле [meshtastic-alerts.yml](../../alertmanager/meshtastic-alerts.yml).
+Готовые правила алертов доступны в файле [meshtastic-alerts.yml](../../stack/alertmanager/meshtastic-alerts.yml).
 
 Включают алерты для:
 

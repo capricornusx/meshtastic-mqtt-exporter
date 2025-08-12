@@ -16,6 +16,16 @@
 
 ## Быстрый старт
 
+### Docker Compose (полный стек)
+
+```bash
+# Полный стек мониторинга
+cd docs/stack
+docker-compose up -d
+```
+
+### Отдельный бинарник
+
 ```bash
 # Скачать бинарник
 wget https://github.com/capricornusx/meshtastic-mqtt-exporter/releases/latest/download/mqtt-exporter-linux-amd64

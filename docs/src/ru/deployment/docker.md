@@ -100,7 +100,7 @@ volumes:
 
 ### Prometheus
 
-Готовая конфигурация Prometheus доступна в файле [prometheus.yml](../prometheus.yml).
+Полный стек мониторинга доступен в [docs/stack/](../stack/).
 
 ### AlertManager
 

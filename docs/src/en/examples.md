@@ -67,7 +67,7 @@ volumes:
 
 ### Prometheus Configuration
 
-Ready-to-use Prometheus configuration is available in [prometheus.yml](../prometheus.yml).
+Ready-to-use Prometheus configuration is available in [prometheus.yml](../stack/prometheus/prometheus.yml).
 
 ## Grafana Dashboard
 

@@ -67,8 +67,6 @@ func (a *App) Run() error {
 		return errors.NewNetworkError("failed to start http server", err)
 	}
 
-	a.logger.Info().Str("address", addr).Msg("http server started")
-
 	a.logger.Info().Msg("standalone application started")
 
 	// Wait for a shutdown signal

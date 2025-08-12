@@ -6,7 +6,7 @@ Send Prometheus alerts to LoRa mesh network via Meshtastic devices.
 
 ### 1. AlertManager Configuration
 
-Ready-to-use AlertManager configuration is available in [alertmanager.yml](../alertmanager/alertmanager.yml).
+Ready-to-use AlertManager configuration is available in [alertmanager.yml](../stack/alertmanager/alertmanager.yml).
 
 ### 2. Exporter Configuration
 
@@ -38,7 +38,7 @@ alertmanager:
 
 ## Prometheus Rules
 
-Ready-to-use Prometheus alert rules are available in [meshtastic-alerts.yml](../alertmanager/meshtastic-alerts.yml).
+Ready-to-use Prometheus alert rules are available in [meshtastic-alerts.yml](../stack/alertmanager/meshtastic-alerts.yml).
 
 The file includes alerts for:
 - Node offline detection

@@ -42,12 +42,11 @@ curl http://localhost:8100/health
 
 ## Prometheus интеграция
 
-Готовая конфигурация Prometheus доступна в файле [prometheus.yml](../prometheus.yml).
+Готовая конфигурация Prometheus доступна в файле [prometheus.yml](../stack/prometheus/prometheus.yml).
 
 ## AlertManager правила
 
-Полный набор правил доступен в файле [
-`docs/alertmanager/meshtastic-alerts.yml`](https://github.com/capricornusx/meshtastic-mqtt-exporter/blob/main/docs/alertmanager/meshtastic-alerts.yml).
+Полный набор правил доступен в файле [meshtastic-alerts.yml](../stack/alertmanager/meshtastic-alerts.yml).
 
 Включает алерты для:
 

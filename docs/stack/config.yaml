@@ -1,0 +1,21 @@
+mqtt:
+  host: 0.0.0.0
+  port: 1883
+  allow_anonymous: true
+
+prometheus:
+  enabled: true
+  port: 8100
+  topic:
+    prefix: "msh/"
+
+alertmanager:
+  enabled: true
+  http:
+    port: 8080
+    path: "/alerts/webhook"
+  channel: "LongFast"
+  mode: "broadcast"
+  topics:
+    broadcast: "msh/2/c/%s/!broadcast"
+    direct: "msh/2/c/%s/!%s"

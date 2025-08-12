@@ -3,7 +3,7 @@ global:
   evaluation_interval: 15s
 
 rule_files:
-  - "rules/meshtastic.yml"
+  - "/etc/prometheus/rules/meshtastic-alerts.yml"
 
 alerting:
   alertmanagers:

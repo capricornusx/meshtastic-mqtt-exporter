@@ -2,7 +2,7 @@
 
 ## Конфигурация Prometheus
 
-Готовая конфигурация Prometheus доступна в файле [prometheus.yml](../prometheus.yml).
+Готовая конфигурация Prometheus доступна в файле [prometheus.yml](../stack/prometheus/prometheus.yml).
 
 ## Доступные метрики
 
