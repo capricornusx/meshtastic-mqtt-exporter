@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/env bash
 
 # Включаем TLS в конфигурации
 sed -i 's/enabled: false/enabled: true/' config.yaml

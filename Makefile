@@ -11,18 +11,15 @@ build-all: build-embedded build-standalone build-example
 
 # Embedded mode with built-in MQTT broker
 build-embedded:
-	go build -ldflags="-X meshtastic-exporter/pkg/version.Version=dev -X meshtastic-exporter/pkg/version.GitCommit=$$(git rev-parse --short HEAD 2>/dev/null || echo unknown) -X meshtastic-exporter/pkg/version.BuildDate=$$(date -u +%Y-%m-%dT%H:%M:%SZ)" -o dist/$(EMBEDDED_BINARY) ./cmd/embedded-hook
+	CGO_ENABLED=0 go build -ldflags="-X meshtastic-exporter/pkg/version.Version=dev -X meshtastic-exporter/pkg/version.GitCommit=$$(git rev-parse --short HEAD 2>/dev/null || echo unknown) -X meshtastic-exporter/pkg/version.BuildDate=$$(date -u +%Y-%m-%dT%H:%M:%SZ)" -o dist/$(EMBEDDED_BINARY) ./cmd/embedded-hook
 
 # Standalone mode for existing MQTT setups
 build-standalone:
-	go build -ldflags="-X meshtastic-exporter/pkg/version.Version=dev -X meshtastic-exporter/pkg/version.GitCommit=$$(git rev-parse --short HEAD 2>/dev/null || echo unknown) -X meshtastic-exporter/pkg/version.BuildDate=$$(date -u +%Y-%m-%dT%H:%M:%SZ)" -o dist/$(STANDALONE_BINARY) ./cmd/standalone
+	CGO_ENABLED=0 go build -ldflags="-X meshtastic-exporter/pkg/version.Version=dev -X meshtastic-exporter/pkg/version.GitCommit=$$(git rev-parse --short HEAD 2>/dev/null || echo unknown) -X meshtastic-exporter/pkg/version.BuildDate=$$(date -u +%Y-%m-%dT%H:%M:%SZ)" -o dist/$(STANDALONE_BINARY) ./cmd/standalone
 
 # Example integration
 build-example:
 	cd docs/mochi-mqtt-integration && go build -o ../../dist/$(EXAMPLE_BINARY) .
-
-# Alias for CI compatibility
-build-examples: build-example
 
 
 # Dependencies and cleanup
@@ -35,11 +32,9 @@ clean:
 	rm -f coverage.out coverage.html
 	rm -rf dist/ reports/
 
-# Code quality
 lint:
 	golangci-lint run --timeout=5m
 
-# Testing
 test: test-unit test-integration coverage-report
 
 test-unit:
@@ -55,7 +50,6 @@ coverage:
 coverage-report: coverage
 	timeout $(TIMEOUT) go tool cover -func=coverage.out
 
-# Docker
 docker:
 	docker build -t meshtastic-exporter .
 
@@ -64,13 +58,13 @@ build-linux: build-linux-amd64 build-linux-arm64
 
 build-linux-amd64:
 	mkdir -p dist
-	env GOOS=linux GOARCH=amd64 go build -ldflags="-s -w -X meshtastic-exporter/pkg/version.Version=$$(git describe --tags --always 2>/dev/null || echo dev) -X meshtastic-exporter/pkg/version.GitCommit=$$(git rev-parse --short HEAD 2>/dev/null || echo unknown) -X meshtastic-exporter/pkg/version.BuildDate=$$(date -u +%Y-%m-%dT%H:%M:%SZ)" -o dist/$(EMBEDDED_BINARY)-linux-amd64 ./cmd/embedded-hook
-	env GOOS=linux GOARCH=amd64 go build -ldflags="-s -w -X meshtastic-exporter/pkg/version.Version=$$(git describe --tags --always 2>/dev/null || echo dev) -X meshtastic-exporter/pkg/version.GitCommit=$$(git rev-parse --short HEAD 2>/dev/null || echo unknown) -X meshtastic-exporter/pkg/version.BuildDate=$$(date -u +%Y-%m-%dT%H:%M:%SZ)" -o dist/$(STANDALONE_BINARY)-linux-amd64 ./cmd/standalone
+	env CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w -X meshtastic-exporter/pkg/version.Version=$$(git describe --tags --always 2>/dev/null || echo dev) -X meshtastic-exporter/pkg/version.GitCommit=$$(git rev-parse --short HEAD 2>/dev/null || echo unknown) -X meshtastic-exporter/pkg/version.BuildDate=$$(date -u +%Y-%m-%dT%H:%M:%SZ)" -o dist/$(EMBEDDED_BINARY)-linux-amd64 ./cmd/embedded-hook
+	env CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w -X meshtastic-exporter/pkg/version.Version=$$(git describe --tags --always 2>/dev/null || echo dev) -X meshtastic-exporter/pkg/version.GitCommit=$$(git rev-parse --short HEAD 2>/dev/null || echo unknown) -X meshtastic-exporter/pkg/version.BuildDate=$$(date -u +%Y-%m-%dT%H:%M:%SZ)" -o dist/$(STANDALONE_BINARY)-linux-amd64 ./cmd/standalone
 
 build-linux-arm64:
 	mkdir -p dist
-	env GOOS=linux GOARCH=arm64 go build -ldflags="-s -w -X meshtastic-exporter/pkg/version.Version=$$(git describe --tags --always 2>/dev/null || echo dev) -X meshtastic-exporter/pkg/version.GitCommit=$$(git rev-parse --short HEAD 2>/dev/null || echo unknown) -X meshtastic-exporter/pkg/version.BuildDate=$$(date -u +%Y-%m-%dT%H:%M:%SZ)" -o dist/$(EMBEDDED_BINARY)-linux-arm64 ./cmd/embedded-hook
-	env GOOS=linux GOARCH=arm64 go build -ldflags="-s -w -X meshtastic-exporter/pkg/version.Version=$$(git describe --tags --always 2>/dev/null || echo dev) -X meshtastic-exporter/pkg/version.GitCommit=$$(git rev-parse --short HEAD 2>/dev/null || echo unknown) -X meshtastic-exporter/pkg/version.BuildDate=$$(date -u +%Y-%m-%dT%H:%M:%SZ)" -o dist/$(STANDALONE_BINARY)-linux-arm64 ./cmd/standalone
+	env CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -ldflags="-s -w -X meshtastic-exporter/pkg/version.Version=$$(git describe --tags --always 2>/dev/null || echo dev) -X meshtastic-exporter/pkg/version.GitCommit=$$(git rev-parse --short HEAD 2>/dev/null || echo unknown) -X meshtastic-exporter/pkg/version.BuildDate=$$(date -u +%Y-%m-%dT%H:%M:%SZ)" -o dist/$(EMBEDDED_BINARY)-linux-arm64 ./cmd/embedded-hook
+	env CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -ldflags="-s -w -X meshtastic-exporter/pkg/version.Version=$$(git describe --tags --always 2>/dev/null || echo dev) -X meshtastic-exporter/pkg/version.GitCommit=$$(git rev-parse --short HEAD 2>/dev/null || echo unknown) -X meshtastic-exporter/pkg/version.BuildDate=$$(date -u +%Y-%m-%dT%H:%M:%SZ)" -o dist/$(STANDALONE_BINARY)-linux-arm64 ./cmd/standalone
 
 # Release (requires goreleaser)
 release-check:

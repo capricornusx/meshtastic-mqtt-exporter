@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/env bash
 
 # Создание директории для сертификатов
 mkdir -p certs
