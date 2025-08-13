@@ -16,6 +16,7 @@ import (
 )
 
 func TestUnifiedServer_Start(t *testing.T) {
+	t.Parallel()
 	mockCollector := &mocks.MockMetricsCollector{}
 	mockAlerter := &mocks.MockAlertSender{}
 
@@ -37,6 +38,7 @@ func TestUnifiedServer_Start(t *testing.T) {
 }
 
 func TestUnifiedServer_HealthHandler(t *testing.T) {
+	t.Parallel()
 	mockCollector := &mocks.MockMetricsCollector{}
 
 	config := UnifiedServerConfig{
@@ -57,6 +59,7 @@ func TestUnifiedServer_HealthHandler(t *testing.T) {
 }
 
 func TestUnifiedServer_AlertWebhookHandler(t *testing.T) {
+	t.Parallel()
 	mockAlerter := &mocks.MockAlertSender{}
 
 	config := UnifiedServerConfig{
@@ -88,6 +91,7 @@ func TestUnifiedServer_AlertWebhookHandler(t *testing.T) {
 }
 
 func TestUnifiedServer_ConvertToAlert(t *testing.T) {
+	t.Parallel()
 	server := NewUnifiedServer(UnifiedServerConfig{}, nil, nil)
 
 	tests := []struct {
@@ -117,6 +121,7 @@ func TestUnifiedServer_ConvertToAlert(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			alert := server.convertToAlert(tt.item)
 			assert.Equal(t, tt.expected, alert.Message)
 			assert.Equal(t, tt.item.Labels["severity"], alert.Severity)

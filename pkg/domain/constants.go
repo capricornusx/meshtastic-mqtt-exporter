@@ -62,11 +62,22 @@ const (
 	// LoRaBroadcastNodeID 4294967295 or 0xFFFFFFFF
 	LoRaBroadcastNodeID = math.MaxUint32
 
+	MeshtasticMQTTChannel = "mqtt"
+
 	ShutdownTimeoutDivider = 4
 
-	MessageTypeTelemetry   = "telemetry"
-	MessageTypeNodeInfo    = "nodeinfo"
-	MessageTypeUnsupported = "unsupported"
+	MessageTypeTelemetry    = "telemetry"
+	MessageTypeNodeInfo     = "nodeinfo"
+	MessageTypeText         = "text"
+	MessageTypePosition     = "position"
+	MessageTypeWaypoint     = "waypoint"
+	MessageTypeNeighborInfo = "neighborinfo"
+	MessageTypeUnsupported  = "unsupported"
+
+	// Telemetry subtypes
+	TelemetryTypeDevice      = "device_metrics"
+	TelemetryTypeEnvironment = "environment_metrics"
+	TelemetryTypePower       = "power_metrics"
 )
 
 func GetDefaultMQTTTopics() []string {

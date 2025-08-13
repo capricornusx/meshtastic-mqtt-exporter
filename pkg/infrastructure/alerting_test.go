@@ -8,10 +8,11 @@ import (
 )
 
 func TestNewLoRaAlertSender(t *testing.T) {
+	t.Parallel()
 	config := LoRaConfig{
 		DefaultChannel: "TestChannel",
 		DefaultMode:    "direct",
-		TargetNodes:    []string{"node1", "node2"},
+		TargetNodes:    []uint32{123456789, 987654321},
 	}
 
 	sender := NewLoRaAlertSender(nil, config)
@@ -27,6 +28,7 @@ func TestNewLoRaAlertSender(t *testing.T) {
 }
 
 func TestNewLoRaAlertSender_Defaults(t *testing.T) {
+	t.Parallel()
 	sender := NewLoRaAlertSender(nil, LoRaConfig{})
 	if sender.defaultChannel != "LongFast" {
 		t.Errorf("Expected default channel 'LongFast', got '%s'", sender.defaultChannel)
@@ -37,6 +39,7 @@ func TestNewLoRaAlertSender_Defaults(t *testing.T) {
 }
 
 func TestSendAlert_Broadcast(t *testing.T) {
+	t.Parallel()
 	sender := NewLoRaAlertSender(nil, LoRaConfig{})
 	alert := domain.Alert{
 		Message: "Test alert",
@@ -51,12 +54,13 @@ func TestSendAlert_Broadcast(t *testing.T) {
 }
 
 func TestSendAlert_Direct(t *testing.T) {
+	t.Parallel()
 	sender := NewLoRaAlertSender(nil, LoRaConfig{})
 	alert := domain.Alert{
 		Message:     "Test alert",
 		Mode:        "direct",
 		Channel:     "TestChannel",
-		TargetNodes: []string{"node1", "node2"},
+		TargetNodes: []uint32{123456789, 987654321},
 	}
 
 	err := sender.SendAlert(context.Background(), alert)
@@ -66,10 +70,11 @@ func TestSendAlert_Direct(t *testing.T) {
 }
 
 func TestSendAlert_UseDefaults(t *testing.T) {
+	t.Parallel()
 	config := LoRaConfig{
 		DefaultChannel: "DefaultChannel",
 		DefaultMode:    "broadcast",
-		TargetNodes:    []string{"default1"},
+		TargetNodes:    []uint32{123456789},
 	}
 	sender := NewLoRaAlertSender(nil, config)
 
@@ -82,6 +87,7 @@ func TestSendAlert_UseDefaults(t *testing.T) {
 }
 
 func TestPublishMessage(t *testing.T) {
+	t.Parallel()
 	sender := NewLoRaAlertSender(nil, LoRaConfig{})
 	payload := map[string]interface{}{
 		"type":    "text",
@@ -95,6 +101,7 @@ func TestPublishMessage(t *testing.T) {
 }
 
 func TestPublishMessage_InvalidPayload(t *testing.T) {
+	t.Parallel()
 	sender := NewLoRaAlertSender(nil, LoRaConfig{})
 	payload := map[string]interface{}{
 		"invalid": make(chan int),

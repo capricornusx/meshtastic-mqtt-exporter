@@ -10,6 +10,7 @@ import (
 )
 
 func TestMeshtasticProcessor_RoundingMetrics(t *testing.T) {
+	t.Parallel()
 	collector := &mocks.MockMetricsCollector{}
 	processor := NewMeshtasticProcessor(collector, nil, false, "")
 
@@ -49,6 +50,7 @@ func assertMetricValue(t *testing.T, name string, actual *float64, expected floa
 }
 
 func TestRoundToTwoDecimals(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		input    float64
 		expected float64
@@ -71,6 +73,7 @@ func TestRoundToTwoDecimals(t *testing.T) {
 }
 
 func TestTruncateToTwoDecimals(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		input    float64
 		expected float64

@@ -13,6 +13,7 @@ import (
 )
 
 func TestMeshtasticProcessor_ErrorHandling(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name                  string
 		telemetryError        bool
@@ -41,6 +42,7 @@ func TestMeshtasticProcessor_ErrorHandling(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			mockCollector := &mocks.MockMetricsCollectorWithErrors{}
 			mockAlerter := &mocks.MockAlertSenderWithErrors{}
 
@@ -67,6 +69,7 @@ func TestMeshtasticProcessor_ErrorHandling(t *testing.T) {
 const lowBatteryPayload = `{"from": 123456789, "type": "telemetry", "payload": {"battery_level": 5.0}}`
 
 func TestMeshtasticProcessor_AlertingErrors(t *testing.T) {
+	t.Parallel()
 	mockCollector := &mocks.MockMetricsCollectorWithErrors{}
 	mockAlerter := &mocks.MockAlertSenderWithErrors{}
 
@@ -86,6 +89,7 @@ func TestMeshtasticProcessor_AlertingErrors(t *testing.T) {
 }
 
 func TestMeshtasticProcessor_ContextCancellation(t *testing.T) {
+	t.Parallel()
 	mockCollector := &mocks.MockMetricsCollectorWithErrors{}
 	mockAlerter := &mocks.MockAlertSenderWithErrors{}
 

@@ -3,6 +3,7 @@ package domain
 import "testing"
 
 func TestGetRoleName(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		role     int
 		expected string

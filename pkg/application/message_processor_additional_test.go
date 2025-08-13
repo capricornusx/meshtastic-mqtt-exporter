@@ -9,6 +9,7 @@ import (
 )
 
 func TestExtractTelemetryFields(t *testing.T) {
+	t.Parallel()
 	collector := &mocks.MockMetricsCollector{}
 	processor := NewMeshtasticProcessor(collector, nil, false, "msh/#")
 
@@ -40,6 +41,7 @@ func TestExtractTelemetryFields(t *testing.T) {
 }
 
 func TestExtractBasicFields(t *testing.T) {
+	t.Parallel()
 	processor := NewMeshtasticProcessor(nil, nil, false, "")
 
 	payload := map[string]interface{}{
@@ -63,6 +65,7 @@ func TestExtractBasicFields(t *testing.T) {
 }
 
 func TestExtractEnvironmentalFields(t *testing.T) {
+	t.Parallel()
 	processor := NewMeshtasticProcessor(nil, nil, false, "")
 
 	payload := map[string]interface{}{
@@ -86,6 +89,7 @@ func TestExtractEnvironmentalFields(t *testing.T) {
 }
 
 func TestExtractNetworkFields(t *testing.T) {
+	t.Parallel()
 	processor := NewMeshtasticProcessor(nil, nil, false, "")
 
 	payload := map[string]interface{}{

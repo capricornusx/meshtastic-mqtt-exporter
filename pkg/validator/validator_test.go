@@ -3,6 +3,7 @@ package validator
 import "testing"
 
 func TestValidateMeshtasticMessage(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name    string
 		payload []byte
@@ -16,6 +17,7 @@ func TestValidateMeshtasticMessage(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			err := ValidateMeshtasticMessage(tt.payload)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("ValidateMeshtasticMessage() error = %v, wantErr %v", err, tt.wantErr)
@@ -25,6 +27,7 @@ func TestValidateMeshtasticMessage(t *testing.T) {
 }
 
 func TestValidateTopicName(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name    string
 		topic   string
@@ -37,6 +40,7 @@ func TestValidateTopicName(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			err := ValidateTopicName(tt.topic)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("ValidateTopicName() error = %v, wantErr %v", err, tt.wantErr)
@@ -46,6 +50,7 @@ func TestValidateTopicName(t *testing.T) {
 }
 
 func TestValidateNodeID(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name    string
 		nodeID  string
@@ -58,6 +63,7 @@ func TestValidateNodeID(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			err := ValidateNodeID(tt.nodeID)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("ValidateNodeID() error = %v, wantErr %v", err, tt.wantErr)
@@ -67,6 +73,7 @@ func TestValidateNodeID(t *testing.T) {
 }
 
 func TestSanitizeString(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name     string
 		input    string
@@ -83,6 +90,7 @@ func TestSanitizeString(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			result := SanitizeString(tt.input)
 			if result != tt.expected {
 				t.Errorf("SanitizeString() = %v, want %v", result, tt.expected)
@@ -92,6 +100,7 @@ func TestSanitizeString(t *testing.T) {
 }
 
 func TestMatchesMQTTPattern(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name     string
 		topic    string
@@ -162,6 +171,7 @@ func TestMatchesMQTTPattern(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			result := MatchesMQTTPattern(tt.topic, tt.pattern)
 			if result != tt.expected {
 				t.Errorf("MatchesMQTTPattern(%q, %q) = %v, expected %v", tt.topic, tt.pattern, result, tt.expected)

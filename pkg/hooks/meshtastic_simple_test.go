@@ -10,6 +10,7 @@ import (
 )
 
 func TestNewMeshtasticHookSimple_ActualFunction(t *testing.T) {
+	t.Parallel()
 	f := factory.NewDefaultFactory()
 	hook := NewMeshtasticHookSimple(f) // ← Тестируем реальную функцию
 
@@ -19,6 +20,7 @@ func TestNewMeshtasticHookSimple_ActualFunction(t *testing.T) {
 }
 
 func TestFactory_MetricsCollectorSingleton(t *testing.T) {
+	t.Parallel()
 	f := factory.NewDefaultFactory()
 
 	collector1 := f.CreateMetricsCollector()

@@ -11,6 +11,7 @@ import (
 )
 
 func TestMeshtasticProcessor_EdgeCases(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name        string
 		payload     string
@@ -69,6 +70,7 @@ func TestMeshtasticProcessor_EdgeCases(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			mockCollector := &mocks.MockMetricsCollector{}
 			mockAlerter := &mocks.MockAlertSender{}
 			processor := NewMeshtasticProcessor(mockCollector, mockAlerter, false, "")
@@ -87,6 +89,7 @@ func TestMeshtasticProcessor_EdgeCases(t *testing.T) {
 }
 
 func TestMeshtasticProcessor_ExtremeValues(t *testing.T) {
+	t.Parallel()
 	mockCollector := &mocks.MockMetricsCollector{}
 	mockAlerter := &mocks.MockAlertSender{}
 	processor := NewMeshtasticProcessor(mockCollector, mockAlerter, false, "")
@@ -117,6 +120,7 @@ func TestMeshtasticProcessor_ExtremeValues(t *testing.T) {
 }
 
 func TestMeshtasticProcessor_ConcurrentProcessing(t *testing.T) {
+	t.Parallel()
 	mockCollector := &mocks.MockMetricsCollector{}
 	mockAlerter := &mocks.MockAlertSender{}
 	processor := NewMeshtasticProcessor(mockCollector, mockAlerter, false, "")
@@ -141,6 +145,7 @@ func TestMeshtasticProcessor_ConcurrentProcessing(t *testing.T) {
 }
 
 func TestMeshtasticProcessor_LargePayload(t *testing.T) {
+	t.Parallel()
 	mockCollector := &mocks.MockMetricsCollector{}
 	mockAlerter := &mocks.MockAlertSender{}
 	processor := NewMeshtasticProcessor(mockCollector, mockAlerter, false, "")
@@ -173,6 +178,7 @@ func TestMeshtasticProcessor_LargePayload(t *testing.T) {
 }
 
 func TestMeshtasticProcessor_MalformedJSON(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name        string
 		payload     string
@@ -202,6 +208,7 @@ func TestMeshtasticProcessor_MalformedJSON(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			mockCollector := &mocks.MockMetricsCollector{}
 			mockAlerter := &mocks.MockAlertSender{}
 			processor := NewMeshtasticProcessor(mockCollector, mockAlerter, false, "")

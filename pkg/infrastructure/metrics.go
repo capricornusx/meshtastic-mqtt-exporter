@@ -218,6 +218,30 @@ func (c *PrometheusCollector) CollectNodeInfo(info domain.NodeInfo) error {
 	return nil
 }
 
+func (c *PrometheusCollector) CollectTextMessage(msg domain.TextMessage) error {
+	c.UpdateNodeLastSeen(msg.NodeID, time.Now())
+	c.UpdateMessageCounter(msg.NodeID, domain.MessageTypeText)
+	return nil
+}
+
+func (c *PrometheusCollector) CollectPosition(pos domain.Position) error {
+	c.UpdateNodeLastSeen(pos.NodeID, time.Now())
+	c.UpdateMessageCounter(pos.NodeID, domain.MessageTypePosition)
+	return nil
+}
+
+func (c *PrometheusCollector) CollectWaypoint(wp domain.Waypoint) error {
+	c.UpdateNodeLastSeen(wp.NodeID, time.Now())
+	c.UpdateMessageCounter(wp.NodeID, domain.MessageTypeWaypoint)
+	return nil
+}
+
+func (c *PrometheusCollector) CollectNeighborInfo(ni domain.NeighborInfo) error {
+	c.UpdateNodeLastSeen(ni.NodeID, time.Now())
+	c.UpdateMessageCounter(ni.NodeID, domain.MessageTypeNeighborInfo)
+	return nil
+}
+
 func (c *PrometheusCollector) UpdateNodeLastSeen(nodeID string, timestamp time.Time) {
 	c.nodeLastSeen.WithLabelValues(nodeID).Set(float64(timestamp.Unix()))
 }

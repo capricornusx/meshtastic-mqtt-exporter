@@ -6,22 +6,23 @@
 - **GET** `/health` — Проверка состояния
 - **POST** `/alerts/webhook` — Webhook для AlertManager
 
+### Требования для AlertManager webhook
+
+**Обязательно**: На gateway узле должен быть настроен канал с именем `mqtt` с включенным Downlink для получения алертов из MQTT.
+
+Подробности настройки: [Meshtastic MQTT Integration](https://meshtastic.org/docs/software/integrations/mqtt/#json-downlink-to-instruct-a-node-to-send-a-message)
+
 ## Использование
 
-### Метрики
-
 ```bash
+# Метрики
 curl http://localhost:8100/metrics
-```
 
-### Health Check
-
-```bash
+# Состояние
 curl http://localhost:8100/health
 ```
 
-Ответ:
-
+Ответ health check:
 ```json
 {
   "status": "ok",
@@ -32,26 +33,12 @@ curl http://localhost:8100/health
 
 ## Метрики
 
-| Метрика                               | Описание             | Лейблы                 |
-|---------------------------------------|----------------------|------------------------|
-| `meshtastic_battery_level_percent`    | Уровень батареи      | `node_id`, `node_name` |
-| `meshtastic_temperature_celsius`      | Температура          | `node_id`, `node_name` |
-| `meshtastic_humidity_percent`         | Влажность            | `node_id`, `node_name` |
-| `meshtastic_pressure_hpa`             | Давление             | `node_id`, `node_name` |
+| Метрика | Описание | Лейблы |
+|---------|----------|--------|
+| `meshtastic_battery_level_percent` | Уровень батареи | `node_id`, `node_name` |
+| `meshtastic_temperature_celsius` | Температура | `node_id`, `node_name` |
+| `meshtastic_humidity_percent` | Влажность | `node_id`, `node_name` |
+| `meshtastic_pressure_hpa` | Давление | `node_id`, `node_name` |
+| `meshtastic_rssi_dbm` | Мощность сигнала | `node_id`, `node_name` |
+| `meshtastic_snr_db` | Отношение сигнал/шум | `node_id`, `node_name` |
 | `meshtastic_node_last_seen_timestamp` | Последняя активность | `node_id`, `node_name` |
-
-## Prometheus интеграция
-
-Готовая конфигурация Prometheus доступна в файле [prometheus.yml](../stack/prometheus/prometheus.yml).
-
-## AlertManager правила
-
-Полный набор правил доступен в файле [meshtastic-alerts.yml](../stack/alertmanager/meshtastic-alerts.yml).
-
-Включает алерты для:
-
-- Офлайн узлов
-- Низкого заряда батареи
-- Высокой температуры
-- Слабого сигнала
-- Недоступности экспортера

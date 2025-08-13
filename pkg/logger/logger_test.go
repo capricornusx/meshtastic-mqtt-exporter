@@ -9,6 +9,7 @@ import (
 )
 
 func TestComponentLogger(t *testing.T) {
+	t.Parallel()
 	var buf bytes.Buffer
 
 	logger := zerolog.New(&buf).With().
@@ -23,6 +24,7 @@ func TestComponentLogger(t *testing.T) {
 }
 
 func TestSubLogger(t *testing.T) {
+	t.Parallel()
 	var buf bytes.Buffer
 
 	baseLogger := zerolog.New(&buf).With().
@@ -43,6 +45,7 @@ func TestSubLogger(t *testing.T) {
 }
 
 func TestSubLoggerEmptyFields(t *testing.T) {
+	t.Parallel()
 	var buf bytes.Buffer
 
 	baseLogger := zerolog.New(&buf).With().
@@ -60,6 +63,7 @@ func TestSubLoggerEmptyFields(t *testing.T) {
 }
 
 func TestSetLogLevel(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name  string
 		level string
@@ -76,6 +80,7 @@ func TestSetLogLevel(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			SetLogLevel(tt.level)
 			logger := ComponentLogger("test")
 			assert.NotNil(t, logger)

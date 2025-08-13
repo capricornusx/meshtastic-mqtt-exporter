@@ -22,6 +22,8 @@ import (
 	"meshtastic-exporter/pkg/infrastructure"
 )
 
+var testMQTTDownlinkTopic = infrastructure.GetDefaultMQTTDownlinkTopic()
+
 type LoRaMessageCapture struct {
 	mu       sync.RWMutex
 	messages []CapturedMessage
@@ -108,15 +110,15 @@ func TestE2E_LoRaAlertDelivery_CriticalAlert(t *testing.T) {
 	// Проверяем формат сообщения
 	found := false
 	for _, msg := range messages {
-		if contains(msg.Topic, "msh/2/c/") && contains(msg.Topic, "!broadcast") {
+		if msg.Topic == testMQTTDownlinkTopic {
 			assert.Contains(t, msg.Payload, "NodeOffline")
 			assert.Contains(t, msg.Payload, "firing")
-			assert.Contains(t, msg.Payload, "[ALERT]")
+			assert.Contains(t, msg.Payload, "sendtext")
 			found = true
 			break
 		}
 	}
-	assert.True(t, found, "Критический алерт должен быть отправлен в broadcast топик")
+	assert.True(t, found, "Критический алерт должен быть отправлен в MQTT топик")
 
 	server.Close()
 }
@@ -167,10 +169,10 @@ func TestE2E_LoRaAlertDelivery_WarningAlert(t *testing.T) {
 	// Проверяем, что warning алерт отправлен правильно
 	found := false
 	for _, msg := range messages {
-		if contains(msg.Topic, "msh/2/c/") {
+		if msg.Topic == testMQTTDownlinkTopic {
 			assert.Contains(t, msg.Payload, "HighBatteryUsage")
 			assert.Contains(t, msg.Payload, "firing")
-			assert.Contains(t, msg.Payload, "[ALERT]")
+			assert.Contains(t, msg.Payload, "sendtext")
 			found = true
 			break
 		}
@@ -302,7 +304,7 @@ func TestE2E_LoRaAlertDelivery_AlertFormatting(t *testing.T) {
 
 	// Проверяем, что сообщение не превышает разумные размеры для LoRa
 	for _, msg := range messages {
-		if contains(msg.Topic, "msh/2/c/") {
+		if msg.Topic == testMQTTDownlinkTopic {
 			assert.Less(t, len(msg.Payload), 240, "LoRa сообщение должно быть меньше 240 байт")
 			assert.Contains(t, msg.Payload, "VeryLongAlert") // Часть имени должна остаться
 			break
@@ -451,8 +453,8 @@ func (h *MessageCaptureHook) Provides(b byte) bool {
 }
 
 func (h *MessageCaptureHook) OnPublish(cl *mqtt.Client, pk packets.Packet) (packets.Packet, error) {
-	// Перехватываем только исходящие сообщения в LoRa топики
-	if contains(pk.TopicName, "msh/2/c/") {
+	// Перехватываем только исходящие сообщения в MQTT топик
+	if pk.TopicName == testMQTTDownlinkTopic {
 		h.capture.AddMessage(pk.TopicName, string(pk.Payload), pk.FixedHeader.Qos, pk.FixedHeader.Retain)
 	}
 	return pk, nil

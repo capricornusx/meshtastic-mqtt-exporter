@@ -13,6 +13,7 @@ import (
 )
 
 func TestNewMQTTClient(t *testing.T) {
+	t.Parallel()
 	config := &adapters.MQTTConfigAdapter{Host: "localhost", Port: 1883}
 	processor := &mocks.MockMessageProcessor{}
 
@@ -29,6 +30,7 @@ func TestNewMQTTClient(t *testing.T) {
 }
 
 func TestBuildBrokerURL_TCP(t *testing.T) {
+	t.Parallel()
 	config := &adapters.MQTTConfigAdapter{
 		Host:      "localhost",
 		Port:      1883,
@@ -46,6 +48,7 @@ func TestBuildBrokerURL_TCP(t *testing.T) {
 }
 
 func TestBuildBrokerURL_TLS(t *testing.T) {
+	t.Parallel()
 	config := &adapters.MQTTConfigAdapter{
 		Host:      "localhost",
 		Port:      1883,
@@ -63,6 +66,7 @@ func TestBuildBrokerURL_TLS(t *testing.T) {
 }
 
 func TestMQTTClient_Disconnect_NotConnected(t *testing.T) {
+	t.Parallel()
 	config := &adapters.MQTTConfigAdapter{Host: "localhost", Port: 1883}
 	processor := &mocks.MockMessageProcessor{}
 
@@ -71,6 +75,7 @@ func TestMQTTClient_Disconnect_NotConnected(t *testing.T) {
 }
 
 func TestMQTTClient_MessageHandler(t *testing.T) {
+	t.Parallel()
 	config := &adapters.MQTTConfigAdapter{Host: "localhost", Port: 1883}
 	processor := &mocks.MockMessageProcessor{}
 
@@ -89,6 +94,7 @@ func TestMQTTClient_MessageHandler(t *testing.T) {
 }
 
 func TestMQTTClient_OnConnectionLost(t *testing.T) {
+	t.Parallel()
 	config := &adapters.MQTTConfigAdapter{Host: "localhost", Port: 1883}
 	processor := &mocks.MockMessageProcessor{}
 
@@ -111,6 +117,7 @@ func (m *mockMessage) Ack()              {}
 func (m *mockMessage) Reject()           {}
 
 func TestMQTTClient_OnConnect(t *testing.T) {
+	t.Parallel()
 	config := &adapters.MQTTConfigAdapter{Host: "localhost", Port: 1883}
 	processor := &mocks.MockMessageProcessor{}
 
@@ -123,6 +130,7 @@ func TestMQTTClient_OnConnect(t *testing.T) {
 }
 
 func TestMQTTClient_Connect_WithAuth(t *testing.T) {
+	t.Parallel()
 	config := &adapters.MQTTConfigAdapter{
 		Host:  "localhost",
 		Port:  1883,
@@ -137,6 +145,7 @@ func TestMQTTClient_Connect_WithAuth(t *testing.T) {
 }
 
 func TestMQTTClient_Connect_WithTLS(t *testing.T) {
+	t.Parallel()
 	config := &adapters.MQTTConfigAdapter{
 		Host: "localhost",
 		Port: 1883,
@@ -157,6 +166,7 @@ func TestMQTTClient_Connect_WithTLS(t *testing.T) {
 }
 
 func TestMQTTClient_Connect_FailedConnection(t *testing.T) {
+	t.Parallel()
 	// Тест попытки подключения к несуществующему брокеру
 	config := &adapters.MQTTConfigAdapter{
 		Host:     "nonexistent.host",
@@ -176,6 +186,7 @@ func TestMQTTClient_Connect_FailedConnection(t *testing.T) {
 }
 
 func TestMQTTClient_MessageHandler_WithError(t *testing.T) {
+	t.Parallel()
 	config := &adapters.MQTTConfigAdapter{Host: "localhost", Port: 1883}
 	processor := &mocks.MockMessageProcessorWithErrors{}
 	processor.SetError(true, "processing failed")
@@ -192,6 +203,7 @@ func TestMQTTClient_MessageHandler_WithError(t *testing.T) {
 }
 
 func TestMQTTClient_MessageHandler_WithTimeout(t *testing.T) {
+	t.Parallel()
 	config := &adapters.MQTTConfigAdapter{Host: "localhost", Port: 1883}
 	processor := &mocks.MockMessageProcessorWithErrors{}
 	processor.SetDelay(time.Millisecond * 100) // Короткая задержка
@@ -208,6 +220,7 @@ func TestMQTTClient_MessageHandler_WithTimeout(t *testing.T) {
 }
 
 func TestMQTTClient_Disconnect_Connected(t *testing.T) {
+	t.Parallel()
 	config := &adapters.MQTTConfigAdapter{Host: "localhost", Port: 1883}
 	processor := &mocks.MockMessageProcessor{}
 
@@ -225,6 +238,7 @@ func TestMQTTClient_Disconnect_Connected(t *testing.T) {
 }
 
 func TestMQTTClient_OnConnect_WithTopics(t *testing.T) {
+	t.Parallel()
 	config := &adapters.MQTTConfigAdapter{
 		Host:   "localhost",
 		Port:   1883,
@@ -244,6 +258,7 @@ func TestMQTTClient_OnConnect_WithTopics(t *testing.T) {
 }
 
 func TestMQTTClient_OnConnect_WithSubscribeError(t *testing.T) {
+	t.Parallel()
 	config := &adapters.MQTTConfigAdapter{
 		Host:   "localhost",
 		Port:   1883,

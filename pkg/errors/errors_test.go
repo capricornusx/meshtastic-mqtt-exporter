@@ -6,6 +6,7 @@ import (
 )
 
 func TestValidationError(t *testing.T) {
+	t.Parallel()
 	err := NewValidationError("test message", errors.New("inner error"))
 
 	if err.Error() != "validation: test message (inner error)" {
@@ -18,6 +19,7 @@ func TestValidationError(t *testing.T) {
 }
 
 func TestConfigError(t *testing.T) {
+	t.Parallel()
 	err := NewConfigError("config issue", nil)
 
 	if err.Error() != "config: config issue" {
@@ -26,6 +28,7 @@ func TestConfigError(t *testing.T) {
 }
 
 func TestNetworkError(t *testing.T) {
+	t.Parallel()
 	err := NewNetworkError("network issue", errors.New("connection failed"))
 
 	if err.Error() != "network: network issue (connection failed)" {
@@ -34,6 +37,7 @@ func TestNetworkError(t *testing.T) {
 }
 
 func TestProcessingError(t *testing.T) {
+	t.Parallel()
 	err := NewProcessingError("processing failed", nil)
 
 	if err.Error() != "processing: processing failed" {

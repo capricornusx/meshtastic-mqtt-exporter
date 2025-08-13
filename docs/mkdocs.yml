@@ -63,22 +63,11 @@ plugins:
 
 nav:
   - Главная: index.md
-  - Быстрый старт: quick-start.md
-  - Конфигурация:
-    - Обзор: configuration.md
-    - YAML: configuration/yaml.md
-    - Окружение: configuration/environment.md
-    - Основные параметры: configuration/basic.md
-  - Развертывание:
-    - Docker: deployment/docker.md
-    - Systemd: deployment/systemd.md
-  - Интеграция:
-    - AlertManager: integration/alertmanager.md
-    - Prometheus: integration/prometheus.md
-    - Hook: integration/hook.md
-  - API: api.md
-  - TLS: tls.md
-  - Примеры: examples.md
+  - Быстрый старт: quick-start.ru.md
+  - Конфигурация: configuration.ru.md
+  - Развертывание: deployment.ru.md
+  - Интеграция: integration.ru.md
+  - API: api.ru.md
 
 # Расширения Markdown
 markdown_extensions:

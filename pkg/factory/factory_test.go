@@ -7,6 +7,7 @@ import (
 )
 
 func TestNewFactory(t *testing.T) {
+	t.Parallel()
 	mqttConfig := adapters.MQTTConfigAdapter{Host: "localhost", Port: 1883}
 	prometheusConfig := adapters.PrometheusConfigAdapter{Listen: "localhost:8100", Path: "/metrics", TopicPattern: "msh/#", LogAllMessages: false}
 	alertConfig := adapters.AlertManagerConfigAdapter{Listen: "localhost:8100", Path: "/alerts"}
@@ -22,6 +23,7 @@ func TestNewFactory(t *testing.T) {
 }
 
 func TestNewDefaultFactory(t *testing.T) {
+	t.Parallel()
 	factory := NewDefaultFactory()
 	if factory == nil {
 		t.Fatal("Expected factory to be created")
@@ -32,6 +34,7 @@ func TestNewDefaultFactory(t *testing.T) {
 }
 
 func TestCreateMetricsCollector(t *testing.T) {
+	t.Parallel()
 	factory := NewDefaultFactory()
 	collector := factory.CreateMetricsCollector()
 	if collector == nil {
@@ -40,6 +43,7 @@ func TestCreateMetricsCollector(t *testing.T) {
 }
 
 func TestCreateAlertSender(t *testing.T) {
+	t.Parallel()
 	factory := NewDefaultFactory()
 	alerter := factory.CreateAlertSender()
 	if alerter == nil {
@@ -48,6 +52,7 @@ func TestCreateAlertSender(t *testing.T) {
 }
 
 func TestCreateMessageProcessor(t *testing.T) {
+	t.Parallel()
 	factory := NewDefaultFactory()
 	processor := factory.CreateMessageProcessor()
 	if processor == nil {
@@ -56,6 +61,7 @@ func TestCreateMessageProcessor(t *testing.T) {
 }
 
 func TestCreateMQTTClient(t *testing.T) {
+	t.Parallel()
 	mqttConfig := adapters.MQTTConfigAdapter{Host: "localhost", Port: 1883}
 	prometheusConfig := adapters.PrometheusConfigAdapter{Listen: "localhost:8100", Path: "/metrics", TopicPattern: "msh/#", LogAllMessages: false}
 	alertConfig := adapters.AlertManagerConfigAdapter{Listen: "localhost:8100", Path: "/alerts"}
@@ -70,6 +76,7 @@ func TestCreateMQTTClient(t *testing.T) {
 }
 
 func TestCreateHTTPServer(t *testing.T) {
+	t.Parallel()
 	mqttConfig := adapters.MQTTConfigAdapter{Host: "localhost", Port: 1883}
 	prometheusConfig := adapters.PrometheusConfigAdapter{Listen: "localhost:8100", Path: "/metrics", TopicPattern: "msh/#", LogAllMessages: false}
 	alertConfig := adapters.AlertManagerConfigAdapter{Listen: "localhost:8100", Path: "/alerts"}

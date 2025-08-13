@@ -12,6 +12,7 @@ import (
 )
 
 func TestTimeoutMiddleware(t *testing.T) {
+	t.Parallel()
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		time.Sleep(100 * time.Millisecond)
 		w.WriteHeader(http.StatusOK)
@@ -29,6 +30,7 @@ func TestTimeoutMiddleware(t *testing.T) {
 }
 
 func TestRecoveryMiddleware(t *testing.T) {
+	t.Parallel()
 	logger := zerolog.Nop()
 
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -48,6 +50,7 @@ func TestRecoveryMiddleware(t *testing.T) {
 }
 
 func TestValidateJSONMiddleware(t *testing.T) {
+	t.Parallel()
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	})
@@ -75,6 +78,7 @@ func TestValidateJSONMiddleware(t *testing.T) {
 }
 
 func TestChainMiddleware(t *testing.T) {
+	t.Parallel()
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("OK"))

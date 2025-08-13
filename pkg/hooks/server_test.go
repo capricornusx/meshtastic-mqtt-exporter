@@ -13,6 +13,7 @@ import (
 )
 
 func TestPrometheusHookConfig(t *testing.T) {
+	t.Parallel()
 	// Test hook creation with configuration
 	config := MeshtasticHookConfig{
 		ServerAddr:   ":9001",
@@ -26,6 +27,7 @@ func TestPrometheusHookConfig(t *testing.T) {
 }
 
 func TestStartServerDisabled(t *testing.T) {
+	t.Parallel()
 	config := MeshtasticHookConfig{
 		ServerAddr: "", // Disabled
 	}
@@ -38,6 +40,7 @@ func TestStartServerDisabled(t *testing.T) {
 }
 
 func TestStartPeriodicStateSave(t *testing.T) {
+	t.Parallel()
 	// Test that function doesn't panic
 	config := MeshtasticHookConfig{
 		ServerAddr: "",
@@ -50,6 +53,7 @@ func TestStartPeriodicStateSave(t *testing.T) {
 }
 
 func TestLoadStateEnabled(t *testing.T) {
+	t.Parallel()
 	config := MeshtasticHookConfig{
 		ServerAddr: "",
 	}
@@ -61,6 +65,7 @@ func TestLoadStateEnabled(t *testing.T) {
 }
 
 func TestSaveStateDisabled(t *testing.T) {
+	t.Parallel()
 	config := MeshtasticHookConfig{
 		ServerAddr: "",
 	}
@@ -72,6 +77,7 @@ func TestSaveStateDisabled(t *testing.T) {
 }
 
 func TestMeshtasticHookInit(t *testing.T) {
+	t.Parallel()
 	f := factory.NewDefaultFactory()
 	hook := NewMeshtasticHookSimple(f)
 
@@ -81,6 +87,7 @@ func TestMeshtasticHookInit(t *testing.T) {
 }
 
 func TestMeshtasticHookStartServers(t *testing.T) {
+	t.Parallel()
 	config := MeshtasticHookConfig{
 		ServerAddr:   "",    // Disable prometheus
 		EnableHealth: false, // Disable health
@@ -96,6 +103,7 @@ func TestMeshtasticHookStartServers(t *testing.T) {
 }
 
 func TestHealthEndpointIntegration(t *testing.T) {
+	t.Parallel()
 	config := MeshtasticHookConfig{
 		ServerAddr:   "", // Disable to avoid conflicts
 		EnableHealth: false,
@@ -116,6 +124,7 @@ func TestHealthEndpointIntegration(t *testing.T) {
 }
 
 func TestServerShutdown(t *testing.T) {
+	t.Parallel()
 	// Test MeshtasticHook with disabled prometheus to avoid port conflicts
 	config := MeshtasticHookConfig{
 		ServerAddr:   "", // Will be disabled

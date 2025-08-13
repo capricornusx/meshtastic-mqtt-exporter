@@ -15,6 +15,7 @@ import (
 )
 
 func TestNewMeshtasticHook(t *testing.T) {
+	t.Parallel()
 	f := factory.NewDefaultFactory() // Mock factory
 	hook := NewMeshtasticHook(MeshtasticHookConfig{
 		ServerAddr:  ":9090",
@@ -27,6 +28,7 @@ func TestNewMeshtasticHook(t *testing.T) {
 }
 
 func TestNewMeshtasticHookSimple(t *testing.T) {
+	t.Parallel()
 	f := factory.NewDefaultFactory() // Mock factory
 	hook := NewMeshtasticHook(MeshtasticHookConfig{
 		ServerAddr:   "", // Disabled for test
@@ -39,12 +41,14 @@ func TestNewMeshtasticHookSimple(t *testing.T) {
 }
 
 func TestMeshtasticHook_ID(t *testing.T) {
+	t.Parallel()
 	f := factory.NewDefaultFactory() // Mock factory
 	hook := NewMeshtasticHook(MeshtasticHookConfig{ServerAddr: ""}, f)
 	assert.Equal(t, "meshtastic", hook.ID())
 }
 
 func TestMeshtasticHook_Provides(t *testing.T) {
+	t.Parallel()
 	f := factory.NewDefaultFactory() // Mock factory
 	hook := NewMeshtasticHook(MeshtasticHookConfig{ServerAddr: ""}, f)
 
@@ -55,6 +59,7 @@ func TestMeshtasticHook_Provides(t *testing.T) {
 }
 
 func TestMeshtasticHook_OnPublish(t *testing.T) {
+	t.Parallel()
 	f := factory.NewDefaultFactory() // Mock factory
 	hook := NewMeshtasticHook(MeshtasticHookConfig{ServerAddr: ""}, f)
 
@@ -93,6 +98,7 @@ func TestMeshtasticHook_OnPublish(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			var payload []byte
 			if tt.payload != nil {
 				payload, _ = json.Marshal(tt.payload)
@@ -113,6 +119,7 @@ func TestMeshtasticHook_OnPublish(t *testing.T) {
 }
 
 func TestMeshtasticHook_Init(t *testing.T) {
+	t.Parallel()
 	f := factory.NewDefaultFactory() // Mock factory
 	hook := NewMeshtasticHook(MeshtasticHookConfig{ServerAddr: ""}, f)
 	err := hook.Init(nil)
@@ -120,12 +127,14 @@ func TestMeshtasticHook_Init(t *testing.T) {
 }
 
 func TestMeshtasticHook_Init_StateFileValidation(t *testing.T) {
+	t.Parallel()
 	// Тест с nil factory
 	hook := NewMeshtasticHook(MeshtasticHookConfig{ServerAddr: ""}, nil)
 	assert.Nil(t, hook) // NewMeshtasticHook возвращает nil при nil factory
 }
 
 func TestOnConnect(t *testing.T) {
+	t.Parallel()
 	f := factory.NewDefaultFactory() // Mock factory
 	hook := NewMeshtasticHook(MeshtasticHookConfig{ServerAddr: ""}, f)
 
@@ -135,6 +144,7 @@ func TestOnConnect(t *testing.T) {
 }
 
 func TestOnDisconnect(t *testing.T) {
+	t.Parallel()
 	f := factory.NewDefaultFactory() // Mock factory
 	hook := NewMeshtasticHook(MeshtasticHookConfig{ServerAddr: ""}, f)
 
@@ -145,6 +155,7 @@ func TestOnDisconnect(t *testing.T) {
 }
 
 func TestMeshtasticHook_Shutdown(t *testing.T) {
+	t.Parallel()
 	f := factory.NewDefaultFactory() // Mock factory
 	hook := NewMeshtasticHook(MeshtasticHookConfig{ServerAddr: ""}, f)
 	err := hook.Shutdown(context.TODO())

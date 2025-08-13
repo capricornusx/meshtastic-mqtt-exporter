@@ -16,6 +16,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"meshtastic-exporter/pkg/domain"
 	"meshtastic-exporter/pkg/factory"
 	"meshtastic-exporter/pkg/hooks"
 )
@@ -136,20 +137,20 @@ func TestE2E_MQTTToPrometheusMetrics(t *testing.T) {
 	metrics := string(body)
 
 	// Проверить наличие метрик
-	assert.Contains(t, metrics, "meshtastic_battery_level_percent")
-	assert.Contains(t, metrics, "meshtastic_temperature_celsius")
-	assert.Contains(t, metrics, "meshtastic_humidity_percent")
-	assert.Contains(t, metrics, "meshtastic_pressure_hpa")
-	assert.Contains(t, metrics, "meshtastic_voltage_volts")
-	assert.Contains(t, metrics, "meshtastic_messages_total")
-	assert.Contains(t, metrics, "meshtastic_node_info")
-	assert.Contains(t, metrics, "meshtastic_node_last_seen_timestamp")
+	assert.Contains(t, metrics, domain.MetricBatteryLevel)
+	assert.Contains(t, metrics, domain.MetricTemperature)
+	assert.Contains(t, metrics, domain.MetricHumidity)
+	assert.Contains(t, metrics, domain.MetricPressure)
+	assert.Contains(t, metrics, domain.MetricVoltage)
+	assert.Contains(t, metrics, domain.MetricMessagesTotal)
+	assert.Contains(t, metrics, domain.MetricNodeInfo)
+	assert.Contains(t, metrics, domain.MetricNodeLastSeen)
 
 	// Проверить конкретные значения
-	assert.Contains(t, metrics, `meshtastic_battery_level_percent{node_id="123456789"} 85.5`)
-	assert.Contains(t, metrics, `meshtastic_temperature_celsius{node_id="123456789"} 23.4`)
-	assert.Contains(t, metrics, `meshtastic_messages_total{from_node="123456789",type="telemetry"} 1`)
-	assert.Contains(t, metrics, `meshtastic_messages_total{from_node="123456789",type="nodeinfo"} 1`)
+	assert.Contains(t, metrics, fmt.Sprintf(`%s{node_id="123456789"} 85.5`, domain.MetricBatteryLevel))
+	assert.Contains(t, metrics, fmt.Sprintf(`%s{node_id="123456789"} 23.4`, domain.MetricTemperature))
+	assert.Contains(t, metrics, fmt.Sprintf(`%s{from_node="123456789",type="%s"} 1`, domain.MetricMessagesTotal, domain.MessageTypeTelemetry))
+	assert.Contains(t, metrics, fmt.Sprintf(`%s{from_node="123456789",type="%s"} 1`, domain.MetricMessagesTotal, domain.MessageTypeNodeInfo))
 	// Проверить, что роль преобразована в читаемое имя (1 = "client_mute")
 	assert.Contains(t, metrics, `role="client_mute"`)
 	assert.NotContains(t, metrics, `role="1"`)

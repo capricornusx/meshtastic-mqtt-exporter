@@ -12,6 +12,7 @@ import (
 )
 
 func TestNewHTTPServer(t *testing.T) {
+	t.Parallel()
 	collector := &mocks.MockMetricsCollector{}
 	alerter := &mocks.MockAlertSender{}
 
@@ -21,6 +22,7 @@ func TestNewHTTPServer(t *testing.T) {
 }
 
 func TestHTTPServer_Start(t *testing.T) {
+	t.Parallel()
 	collector := &mocks.MockMetricsCollector{}
 	alerter := &mocks.MockAlertSender{}
 
@@ -35,6 +37,7 @@ func TestHTTPServer_Start(t *testing.T) {
 }
 
 func TestHTTPServer_Shutdown(t *testing.T) {
+	t.Parallel()
 	collector := &mocks.MockMetricsCollector{}
 	alerter := &mocks.MockAlertSender{}
 
@@ -49,6 +52,7 @@ func TestHTTPServer_Shutdown(t *testing.T) {
 }
 
 func TestHTTPServer_ShutdownWithoutStart(t *testing.T) {
+	t.Parallel()
 	collector := &mocks.MockMetricsCollector{}
 	alerter := &mocks.MockAlertSender{}
 

@@ -51,7 +51,12 @@ func (f *Factory) CreateAlertSender() domain.AlertSender {
 
 func (f *Factory) CreateAlertSenderWithMQTT(mqttServer interface{}) domain.AlertSender {
 	if server, ok := mqttServer.(*mqtt.Server); ok {
-		return infrastructure.NewLoRaAlertSender(server, infrastructure.LoRaConfig{})
+		config := infrastructure.LoRaConfig{}
+		if f.config != nil {
+			alertConfig := f.config.GetAlertManagerConfig()
+			config.MQTTDownlinkTopic = alertConfig.GetMQTTTopic()
+		}
+		return infrastructure.NewLoRaAlertSender(server, config)
 	}
 	return f.CreateAlertSender()
 }

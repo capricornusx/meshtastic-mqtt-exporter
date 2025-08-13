@@ -5,6 +5,7 @@ import (
 )
 
 func TestGetVersion(t *testing.T) {
+	t.Parallel()
 	version := GetVersion()
 	if version == "" {
 		t.Error("Version should not be empty")
@@ -12,6 +13,7 @@ func TestGetVersion(t *testing.T) {
 }
 
 func TestGetBuildInfo(t *testing.T) {
+	t.Parallel()
 	version, gitCommit, buildDate := GetBuildInfo()
 
 	if version == "" {

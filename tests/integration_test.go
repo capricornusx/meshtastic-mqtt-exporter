@@ -13,6 +13,7 @@ import (
 )
 
 func TestIntegrationHookMode(t *testing.T) {
+	t.Parallel()
 	if testing.Short() {
 		t.Skip("skipping integration test in short mode")
 	}
@@ -27,6 +28,7 @@ func TestIntegrationHookMode(t *testing.T) {
 }
 
 func TestHealthEndpoint(t *testing.T) {
+	t.Parallel()
 	if testing.Short() {
 		t.Skip("skipping integration test in short mode")
 	}
@@ -43,6 +45,7 @@ func TestHealthEndpoint(t *testing.T) {
 }
 
 func TestAlertManagerWebhook(t *testing.T) {
+	t.Parallel()
 	if testing.Short() {
 		t.Skip("skipping integration test in short mode")
 	}

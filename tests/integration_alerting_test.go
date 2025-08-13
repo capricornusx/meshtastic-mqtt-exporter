@@ -18,6 +18,7 @@ import (
 )
 
 func TestAlertingIntegration(t *testing.T) {
+	t.Parallel()
 	// Create MQTT server
 	server := mqtt.New(&mqtt.Options{InlineClient: true})
 	require.NoError(t, server.AddHook(new(auth.AllowHook), nil))
@@ -60,6 +61,7 @@ func TestAlertingIntegration(t *testing.T) {
 }
 
 func TestMQTTMessageFlow(t *testing.T) {
+	t.Parallel()
 	server := mqtt.New(&mqtt.Options{InlineClient: true})
 	require.NoError(t, server.AddHook(new(auth.AllowHook), nil))
 
@@ -100,6 +102,7 @@ func TestMQTTMessageFlow(t *testing.T) {
 }
 
 func TestHealthEndpointIntegration(t *testing.T) {
+	t.Parallel()
 	f := factory.NewDefaultFactory()
 	hook := hooks.NewMeshtasticHook(hooks.MeshtasticHookConfig{
 		ServerAddr:   ":0",

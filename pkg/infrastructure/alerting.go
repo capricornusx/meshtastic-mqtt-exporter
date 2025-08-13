@@ -13,22 +13,33 @@ import (
 )
 
 const (
-	defaultChannel = "LongFast"
-	defaultMode    = "broadcast"
+	defaultChannel           = "LongFast"
+	defaultMode              = "broadcast"
+	defaultMessageType       = "sendtext"
+	defaultMQTTDownlinkTopic = "msh/MY_433/2/json/mqtt/"
 )
 
+// GetDefaultMQTTDownlinkTopic возвращает дефолтный MQTT топик для тестов
+func GetDefaultMQTTDownlinkTopic() string {
+	return defaultMQTTDownlinkTopic
+}
+
 type LoRaAlertSender struct {
-	mqttServer     *mqtt.Server
-	defaultChannel string
-	defaultMode    string
-	targetNodes    []string
-	logger         zerolog.Logger
+	mqttServer        *mqtt.Server
+	defaultChannel    string
+	defaultMode       string
+	targetNodes       []uint32
+	fromNodeID        uint32
+	mqttDownlinkTopic string
+	logger            zerolog.Logger
 }
 
 type LoRaConfig struct {
-	DefaultChannel string
-	DefaultMode    string
-	TargetNodes    []string
+	DefaultChannel    string
+	DefaultMode       string
+	TargetNodes       []uint32
+	FromNodeID        uint32
+	MQTTDownlinkTopic string
 }
 
 func NewLoRaAlertSender(server *mqtt.Server, config LoRaConfig) *LoRaAlertSender {
@@ -38,22 +49,25 @@ func NewLoRaAlertSender(server *mqtt.Server, config LoRaConfig) *LoRaAlertSender
 	if config.DefaultMode == "" {
 		config.DefaultMode = defaultMode
 	}
+	if config.FromNodeID == 0 {
+		config.FromNodeID = uint32(domain.LoRaBroadcastNodeID)
+	}
+	if config.MQTTDownlinkTopic == "" {
+		config.MQTTDownlinkTopic = defaultMQTTDownlinkTopic
+	}
 
 	return &LoRaAlertSender{
-		mqttServer:     server,
-		defaultChannel: config.DefaultChannel,
-		defaultMode:    config.DefaultMode,
-		targetNodes:    config.TargetNodes,
-		logger:         logger.ComponentLogger("lora-alerter"),
+		mqttServer:        server,
+		defaultChannel:    config.DefaultChannel,
+		defaultMode:       config.DefaultMode,
+		targetNodes:       config.TargetNodes,
+		fromNodeID:        config.FromNodeID,
+		mqttDownlinkTopic: config.MQTTDownlinkTopic,
+		logger:            logger.ComponentLogger("lora-alerter"),
 	}
 }
 
 func (s *LoRaAlertSender) SendAlert(ctx context.Context, alert domain.Alert) error {
-	channel := alert.Channel
-	if channel == "" {
-		channel = s.defaultChannel
-	}
-
 	mode := alert.Mode
 	if mode == "" {
 		mode = s.defaultMode
@@ -65,34 +79,34 @@ func (s *LoRaAlertSender) SendAlert(ctx context.Context, alert domain.Alert) err
 	}
 
 	if mode == defaultMode {
-		return s.sendBroadcast(ctx, alert.Message, channel)
+		return s.sendBroadcast(ctx, alert.Message)
 	}
 
-	return s.sendDirect(ctx, alert.Message, channel, targets)
+	return s.sendDirect(ctx, alert.Message, targets)
 }
 
-func (s *LoRaAlertSender) sendBroadcast(_ context.Context, message, channel string) error {
-	topic := fmt.Sprintf("msh/2/c/%s/!broadcast", channel)
+func (s *LoRaAlertSender) sendBroadcast(_ context.Context, message string) error {
 	payload := map[string]interface{}{
-		"type":    "text", //TODO возможно это поле лишнее.
-		"payload": fmt.Sprintf("[ALERT] %s", message),
-		"from":    uint32(domain.LoRaBroadcastNodeID), //TODO возможно это поле лишнее.
+		"type":    defaultMessageType,
+		"payload": message,
+		"from":    s.fromNodeID,
 		"to":      uint32(domain.LoRaBroadcastNodeID),
 	}
 
-	return s.publishMessage(topic, payload)
+	return s.publishMessage(s.mqttDownlinkTopic, payload)
 }
 
-func (s *LoRaAlertSender) sendDirect(_ context.Context, message, channel string, targets []string) error {
+func (s *LoRaAlertSender) sendDirect(_ context.Context, message string, targets []uint32) error {
 	for _, nodeID := range targets {
-		topic := fmt.Sprintf("msh/2/c/%s/!%s", channel, nodeID)
 		payload := map[string]interface{}{
-			"type":    "text",
-			"payload": fmt.Sprintf("[ALERT] %s", message),
+			"type":    defaultMessageType,
+			"payload": message,
+			"from":    s.fromNodeID,
+			"to":      nodeID,
 		}
 
-		if err := s.publishMessage(topic, payload); err != nil {
-			s.logger.Error().Err(err).Str("node", nodeID).Msg("failed to send direct alert")
+		if err := s.publishMessage(s.mqttDownlinkTopic, payload); err != nil {
+			s.logger.Error().Err(err).Uint32("node", nodeID).Msg("failed to send direct alert")
 			return err
 		}
 	}
@@ -109,7 +123,7 @@ func (s *LoRaAlertSender) publishMessage(topic string, payload map[string]interf
 		if err := s.mqttServer.Publish(topic, data, false, 0); err != nil {
 			return fmt.Errorf("publish to topic %s: %w", topic, err)
 		}
-		s.logger.Info().Str("topic", topic).Msg("alert sent to LoRa")
+		s.logger.Info().Str("topic", topic).Msg("🔥 alert sent to MQTT->LoRa")
 	}
 
 	return nil

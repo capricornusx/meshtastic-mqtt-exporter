@@ -4,10 +4,14 @@ import (
 	"context"
 	"testing"
 
+	"fmt"
+
+	"meshtastic-exporter/pkg/domain"
 	"meshtastic-exporter/pkg/mocks"
 )
 
 func TestMeshtasticProcessor_LogAllMessages_WithPattern(t *testing.T) {
+	t.Parallel()
 	mockCollector := &mocks.MockMetricsCollector{}
 	mockAlerter := &mocks.MockAlertSender{}
 
@@ -42,7 +46,8 @@ func TestMeshtasticProcessor_LogAllMessages_WithPattern(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			payload := []byte(`{"from": 123456789, "type": "telemetry", "payload": {"battery_level": 85.5}}`)
+			t.Parallel()
+			payload := []byte(fmt.Sprintf(`{"from": 123456789, "type": "%s", "payload": {"battery_level": 85.5}}`, domain.MessageTypeTelemetry))
 
 			err := processor.ProcessMessage(context.Background(), tt.topic, payload)
 
@@ -59,13 +64,14 @@ func TestMeshtasticProcessor_LogAllMessages_WithPattern(t *testing.T) {
 }
 
 func TestMeshtasticProcessor_LogAllMessages_EmptyPattern(t *testing.T) {
+	t.Parallel()
 	mockCollector := &mocks.MockMetricsCollector{}
 	mockAlerter := &mocks.MockAlertSender{}
 
 	// Процессор с включенным логированием и пустым паттерном (логирует все)
 	processor := NewMeshtasticProcessor(mockCollector, mockAlerter, true, "")
 
-	payload := []byte(`{"from": 123456789, "type": "telemetry", "payload": {"battery_level": 85.5}}`)
+	payload := []byte(fmt.Sprintf(`{"from": 123456789, "type": "%s", "payload": {"battery_level": 85.5}}`, domain.MessageTypeTelemetry))
 
 	err := processor.ProcessMessage(context.Background(), "any/topic/here", payload)
 
@@ -75,13 +81,14 @@ func TestMeshtasticProcessor_LogAllMessages_EmptyPattern(t *testing.T) {
 }
 
 func TestMeshtasticProcessor_LogAllMessages_Disabled(t *testing.T) {
+	t.Parallel()
 	mockCollector := &mocks.MockMetricsCollector{}
 	mockAlerter := &mocks.MockAlertSender{}
 
 	// Процессор с выключенным логированием
 	processor := NewMeshtasticProcessor(mockCollector, mockAlerter, false, "msh/#")
 
-	payload := []byte(`{"from": 123456789, "type": "telemetry", "payload": {"battery_level": 85.5}}`)
+	payload := []byte(fmt.Sprintf(`{"from": 123456789, "type": "%s", "payload": {"battery_level": 85.5}}`, domain.MessageTypeTelemetry))
 
 	err := processor.ProcessMessage(context.Background(), "msh/node123/2/json/telemetry", payload)
 

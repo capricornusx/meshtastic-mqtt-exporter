@@ -43,7 +43,7 @@ func setupMQTTServer(cfg domain.Config, logger zerolog.Logger) *mqtt.Server {
 	f := factory.NewFactory(cfg)
 	mqttConfig := cfg.GetMQTTConfig()
 	server := mqtt.New(&mqtt.Options{
-		InlineClient: false,
+		InlineClient: true,
 		Capabilities: &mqtt.Capabilities{
 			MaximumInflight:              safeUint16(mqttConfig.GetMaxInflight()),
 			MaximumClientWritesPending:   safeInt32(mqttConfig.GetMaxQueued()),
@@ -74,7 +74,7 @@ func addMeshtasticHook(server *mqtt.Server, cfg domain.Config, f *factory.Factor
 	alertConfig := cfg.GetAlertManagerConfig()
 	hookConfig.AlertPath = alertConfig.GetPath()
 
-	hook := hooks.NewMeshtasticHook(hookConfig, f)
+	hook := hooks.NewMeshtasticHookWithMQTT(hookConfig, f, server)
 	if err := server.AddHook(hook, nil); err != nil {
 		logger.Fatal().Err(err).Msg("failed to add meshtastic hook")
 	}

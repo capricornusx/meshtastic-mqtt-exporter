@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"meshtastic-exporter/pkg/domain"
 	"meshtastic-exporter/pkg/factory"
 	"meshtastic-exporter/pkg/hooks"
 )
@@ -105,7 +106,7 @@ func hasNodeMetric(registry *prometheus.Registry, nodeID int) bool {
 
 	nodeIDStr := fmt.Sprintf("%d", nodeID)
 	for _, mf := range metricFamilies {
-		if mf.GetName() == "meshtastic_battery_level_percent" {
+		if mf.GetName() == domain.MetricBatteryLevel {
 			for _, metric := range mf.GetMetric() {
 				for _, label := range metric.GetLabel() {
 					if label.GetName() == "node_id" && label.GetValue() == nodeIDStr {

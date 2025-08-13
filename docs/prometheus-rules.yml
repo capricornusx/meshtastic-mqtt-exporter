@@ -1,0 +1,55 @@
+# Prometheus rules для мониторинга недоступных датчиков
+groups:
+  - name: meshtastic_sensor_availability
+    rules:
+      # Датчик температуры недоступен более 30 минут
+      - alert: MeshtasticTemperatureSensorDown
+        expr: |
+          (time() - meshtastic_node_last_seen_timestamp) > 1800
+          and
+          meshtastic_temperature_celsius offset 30m
+        for: 5m
+        labels:
+          severity: warning
+          component: sensor
+          sensor_type: temperature
+        annotations:
+          summary: "Датчик температуры недоступен"
+          description: "Узел {{ $labels.node_id }} не передавал данные температуры более 30 минут"
+
+      # Датчик влажности недоступен
+      - alert: MeshtasticHumiditySensorDown
+        expr: |
+          (time() - meshtastic_node_last_seen_timestamp) > 1800
+          and
+          meshtastic_humidity_percent offset 30m
+        for: 5m
+        labels:
+          severity: warning
+          component: sensor
+          sensor_type: humidity
+        annotations:
+          summary: "Датчик влажности недоступен"
+          description: "Узел {{ $labels.node_id }} не передавал данные влажности более 30 минут"
+
+      # Узел полностью недоступен
+      - alert: MeshtasticNodeDown
+        expr: (time() - meshtastic_node_last_seen_timestamp) > 3600
+        for: 10m
+        labels:
+          severity: critical
+          component: node
+        annotations:
+          summary: "Meshtastic узел недоступен"
+          description: "Узел {{ $labels.node_id }} не отвечает более часа"
+
+      # Батарея разряжена
+      - alert: MeshtasticLowBattery
+        expr: meshtastic_battery_level_percent < 20
+        for: 5m
+        labels:
+          severity: warning
+          component: power
+        annotations:
+          summary: "Низкий заряд батареи"
+          description: "Узел {{ $labels.node_id }} имеет заряд батареи {{ $value }}%"

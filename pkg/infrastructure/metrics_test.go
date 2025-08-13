@@ -12,6 +12,7 @@ import (
 )
 
 func TestPrometheusCollector_CollectTelemetry(t *testing.T) {
+	t.Parallel()
 	collector := NewPrometheusCollector()
 
 	data := domain.TelemetryData{
@@ -38,6 +39,7 @@ func TestPrometheusCollector_CollectTelemetry(t *testing.T) {
 }
 
 func TestPrometheusCollector_CollectNodeInfo(t *testing.T) {
+	t.Parallel()
 	collector := NewPrometheusCollector()
 
 	info := domain.NodeInfo{
@@ -59,6 +61,7 @@ func TestPrometheusCollector_CollectNodeInfo(t *testing.T) {
 }
 
 func TestPrometheusCollector_GetRegistry(t *testing.T) {
+	t.Parallel()
 	collector := NewPrometheusCollector()
 
 	registry := collector.GetRegistry()
@@ -68,6 +71,7 @@ func TestPrometheusCollector_GetRegistry(t *testing.T) {
 }
 
 func TestPrometheusCollector_CollectTelemetry_PartialData(t *testing.T) {
+	t.Parallel()
 	collector := NewPrometheusCollector()
 
 	// Data with only battery_level

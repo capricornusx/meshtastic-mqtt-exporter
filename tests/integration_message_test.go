@@ -13,6 +13,7 @@ import (
 )
 
 func TestIntegration_MessageProcessing(t *testing.T) {
+	t.Parallel()
 	if testing.Short() {
 		t.Skip("Skipping integration test in short mode")
 	}
@@ -49,6 +50,7 @@ func TestIntegration_MessageProcessing(t *testing.T) {
 }
 
 func TestIntegration_NodeInfoProcessing(t *testing.T) {
+	t.Parallel()
 	if testing.Short() {
 		t.Skip("Skipping integration test in short mode")
 	}
@@ -72,10 +74,8 @@ func TestIntegration_NodeInfoProcessing(t *testing.T) {
 		}
 	}`)
 
-	// Act
 	err := processor.ProcessMessage(ctx, "msh/test/nodeinfo", nodeInfoPayload)
 
-	// Assert
 	require.NoError(t, err)
 
 	// Check that metrics are collected
@@ -84,6 +84,7 @@ func TestIntegration_NodeInfoProcessing(t *testing.T) {
 }
 
 func TestIntegration_InvalidMessages(t *testing.T) {
+	t.Parallel()
 	if testing.Short() {
 		t.Skip("Skipping integration test in short mode")
 	}
@@ -93,7 +94,7 @@ func TestIntegration_InvalidMessages(t *testing.T) {
 	processor := application.NewMeshtasticProcessor(collector, alerter, false, "")
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
+	t.Cleanup(cancel)
 
 	testCases := []struct {
 		name    string
@@ -119,10 +120,8 @@ func TestIntegration_InvalidMessages(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			// Act
+			t.Parallel()
 			err := processor.ProcessMessage(ctx, "msh/test", tc.payload)
-
-			// Assert - invalid messages should return validation errors
 			if tc.name == "unknown message type" {
 				// Unknown message type is ignored
 				assert.NoError(t, err)
@@ -135,6 +134,7 @@ func TestIntegration_InvalidMessages(t *testing.T) {
 }
 
 func TestIntegration_ContextTimeout(t *testing.T) {
+	t.Parallel()
 	if testing.Short() {
 		t.Skip("Skipping integration test in short mode")
 	}
@@ -156,9 +156,7 @@ func TestIntegration_ContextTimeout(t *testing.T) {
 		"payload": {"battery_level": 85.5}
 	}`)
 
-	// Act
 	err := processor.ProcessMessage(ctx, "msh/test", payload)
 
-	// Assert - should process without errors even with expired context
 	assert.NoError(t, err)
 }

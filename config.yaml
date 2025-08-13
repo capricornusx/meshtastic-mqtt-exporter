@@ -41,22 +41,18 @@ hook:
     state_file: "meshtastic_state.json"  # Файл для сохранения состояния метрик
   alertmanager:
     path: "/alerts/webhook"
-    topics:
-      broadcast: "msh/2/c/%s/!broadcast"
-      direct: "msh/2/c/%s/!%s"
+    # MQTT downlink topic pattern: msh/{region}/{hop_limit}/json/mqtt/
+    # Регионы: US (915MHz), EU_433, EU_868, MY_433, etc.
+    mqtt_topic: "msh/MY_433/2/json/mqtt/"
     routing:
-      default: # for disable fallback set null or {}
-        channel: "LongFast"
+      default: # for disable set null or {}
         mode: "broadcast"
       critical:
-        channel: "ShortFast"    # Fast delivery for critical alerts
         mode: "broadcast"       # Send it to all nodes
       warning:
-        channel: "LongFast"     # Balanced range/speed
         mode: "direct"          # Send it to admins only
         target_nodes:
-          - "admin001"
-          - "monitor02"
+          - "4187143508"          # bd54
+          - "4187204132"          # aa24
       info:
-        channel: "LongSlow"     # Maximum range for info
         mode: "broadcast"       # Send it to all nodes

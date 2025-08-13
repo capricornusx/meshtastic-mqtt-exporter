@@ -16,7 +16,12 @@ import (
 	"meshtastic-exporter/pkg/validator"
 )
 
-const unknownValue = "unknown"
+const (
+	unknownValue           = "unknown"
+	powerMetricsType       = "power_metrics"
+	environmentMetricsType = "environment_metrics"
+	deviceMetricsType      = "device_metrics"
+)
 
 type MeshtasticProcessor struct {
 	collector      domain.MetricsCollector
@@ -37,12 +42,6 @@ func NewMeshtasticProcessor(collector domain.MetricsCollector, alerter domain.Al
 }
 
 func (p *MeshtasticProcessor) ProcessMessage(ctx context.Context, topic string, payload []byte) error {
-	p.logger.Debug().
-		Str("topic", topic).
-		Int("payload_size", len(payload)).
-		RawJSON("payload_preview", payload).
-		Msg("processing message")
-
 	p.logMessageIfEnabled(topic, payload)
 
 	if err := p.validateInput(topic, payload); err != nil {
@@ -74,6 +73,7 @@ func (p *MeshtasticProcessor) ProcessMessage(ctx context.Context, topic string, 
 
 func (p *MeshtasticProcessor) logMessageIfEnabled(topic string, payload []byte) {
 	if p.logAllMessages && validator.MatchesMQTTPattern(topic, p.topicPattern) {
+		//Int("payload_size", len(payload)).
 		p.logger.Debug().Str("topic", topic).RawJSON("payload", payload).Msg("received")
 	}
 }
@@ -96,10 +96,35 @@ func (p *MeshtasticProcessor) validateInput(topic string, payload []byte) error 
 }
 
 func (p *MeshtasticProcessor) parseMessage(payload []byte) (domain.MeshtasticMessage, error) {
-	var msg domain.MeshtasticMessage
-	if err := json.Unmarshal(payload, &msg); err != nil {
-		return msg, errors.NewProcessingError("json parsing failed", err)
+	var raw map[string]interface{}
+	if err := json.Unmarshal(payload, &raw); err != nil {
+		return domain.MeshtasticMessage{}, errors.NewProcessingError("json parsing failed", err)
 	}
+
+	msg := domain.MeshtasticMessage{
+		Type: p.getString(raw, "type"),
+	}
+
+	if from, ok := raw["from"].(float64); ok {
+		msg.From = uint32(from)
+	}
+	if rssi, ok := raw["rssi"].(float64); ok {
+		msg.RSSI = &rssi
+	}
+	if snr, ok := raw["snr"].(float64); ok {
+		msg.SNR = &snr
+	}
+
+	if msg.Type == "sendtext" {
+		if payloadStr, ok := raw["payload"].(string); ok {
+			msg.Payload = map[string]interface{}{"text": payloadStr}
+		}
+	} else {
+		if payloadObj, ok := raw["payload"].(map[string]interface{}); ok {
+			msg.Payload = payloadObj
+		}
+	}
+
 	return msg, nil
 }
 
@@ -123,8 +148,15 @@ func (p *MeshtasticProcessor) processMessageByType(msg domain.MeshtasticMessage,
 		//p.logger.Debug().Str("node_id", nodeID).Msg("processing telemetry")
 		return p.processTelemetry(nodeID, msg)
 	case domain.MessageTypeNodeInfo:
-		//p.logger.Debug().Str("node_id", nodeID).Msg("processing node info")
 		return p.processNodeInfo(nodeID, msg.Payload)
+	case domain.MessageTypeText:
+		return p.processTextMessage(nodeID, msg.Payload)
+	case domain.MessageTypePosition:
+		return p.processPosition(nodeID, msg.Payload)
+	case domain.MessageTypeWaypoint:
+		return p.processWaypoint(nodeID, msg.Payload)
+	case domain.MessageTypeNeighborInfo:
+		return p.processNeighborInfo(nodeID, msg.Payload)
 	default:
 		//p.logger.Debug().
 		//	Str("node_id", nodeID).
@@ -139,6 +171,9 @@ func (p *MeshtasticProcessor) processTelemetry(nodeID string, msg domain.Meshtas
 		NodeID:    nodeID,
 		Timestamp: time.Now(),
 	}
+
+	// Определяем тип телеметрии по наличию полей
+	data.Type = p.determineTelemetryType(msg.Payload)
 
 	p.extractTelemetryFields(&data, msg.Payload)
 	p.extractTopLevelFields(&data, msg)
@@ -174,6 +209,11 @@ func (p *MeshtasticProcessor) extractBasicFields(data *domain.TelemetryData, pay
 }
 
 func (p *MeshtasticProcessor) extractEnvironmentalFields(data *domain.TelemetryData, payload map[string]interface{}) {
+	p.extractEnvironmentMetrics(data, payload)
+	p.extractPowerMetrics(data, payload)
+}
+
+func (p *MeshtasticProcessor) extractEnvironmentMetrics(data *domain.TelemetryData, payload map[string]interface{}) {
 	if val, ok := payload["temperature"].(float64); ok {
 		truncated := truncateToTwoDecimals(val)
 		data.Temperature = &truncated
@@ -185,6 +225,41 @@ func (p *MeshtasticProcessor) extractEnvironmentalFields(data *domain.TelemetryD
 	if val, ok := payload["barometric_pressure"].(float64); ok {
 		truncated := truncateToTwoDecimals(val)
 		data.BarometricPressure = &truncated
+	}
+	if val, ok := payload["gas_resistance"].(float64); ok {
+		truncated := truncateToTwoDecimals(val)
+		data.GasResistance = &truncated
+	}
+	if val, ok := payload["iaq"].(float64); ok {
+		truncated := truncateToTwoDecimals(val)
+		data.IAQ = &truncated
+	}
+}
+
+func (p *MeshtasticProcessor) extractPowerMetrics(data *domain.TelemetryData, payload map[string]interface{}) {
+	if val, ok := payload["ch1_voltage"].(float64); ok {
+		truncated := truncateToTwoDecimals(val)
+		data.Ch1Voltage = &truncated
+	}
+	if val, ok := payload["ch1_current"].(float64); ok {
+		truncated := truncateToTwoDecimals(val)
+		data.Ch1Current = &truncated
+	}
+	if val, ok := payload["ch2_voltage"].(float64); ok {
+		truncated := truncateToTwoDecimals(val)
+		data.Ch2Voltage = &truncated
+	}
+	if val, ok := payload["ch2_current"].(float64); ok {
+		truncated := truncateToTwoDecimals(val)
+		data.Ch2Current = &truncated
+	}
+	if val, ok := payload["ch3_voltage"].(float64); ok {
+		truncated := truncateToTwoDecimals(val)
+		data.Ch3Voltage = &truncated
+	}
+	if val, ok := payload["ch3_current"].(float64); ok {
+		truncated := truncateToTwoDecimals(val)
+		data.Ch3Current = &truncated
 	}
 }
 
@@ -247,4 +322,49 @@ func roundToTwoDecimals(value float64) float64 {
 // truncateToTwoDecimals truncates to 2 decimal places, 40% faster than rounding
 func truncateToTwoDecimals(value float64) float64 {
 	return math.Trunc(value*100) / 100
+}
+
+func (p *MeshtasticProcessor) processTextMessage(nodeID string, _ map[string]interface{}) error {
+	p.collector.UpdateMessageCounter(nodeID, domain.MessageTypeText)
+	return nil
+}
+
+func (p *MeshtasticProcessor) processPosition(nodeID string, _ map[string]interface{}) error {
+	p.collector.UpdateMessageCounter(nodeID, domain.MessageTypePosition)
+	return nil
+}
+
+func (p *MeshtasticProcessor) processWaypoint(nodeID string, _ map[string]interface{}) error {
+	p.collector.UpdateMessageCounter(nodeID, domain.MessageTypeWaypoint)
+	return nil
+}
+
+func (p *MeshtasticProcessor) processNeighborInfo(nodeID string, _ map[string]interface{}) error {
+	p.collector.UpdateMessageCounter(nodeID, domain.MessageTypeNeighborInfo)
+	return nil
+}
+
+func (p *MeshtasticProcessor) determineTelemetryType(payload map[string]interface{}) string {
+	if _, ok := payload["temperature"]; ok {
+		return environmentMetricsType
+	}
+	if _, ok := payload["relative_humidity"]; ok {
+		return environmentMetricsType
+	}
+	if _, ok := payload["barometric_pressure"]; ok {
+		return environmentMetricsType
+	}
+	if _, ok := payload["ch1_voltage"]; ok {
+		return powerMetricsType
+	}
+	if _, ok := payload["ch1_current"]; ok {
+		return powerMetricsType
+	}
+	if _, ok := payload["battery_level"]; ok {
+		return deviceMetricsType
+	}
+	if _, ok := payload["voltage"]; ok {
+		return deviceMetricsType
+	}
+	return deviceMetricsType
 }

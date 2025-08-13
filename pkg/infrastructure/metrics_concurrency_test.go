@@ -13,6 +13,7 @@ import (
 )
 
 func TestPrometheusCollector_ConcurrentTelemetry(t *testing.T) {
+	t.Parallel()
 	collector := NewPrometheusCollector()
 
 	const numGoroutines = 50
@@ -46,6 +47,7 @@ func TestPrometheusCollector_ConcurrentTelemetry(t *testing.T) {
 }
 
 func TestPrometheusCollector_ConcurrentNodeInfo(t *testing.T) {
+	t.Parallel()
 	collector := NewPrometheusCollector()
 
 	const numNodes = 20
@@ -72,6 +74,7 @@ func TestPrometheusCollector_ConcurrentNodeInfo(t *testing.T) {
 }
 
 func TestPrometheusCollector_StateOperationsConcurrency(t *testing.T) {
+	t.Parallel()
 	collector := NewPrometheusCollector()
 
 	// Добавляем данные
@@ -109,6 +112,7 @@ func TestPrometheusCollector_StateOperationsConcurrency(t *testing.T) {
 }
 
 func TestPrometheusCollector_MemoryUsage(t *testing.T) {
+	t.Parallel()
 	collector := NewPrometheusCollector()
 
 	// Создаем много узлов с данными

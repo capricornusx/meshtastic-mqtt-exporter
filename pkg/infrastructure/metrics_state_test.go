@@ -13,6 +13,7 @@ import (
 )
 
 func TestPrometheusCollector_SaveAndLoadState(t *testing.T) {
+	t.Parallel()
 	collector := NewPrometheusCollector()
 	tempFile := "test_state.json"
 	defer os.Remove(tempFile)
@@ -88,6 +89,7 @@ func verifyRestoredMetrics(t *testing.T, metricFamilies []*dto.MetricFamily) {
 }
 
 func TestPrometheusCollector_LoadState_FileNotExists(t *testing.T) {
+	t.Parallel()
 	collector := NewPrometheusCollector()
 	err := collector.LoadState("non_existent_file.json")
 	if err != nil {
@@ -96,6 +98,7 @@ func TestPrometheusCollector_LoadState_FileNotExists(t *testing.T) {
 }
 
 func TestPrometheusCollector_SaveState_EmptyFilename(t *testing.T) {
+	t.Parallel()
 	collector := NewPrometheusCollector()
 	err := collector.SaveState("")
 	if err != nil {

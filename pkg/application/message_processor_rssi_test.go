@@ -11,6 +11,7 @@ import (
 )
 
 func TestMeshtasticProcessor_ProcessMessage_WithTopLevelRSSI(t *testing.T) {
+	t.Parallel()
 	mockCollector := &mocks.MockMetricsCollector{}
 	mockAlerter := &mocks.MockAlertSender{}
 	processor := NewMeshtasticProcessor(mockCollector, mockAlerter, false, "msh/#")
@@ -54,6 +55,7 @@ func TestMeshtasticProcessor_ProcessMessage_WithTopLevelRSSI(t *testing.T) {
 }
 
 func TestExtractTopLevelFields(t *testing.T) {
+	t.Parallel()
 	processor := NewMeshtasticProcessor(nil, nil, false, "msh/#")
 
 	rssi := -40.0

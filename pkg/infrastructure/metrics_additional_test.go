@@ -8,6 +8,7 @@ import (
 )
 
 func TestSetTelemetryMetrics(t *testing.T) {
+	t.Parallel()
 	collector := NewPrometheusCollector()
 
 	data := domain.TelemetryData{
@@ -54,6 +55,7 @@ func TestSetTelemetryMetrics(t *testing.T) {
 }
 
 func TestSetBasicMetrics(t *testing.T) {
+	t.Parallel()
 	collector := NewPrometheusCollector()
 
 	data := domain.TelemetryData{
@@ -85,6 +87,7 @@ func TestSetBasicMetrics(t *testing.T) {
 }
 
 func TestSetEnvironmentalMetrics(t *testing.T) {
+	t.Parallel()
 	collector := NewPrometheusCollector()
 
 	data := domain.TelemetryData{
@@ -116,6 +119,7 @@ func TestSetEnvironmentalMetrics(t *testing.T) {
 }
 
 func TestSetNetworkMetrics(t *testing.T) {
+	t.Parallel()
 	collector := NewPrometheusCollector()
 
 	data := domain.TelemetryData{

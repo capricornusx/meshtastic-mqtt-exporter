@@ -2,6 +2,8 @@ package config
 
 import (
 	"os"
+	"strconv"
+	"strings"
 	"time"
 
 	"gopkg.in/yaml.v3"
@@ -11,6 +13,11 @@ import (
 	"meshtastic-exporter/pkg/errors"
 	"meshtastic-exporter/pkg/logger"
 )
+
+type AlertRoute struct {
+	Mode        string   `yaml:"mode"`
+	TargetNodes []string `yaml:"target_nodes"`
+}
 
 type UnifiedConfig struct {
 	Logging struct {
@@ -62,7 +69,14 @@ type UnifiedConfig struct {
 			StateFile string `yaml:"state_file"`
 		} `yaml:"prometheus"`
 		AlertManager struct {
-			Path string `yaml:"path"`
+			Path      string `yaml:"path"`
+			MQTTTopic string `yaml:"mqtt_topic"`
+			Routing   struct {
+				Default  *AlertRoute `yaml:"default"`
+				Critical *AlertRoute `yaml:"critical"`
+				Warning  *AlertRoute `yaml:"warning"`
+				Info     *AlertRoute `yaml:"info"`
+			} `yaml:"routing"`
 		} `yaml:"alertmanager"`
 	} `yaml:"hook"`
 }
@@ -122,43 +136,19 @@ func chooseTLSVersion(config *UnifiedConfig) uint16 {
 func convertToAdapter(config *UnifiedConfig) (domain.Config, error) {
 	logger.SetLogLevel(config.Logging.Level)
 
-	metricsTTL, err := time.ParseDuration(config.Hook.Prometheus.MetricsTTL)
-	if err != nil {
-		metricsTTL = domain.DefaultMetricsTTL
-	}
+	mqttConfig := buildMQTTConfig(config)
+	prometheusConfig := buildPrometheusConfig(config)
+	alertManagerConfig := buildAlertManagerConfig(config)
 
-	keepAlive := domain.DefaultKeepAlive
-	if config.Hook.Prometheus.KeepAlive != "" {
-		if parsed, err := time.ParseDuration(config.Hook.Prometheus.KeepAlive); err == nil {
-			keepAlive = parsed
-		}
-	}
+	return adapters.NewConfigAdapter(mqttConfig, prometheusConfig, alertManagerConfig), nil
+}
 
-	messageExpiry := time.Hour
-	if config.MQTT.Capabilities.MaximumMessageExpiryInterval != "" && config.MQTT.Capabilities.MaximumMessageExpiryInterval != "0" {
-		if parsed, err := time.ParseDuration(config.MQTT.Capabilities.MaximumMessageExpiryInterval); err == nil {
-			messageExpiry = parsed
-		}
-	} else if config.MQTT.Capabilities.MaximumMessageExpiryInterval == "0" {
-		messageExpiry = 0
-	}
+func buildMQTTConfig(config *UnifiedConfig) adapters.MQTTConfigAdapter {
+	keepAlive := parseKeepAlive(config.Hook.Prometheus.KeepAlive)
+	messageExpiry := parseMessageExpiry(config.MQTT.Capabilities.MaximumMessageExpiryInterval)
+	users := buildUsersList(config)
 
-	var users []adapters.UserAuthAdapter
-	for _, u := range config.MQTT.Users {
-		users = append(users, adapters.UserAuthAdapter{
-			Username: u.Username,
-			Password: u.Password,
-		})
-	}
-
-	if config.MQTT.Username != "" {
-		users = append(users, adapters.UserAuthAdapter{
-			Username: config.MQTT.Username,
-			Password: config.MQTT.Password,
-		})
-	}
-
-	mqttConfig := adapters.MQTTConfigAdapter{
+	return adapters.MQTTConfigAdapter{
 		Host:            config.MQTT.Host,
 		Port:            config.MQTT.Port,
 		AllowAnonymous:  config.MQTT.AllowAnonymous,
@@ -184,8 +174,15 @@ func convertToAdapter(config *UnifiedConfig) (domain.Config, error) {
 			MinVersion:         chooseTLSVersion(config),
 		},
 	}
+}
 
-	prometheusConfig := adapters.PrometheusConfigAdapter{
+func buildPrometheusConfig(config *UnifiedConfig) adapters.PrometheusConfigAdapter {
+	metricsTTL, err := time.ParseDuration(config.Hook.Prometheus.MetricsTTL)
+	if err != nil {
+		metricsTTL = domain.DefaultMetricsTTL
+	}
+
+	return adapters.PrometheusConfigAdapter{
 		Listen:         config.Hook.Listen,
 		Path:           config.Hook.Prometheus.Path,
 		MetricsTTL:     metricsTTL,
@@ -193,11 +190,93 @@ func convertToAdapter(config *UnifiedConfig) (domain.Config, error) {
 		LogAllMessages: config.Hook.Prometheus.Topic.LogAllMessages,
 		StateFile:      config.Hook.Prometheus.StateFile,
 	}
+}
 
-	alertManagerConfig := adapters.AlertManagerConfigAdapter{
-		Listen: config.Hook.Listen,
-		Path:   config.Hook.AlertManager.Path,
+func buildAlertManagerConfig(config *UnifiedConfig) adapters.AlertManagerConfigAdapter {
+	routingConfig := adapters.AlertRoutingConfig{
+		Default:  convertAlertRoute(config.Hook.AlertManager.Routing.Default),
+		Critical: convertAlertRoute(config.Hook.AlertManager.Routing.Critical),
+		Warning:  convertAlertRoute(config.Hook.AlertManager.Routing.Warning),
+		Info:     convertAlertRoute(config.Hook.AlertManager.Routing.Info),
 	}
 
-	return adapters.NewConfigAdapter(mqttConfig, prometheusConfig, alertManagerConfig), nil
+	return adapters.AlertManagerConfigAdapter{
+		Listen:    config.Hook.Listen,
+		Path:      config.Hook.AlertManager.Path,
+		MQTTTopic: config.Hook.AlertManager.MQTTTopic,
+		Routing:   routingConfig,
+	}
+}
+
+func parseKeepAlive(keepAliveStr string) time.Duration {
+	if keepAliveStr == "" {
+		return domain.DefaultKeepAlive
+	}
+	if parsed, err := time.ParseDuration(keepAliveStr); err == nil {
+		return parsed
+	}
+	return domain.DefaultKeepAlive
+}
+
+func parseMessageExpiry(expiryStr string) time.Duration {
+	if expiryStr == "0" {
+		return 0
+	}
+	if expiryStr != "" {
+		if parsed, err := time.ParseDuration(expiryStr); err == nil {
+			return parsed
+		}
+	}
+	return time.Hour
+}
+
+func buildUsersList(config *UnifiedConfig) []adapters.UserAuthAdapter {
+	var users []adapters.UserAuthAdapter
+	for _, u := range config.MQTT.Users {
+		users = append(users, adapters.UserAuthAdapter{
+			Username: u.Username,
+			Password: u.Password,
+		})
+	}
+
+	if config.MQTT.Username != "" {
+		users = append(users, adapters.UserAuthAdapter{
+			Username: config.MQTT.Username,
+			Password: config.MQTT.Password,
+		})
+	}
+	return users
+}
+
+func convertAlertRoute(route *AlertRoute) *adapters.AlertRouteConfig {
+	if route == nil {
+		return nil
+	}
+
+	var targetNodes []uint32
+	for _, nodeStr := range route.TargetNodes {
+		if nodeID, err := parseNodeID(nodeStr); err == nil {
+			targetNodes = append(targetNodes, nodeID)
+		}
+	}
+
+	return &adapters.AlertRouteConfig{
+		Mode:        route.Mode,
+		TargetNodes: targetNodes,
+	}
+}
+
+func parseNodeID(nodeStr string) (uint32, error) {
+	// Поддержка hex формата (0x prefix или !)
+	if strings.HasPrefix(nodeStr, "0x") || strings.HasPrefix(nodeStr, "0X") {
+		val, err := strconv.ParseUint(nodeStr[2:], 16, 32)
+		return uint32(val), err
+	}
+	if strings.HasPrefix(nodeStr, "!") {
+		val, err := strconv.ParseUint(nodeStr[1:], 16, 32)
+		return uint32(val), err
+	}
+	// Десятичный формат по умолчанию
+	val, err := strconv.ParseUint(nodeStr, 10, 32)
+	return uint32(val), err
 }

@@ -7,5 +7,6 @@ import (
 )
 
 func TestHooksPackage(t *testing.T) {
+	t.Parallel()
 	assert.True(t, true, "Hooks package compiles successfully")
 }

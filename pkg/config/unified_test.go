@@ -5,16 +5,15 @@ import (
 	"testing"
 	"time"
 
+	"fmt"
+
 	"meshtastic-exporter/pkg/domain"
 )
 
-const (
-	testHost     = "localhost"
-	testListen   = "localhost:8100"
-	testLogLevel = "info"
-)
+// Используем константы из domain пакета вместо дублирования
 
 func TestLoadUnifiedConfig_Success(t *testing.T) {
+	t.Parallel()
 	configContent := `
 logging:
   level: "debug"
@@ -67,18 +66,20 @@ hook:
 }
 
 func TestLoadUnifiedConfig_FileNotExists(t *testing.T) {
+	t.Parallel()
 	config, err := LoadUnifiedConfig("nonexistent.yaml")
 	if err != nil {
 		t.Fatalf("Expected no error for missing file, got %v", err)
 	}
 
 	mqttConfig := config.GetMQTTConfig()
-	if mqttConfig.GetHost() != testHost {
-		t.Errorf("Expected default host '%s', got '%s'", testHost, mqttConfig.GetHost())
+	if mqttConfig.GetHost() != domain.DefaultPrometheusHost {
+		t.Errorf("Expected default host '%s', got '%s'", domain.DefaultPrometheusHost, mqttConfig.GetHost())
 	}
 }
 
 func TestLoadUnifiedConfig_InvalidYAML(t *testing.T) {
+	t.Parallel()
 	tmpFile, err := os.CreateTemp("", "config-*.yaml")
 	if err != nil {
 		t.Fatal(err)
@@ -97,24 +98,26 @@ func TestLoadUnifiedConfig_InvalidYAML(t *testing.T) {
 }
 
 func TestSetDefaults(t *testing.T) {
+	t.Parallel()
 	config := &UnifiedConfig{}
 	setDefaults(config)
 
-	if config.MQTT.Host != testHost {
-		t.Errorf("Expected default MQTT host '%s', got '%s'", testHost, config.MQTT.Host)
+	if config.MQTT.Host != domain.DefaultPrometheusHost {
+		t.Errorf("Expected default MQTT host '%s', got '%s'", domain.DefaultPrometheusHost, config.MQTT.Host)
 	}
 	if config.MQTT.Port != 1883 {
 		t.Errorf("Expected default MQTT port 1883, got %d", config.MQTT.Port)
 	}
 
-	if config.Hook.Listen != testListen {
-		t.Errorf("Expected default listen '%s', got '%s'", testListen, config.Hook.Listen)
+	expectedListen := fmt.Sprintf("%s:%d", domain.DefaultPrometheusHost, domain.DefaultPrometheusPort)
+	if config.Hook.Listen != expectedListen {
+		t.Errorf("Expected default listen '%s', got '%s'", expectedListen, config.Hook.Listen)
 	}
 	if config.Hook.Prometheus.Topic.Pattern != domain.DefaultTopicPrefix {
 		t.Errorf("Expected default topic pattern '%s', got '%s'", domain.DefaultTopicPrefix, config.Hook.Prometheus.Topic.Pattern)
 	}
-	if config.Logging.Level != testLogLevel {
-		t.Errorf("Expected default logging level '%s', got '%s'", testLogLevel, config.Logging.Level)
+	if config.Logging.Level != "info" {
+		t.Errorf("Expected default logging level 'info', got '%s'", config.Logging.Level)
 	}
 	if config.Hook.Prometheus.Topic.LogAllMessages != false {
 		t.Errorf("Expected default log_all_messages 'false', got '%v'", config.Hook.Prometheus.Topic.LogAllMessages)
@@ -122,6 +125,7 @@ func TestSetDefaults(t *testing.T) {
 }
 
 func TestConvertToAdapter_InvalidMetricsTTL(t *testing.T) {
+	t.Parallel()
 	config := &UnifiedConfig{}
 	setDefaults(config)
 	config.Hook.Prometheus.MetricsTTL = "invalid-duration"
@@ -138,6 +142,7 @@ func TestConvertToAdapter_InvalidMetricsTTL(t *testing.T) {
 }
 
 func TestConvertToAdapter_WithUsers(t *testing.T) {
+	t.Parallel()
 	config := &UnifiedConfig{}
 	setDefaults(config)
 	config.MQTT.Username = "mainuser"
@@ -163,6 +168,7 @@ func TestConvertToAdapter_WithUsers(t *testing.T) {
 }
 
 func TestConvertToAdapter_ValidMetricsTTL(t *testing.T) {
+	t.Parallel()
 	config := &UnifiedConfig{}
 	setDefaults(config)
 	config.Hook.Prometheus.MetricsTTL = "2h"
@@ -180,6 +186,7 @@ func TestConvertToAdapter_ValidMetricsTTL(t *testing.T) {
 }
 
 func TestConvertToAdapter_LoggingLevel(t *testing.T) {
+	t.Parallel()
 	config := &UnifiedConfig{}
 	setDefaults(config)
 	config.Logging.Level = "debug"
@@ -194,6 +201,7 @@ func TestConvertToAdapter_LoggingLevel(t *testing.T) {
 }
 
 func TestConvertToAdapter_LogAllMessages(t *testing.T) {
+	t.Parallel()
 	config := &UnifiedConfig{}
 	setDefaults(config)
 	config.Hook.Prometheus.Topic.LogAllMessages = true

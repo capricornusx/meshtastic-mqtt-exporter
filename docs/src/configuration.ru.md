@@ -1,13 +1,13 @@
 # Конфигурация
 
-## Пример конфигурации
-
-Полный пример конфигурации с комментариями доступен в корневом файле [`config.yaml`](../../../config.yaml).
-
-Для быстрого старта скачайте готовую конфигурацию:
+## Быстрый старт
 
 ```bash
+# Скачать готовую конфигурацию
 wget https://raw.githubusercontent.com/capricornusx/meshtastic-mqtt-exporter/main/config.yaml
+
+# Запуск
+./mqtt-exporter-linux-amd64 --config config.yaml
 ```
 
 ## Параметры командной строки
@@ -16,7 +16,6 @@ wget https://raw.githubusercontent.com/capricornusx/meshtastic-mqtt-exporter/mai
 |---------------|---------------------------|---------------|
 | `--config`    | Путь к файлу конфигурации | `config.yaml` |
 | `--log-level` | Уровень логирования       | `info`        |
-| `--help`      | Показать справку          | -             |
 
 ## Переменные окружения
 
@@ -25,54 +24,67 @@ wget https://raw.githubusercontent.com/capricornusx/meshtastic-mqtt-exporter/mai
 | `MQTT_HOST`   | Хост MQTT брокера    | `localhost`    |
 | `MQTT_PORT`   | Порт MQTT брокера    | `1883`         |
 | `HOOK_LISTEN` | Адрес сервера метрик | `0.0.0.0:8100` |
-| `LOG_LEVEL`   | Уровень логирования  | `info`         |
 
-## Основные параметры
+## Основные секции YAML
 
-### MQTT Capabilities
+### MQTT брокер
 
-Раздел `mqtt.capabilities` позволяет настроить возможности встроенного MQTT брокера:
+```yaml
+mqtt:
+  host: "0.0.0.0"
+  port: 1883
+  allow_anonymous: true
+  users:
+    - username: "meshtastic"
+      password: "password"
+```
 
-- `maximum_inflight` — максимум неподтвержденных QoS 1/2 сообщений на клиента (по умолчанию: 1024)
-- `maximum_client_writes_pending` — максимум сообщений в очереди клиента (по умолчанию: 1000)
-- `receive_maximum` — максимум concurrent QoS сообщений на клиента (по умолчанию: 512)
-- `maximum_qos` — максимальный уровень QoS: 0, 1, 2 (по умолчанию: 2)
-- `retain_available` — поддержка retain сообщений (по умолчанию: true)
-- `maximum_message_expiry_interval` — время жизни сообщений: "24h", "1h", "0" (по умолчанию: "24h")
-- `maximum_clients` — максимум одновременных клиентов (по умолчанию: 1000)
+### HTTP сервер
 
-### MQTT топики
+```yaml
+hook:
+  listen: "0.0.0.0:8100"
+  prometheus:
+    path: "/metrics"
+    topic:
+      pattern: "msh/#"
+    state_file: "meshtastic_state.json"
+```
 
-Параметр `hook.prometheus.topic.pattern` поддерживает wildcards:
+### AlertManager
 
+```yaml
+alertmanager:
+  path: "/alerts/webhook"
+  channel: "LongFast"
+  mode: "broadcast"
+  mqtt_downlink_topic: "msh/US/2/json/mqtt/"  # Топик для отправки в LoRa сеть
+```
+
+## MQTT топики
+
+Поддерживаются wildcards:
 - `+` — один уровень
 - `#` — много уровней
 
 Примеры: `msh/#`, `msh/+/json/+/+`
 
-### Персистентность состояния
+## Персистентность
 
-Параметр `hook.prometheus.state_file` задает файл для сохранения метрик между перезапусками.
+Метрики автоматически сохраняются в JSON файл:
 
-## Запуск
-
-```bash
-# Основной режим
-./mqtt-exporter-linux-amd64 --config config.yaml
-
-# С отладкой
-./mqtt-exporter-linux-amd64 --config config.yaml --log-level debug
+```yaml
+hook:
+  prometheus:
+    state_file: "meshtastic_state.json"
 ```
 
-## Проверка работы
+## Проверка конфигурации
 
 ```bash
-# Метрики
-curl http://localhost:8100/metrics
-
-# Health check
-curl http://localhost:8100/health
-
-# Проверка конфигурации
+# Валидация
 ./mqtt-exporter-linux-amd64 --config config.yaml --validate
+
+# Отладка
+./mqtt-exporter-linux-amd64 --config config.yaml --log-level debug
 ```

@@ -13,15 +13,16 @@ import (
 
 // MockMetricsCollector базовый mock для MetricsCollector
 type MockMetricsCollector struct {
-	mu                     sync.RWMutex
-	CollectTelemetryCalled bool
-	CollectNodeInfoCalled  bool
-	SaveStateCalled        bool
-	LoadStateCalled        bool
-	Registry               *prometheus.Registry
-	TelemetryData          []domain.TelemetryData
-	NodeInfoData           []domain.NodeInfo
-	LastStateFile          string
+	mu                       sync.RWMutex
+	CollectTelemetryCalled   bool
+	CollectNodeInfoCalled    bool
+	UpdateNodeLastSeenCalled bool
+	SaveStateCalled          bool
+	LoadStateCalled          bool
+	Registry                 *prometheus.Registry
+	TelemetryData            []domain.TelemetryData
+	NodeInfoData             []domain.NodeInfo
+	LastStateFile            string
 }
 
 func (m *MockMetricsCollector) CollectTelemetry(data domain.TelemetryData) error {
@@ -37,6 +38,30 @@ func (m *MockMetricsCollector) CollectNodeInfo(info domain.NodeInfo) error {
 	defer m.mu.Unlock()
 	m.CollectNodeInfoCalled = true
 	m.NodeInfoData = append(m.NodeInfoData, info)
+	return nil
+}
+
+func (m *MockMetricsCollector) CollectTextMessage(msg domain.TextMessage) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return nil
+}
+
+func (m *MockMetricsCollector) CollectPosition(pos domain.Position) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return nil
+}
+
+func (m *MockMetricsCollector) CollectWaypoint(wp domain.Waypoint) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return nil
+}
+
+func (m *MockMetricsCollector) CollectNeighborInfo(ni domain.NeighborInfo) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	return nil
 }
 
@@ -68,6 +93,7 @@ func (m *MockMetricsCollector) LoadState(filename string) error {
 func (m *MockMetricsCollector) UpdateNodeLastSeen(nodeID string, timestamp time.Time) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
+	m.UpdateNodeLastSeenCalled = true
 }
 
 func (m *MockMetricsCollector) UpdateMessageCounter(nodeID string, messageType string) {
@@ -175,6 +201,30 @@ func (m *MockMetricsCollectorWithErrors) UpdateNodeLastSeen(nodeID string, times
 func (m *MockMetricsCollectorWithErrors) UpdateMessageCounter(nodeID string, messageType string) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
+}
+
+func (m *MockMetricsCollectorWithErrors) CollectTextMessage(msg domain.TextMessage) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return nil
+}
+
+func (m *MockMetricsCollectorWithErrors) CollectPosition(pos domain.Position) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return nil
+}
+
+func (m *MockMetricsCollectorWithErrors) CollectWaypoint(wp domain.Waypoint) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return nil
+}
+
+func (m *MockMetricsCollectorWithErrors) CollectNeighborInfo(ni domain.NeighborInfo) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return nil
 }
 
 // MockAlertSender базовый mock для AlertSender

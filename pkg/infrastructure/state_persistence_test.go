@@ -14,6 +14,7 @@ import (
 )
 
 func TestPrometheusCollector_StatePersistence(t *testing.T) {
+	t.Parallel()
 	collector := NewPrometheusCollector()
 
 	// Добавляем тестовые данные
@@ -56,6 +57,7 @@ func TestPrometheusCollector_StatePersistence(t *testing.T) {
 }
 
 func TestPrometheusCollector_StateCorruptedFile(t *testing.T) {
+	t.Parallel()
 	collector := NewPrometheusCollector()
 
 	// Создаем поврежденный файл
@@ -71,6 +73,7 @@ func TestPrometheusCollector_StateCorruptedFile(t *testing.T) {
 }
 
 func TestPrometheusCollector_StateNonExistentFile(t *testing.T) {
+	t.Parallel()
 	collector := NewPrometheusCollector()
 
 	// Попытка загрузить несуществующий файл - должна завершиться успешно (файл не найден = начинаем с чистого состояния)
@@ -79,6 +82,7 @@ func TestPrometheusCollector_StateNonExistentFile(t *testing.T) {
 }
 
 func TestPrometheusCollector_StateEmptyFile(t *testing.T) {
+	t.Parallel()
 	collector := NewPrometheusCollector()
 
 	// Создаем пустой файл
@@ -94,6 +98,7 @@ func TestPrometheusCollector_StateEmptyFile(t *testing.T) {
 }
 
 func TestPrometheusCollector_StatePermissionDenied(t *testing.T) {
+	t.Parallel()
 	collector := NewPrometheusCollector()
 
 	// Добавляем данные чтобы было что сохранять
@@ -111,6 +116,7 @@ func TestPrometheusCollector_StatePermissionDenied(t *testing.T) {
 }
 
 func TestPrometheusCollector_StateLargeDataset(t *testing.T) {
+	t.Parallel()
 	collector := NewPrometheusCollector()
 
 	// Добавляем много данных

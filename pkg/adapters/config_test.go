@@ -8,6 +8,7 @@ import (
 )
 
 func TestConfigAdapter_Validate_Success(t *testing.T) {
+	t.Parallel()
 	config := NewConfigAdapter(
 		MQTTConfigAdapter{
 			Host: "localhost",
@@ -29,6 +30,7 @@ func TestConfigAdapter_Validate_Success(t *testing.T) {
 }
 
 func TestConfigAdapter_Validate_EmptyMQTTHost(t *testing.T) {
+	t.Parallel()
 	config := NewConfigAdapter(
 		MQTTConfigAdapter{
 			Host: "",
@@ -45,6 +47,7 @@ func TestConfigAdapter_Validate_EmptyMQTTHost(t *testing.T) {
 }
 
 func TestConfigAdapter_Validate_InvalidMQTTPort(t *testing.T) {
+	t.Parallel()
 	testCases := []struct {
 		name string
 		port int
@@ -56,6 +59,7 @@ func TestConfigAdapter_Validate_InvalidMQTTPort(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
 			config := NewConfigAdapter(
 				MQTTConfigAdapter{
 					Host: "localhost",
@@ -74,6 +78,7 @@ func TestConfigAdapter_Validate_InvalidMQTTPort(t *testing.T) {
 }
 
 func TestConfigAdapter_Validate_InvalidPrometheusPort(t *testing.T) {
+	t.Parallel()
 	config := NewConfigAdapter(
 		MQTTConfigAdapter{
 			Host: "localhost",
@@ -92,6 +97,7 @@ func TestConfigAdapter_Validate_InvalidPrometheusPort(t *testing.T) {
 }
 
 func TestConfigAdapter_Validate_InvalidAlertManagerPort(t *testing.T) {
+	t.Parallel()
 	config := NewConfigAdapter(
 		MQTTConfigAdapter{
 			Host: "localhost",
@@ -112,6 +118,7 @@ func TestConfigAdapter_Validate_InvalidAlertManagerPort(t *testing.T) {
 }
 
 func TestConfigAdapter_GetMethods(t *testing.T) {
+	t.Parallel()
 	mqttConfig := MQTTConfigAdapter{
 		Host:            "test-host",
 		Port:            1883,

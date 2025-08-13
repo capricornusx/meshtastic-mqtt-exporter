@@ -33,18 +33,33 @@ type MeshtasticMessage struct {
 }
 
 type TelemetryData struct {
-	NodeID             string
+	NodeID    string
+	Type      string // device_metrics, environment_metrics, power_metrics
+	RSSI      *float64
+	SNR       *float64
+	Timestamp time.Time
+
+	// Device Metrics
 	BatteryLevel       *float64
 	Voltage            *float64
-	Temperature        *float64
-	RelativeHumidity   *float64
-	BarometricPressure *float64
 	ChannelUtilization *float64
 	AirUtilTx          *float64
 	UptimeSeconds      *float64
-	RSSI               *float64
-	SNR                *float64
-	Timestamp          time.Time
+
+	// Environment Metrics
+	Temperature        *float64
+	RelativeHumidity   *float64
+	BarometricPressure *float64
+	GasResistance      *float64
+	IAQ                *float64
+
+	// Power Metrics
+	Ch1Voltage *float64
+	Ch1Current *float64
+	Ch2Voltage *float64
+	Ch2Current *float64
+	Ch3Voltage *float64
+	Ch3Current *float64
 }
 
 type NodeInfo struct {
@@ -56,13 +71,52 @@ type NodeInfo struct {
 	Timestamp time.Time
 }
 
+type TextMessage struct {
+	NodeID    string
+	Text      string
+	Channel   int
+	Timestamp time.Time
+}
+
+type Position struct {
+	NodeID        string
+	Latitude      *float64
+	Longitude     *float64
+	Altitude      *int32
+	SatsInView    *int32
+	PrecisionBits *int32
+	Timestamp     time.Time
+}
+
+type Waypoint struct {
+	NodeID      string
+	WaypointID  int32
+	Latitude    float64
+	Longitude   float64
+	Expire      int32
+	LockedTo    int32
+	Name        string
+	Description string
+	Icon        int32
+	Timestamp   time.Time
+}
+
+type NeighborInfo struct {
+	NodeID                    string
+	NeighborID                string
+	SNR                       float64
+	LastRxTime                int32
+	NodeBroadcastIntervalSecs int32
+	Timestamp                 time.Time
+}
+
 // Alert for LoRa network.
 type Alert struct {
 	Severity    string
 	Message     string
 	Channel     string
 	Mode        string
-	TargetNodes []string
+	TargetNodes []uint32
 	Timestamp   time.Time
 }
 

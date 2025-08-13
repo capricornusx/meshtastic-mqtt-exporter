@@ -14,6 +14,7 @@ import (
 )
 
 func TestApp_Shutdown_SavesState(t *testing.T) {
+	t.Parallel()
 	// Создаем временный файл для состояния
 	tempDir := t.TempDir()
 	stateFile := filepath.Join(tempDir, "test_state.json")

@@ -10,6 +10,10 @@ import (
 type MetricsCollector interface {
 	CollectTelemetry(data TelemetryData) error
 	CollectNodeInfo(info NodeInfo) error
+	CollectTextMessage(msg TextMessage) error
+	CollectPosition(pos Position) error
+	CollectWaypoint(wp Waypoint) error
+	CollectNeighborInfo(ni NeighborInfo) error
 	UpdateNodeLastSeen(nodeID string, timestamp time.Time)
 	UpdateMessageCounter(nodeID string, messageType string)
 	GetRegistry() *prometheus.Registry
@@ -72,6 +76,8 @@ type PrometheusConfig interface {
 type AlertManagerConfig interface {
 	GetListen() string
 	GetPath() string
+	GetMQTTTopic() string
+	GetRouting() interface{} // Используем interface{} для гибкости
 }
 
 type UserAuth interface {
