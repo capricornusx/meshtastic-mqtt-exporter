@@ -35,8 +35,8 @@ hook:
     topic:
       # Supports MQTT wildcards + and #
       # "msh/#"           - все сообщения начинающиеся с msh/
-      # "msh/+/json/+/+"  - только JSON сообщения
-      pattern: "msh/+/2/json/#"
+      # "msh/+/+/json/+/+"  - только JSON сообщения
+      pattern: "msh/+/+/json/#"
       log_all_messages: true  # Логировать все MQTT сообщения, соответствующие pattern
     state_file: "meshtastic_state.json"  # Файл для сохранения состояния метрик
   alertmanager:

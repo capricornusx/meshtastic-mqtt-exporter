@@ -129,7 +129,7 @@ func (p *MeshtasticProcessor) processMessageByType(msg domain.MeshtasticMessage,
 		//p.logger.Debug().
 		//	Str("node_id", nodeID).
 		//	Msg("unsupported type")
-		//p.collector.UpdateMessageCounter(nodeID, domain.MessageTypeUnsupported)
+		p.collector.UpdateMessageCounter(nodeID, domain.MessageTypeUnsupported)
 		return nil
 	}
 }

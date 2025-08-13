@@ -76,8 +76,8 @@ func (s *LoRaAlertSender) sendBroadcast(_ context.Context, message, channel stri
 	payload := map[string]interface{}{
 		"type":    "text", //TODO возможно это поле лишнее.
 		"payload": fmt.Sprintf("[ALERT] %s", message),
-		"from":    domain.LoRaBroadcastNodeID, //TODO возможно это поле лишнее.
-		"to":      domain.LoRaBroadcastNodeID,
+		"from":    uint32(domain.LoRaBroadcastNodeID), //TODO возможно это поле лишнее.
+		"to":      uint32(domain.LoRaBroadcastNodeID),
 	}
 
 	return s.publishMessage(topic, payload)
