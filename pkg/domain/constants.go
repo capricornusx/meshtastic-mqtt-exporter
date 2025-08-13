@@ -6,9 +6,6 @@ import (
 )
 
 const (
-	DefaultBufferSize = 1024
-	MaxMessageSize    = 256
-
 	MetricBatteryLevel  = "meshtastic_battery_level_percent"
 	MetricVoltage       = "meshtastic_voltage_volts"
 	MetricTemperature   = "meshtastic_temperature_celsius"
@@ -43,7 +40,6 @@ const (
 
 	DefaultPrometheusHost = "localhost"
 	DefaultPrometheusPort = 8100
-	DefaultAlertPort      = 8080
 
 	DefaultMQTTKeepAlive    = 60 * time.Second
 	DefaultMQTTPingTimeout  = 10 * time.Second
@@ -61,8 +57,6 @@ const (
 
 	// LoRaBroadcastNodeID 4294967295 or 0xFFFFFFFF
 	LoRaBroadcastNodeID = math.MaxUint32
-
-	MeshtasticMQTTChannel = "mqtt"
 
 	ShutdownTimeoutDivider = 4
 

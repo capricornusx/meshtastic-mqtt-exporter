@@ -99,6 +99,10 @@ func (c *MQTTClient) messageHandler(_ mqtt.Client, msg mqtt.Message) {
 	}
 }
 
+func (c *MQTTClient) GetClient() mqtt.Client {
+	return c.client
+}
+
 func (c *MQTTClient) Disconnect() {
 	if c.client != nil && c.client.IsConnected() {
 		c.client.Disconnect(domain.DefaultMQTTDisconnectMs)

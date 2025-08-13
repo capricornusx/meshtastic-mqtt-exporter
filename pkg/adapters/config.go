@@ -57,10 +57,11 @@ type PrometheusConfigAdapter struct {
 }
 
 type AlertManagerConfigAdapter struct {
-	Listen    string
-	Path      string
-	MQTTTopic string
-	Routing   AlertRoutingConfig
+	Listen     string
+	Path       string
+	MQTTTopic  string
+	FromNodeID uint32
+	Routing    AlertRoutingConfig
 }
 
 type AlertRoutingConfig struct {
@@ -71,8 +72,9 @@ type AlertRoutingConfig struct {
 }
 
 type AlertRouteConfig struct {
-	Mode        string
-	TargetNodes []uint32
+	Mode         string
+	TargetNodes  []uint32
+	ShowOnSender bool
 }
 
 func NewConfigAdapter(mqtt MQTTConfigAdapter, prometheus PrometheusConfigAdapter, alertManager AlertManagerConfigAdapter) *ConfigAdapter {
@@ -154,4 +156,5 @@ func (p *PrometheusConfigAdapter) GetStateFile() string         { return p.State
 func (a *AlertManagerConfigAdapter) GetListen() string       { return a.Listen }
 func (a *AlertManagerConfigAdapter) GetPath() string         { return a.Path }
 func (a *AlertManagerConfigAdapter) GetMQTTTopic() string    { return a.MQTTTopic }
+func (a *AlertManagerConfigAdapter) GetFromNodeID() uint32   { return a.FromNodeID }
 func (a *AlertManagerConfigAdapter) GetRouting() interface{} { return a.Routing }

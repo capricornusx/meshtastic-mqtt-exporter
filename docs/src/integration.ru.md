@@ -89,20 +89,47 @@ meshtastic --set mqtt.password password
 Устройства публикуют в:
 - `msh/2/c/LongFast/!<node_id>` — сообщения
 - `msh/2/e/LongFast/!<node_id>` — телеметрия
+- todo position...
 
 ## Grafana
 
-### Готовые дашборды
+TODO: `docs/stack/grafana/dashboards/`
 
-Доступны в `docs/stack/grafana/dashboards/`
+```promql
+# Количество активных узлов
+count(meshtastic_node_last_seen_timestamp)
 
-### Основные панели
+# Средний уровень батареи
+avg(meshtastic_battery_level_percent)
 
-- Карта узлов сети
-- Уровень батареи
-- Температура/влажность
-- Качество сигнала (RSSI/SNR)
-- Активность узлов
+# Узлы с низким зарядом батареи
+meshtastic_battery_level_percent < 20
+
+# Узлы офлайн более 20 минут
+(time() - meshtastic_node_last_seen_timestamp) > 1200
+
+# Средняя температура по всем узлам
+avg(meshtastic_temperature_celsius)
+
+# Максимальная температура за последний час
+max_over_time(meshtastic_temperature_celsius[1h])
+
+
+# Топ-5 узлов с самым низким зарядом батареи
+topk(5, meshtastic_battery_level_percent)
+
+# Узлы с температурой выше среднего + 2 стандартных отклонения
+meshtastic_temperature_celsius > (avg(meshtastic_temperature_celsius) + 2 * stddev(meshtastic_temperature_celsius))
+
+# Скорость изменения заряда батареи (разряд/заряд)
+rate(meshtastic_battery_level_percent[5m]) * 60
+
+# Узлы с плохим качеством связи
+avg_over_time(meshtastic_snr_db[1h]) < -10
+
+# Количество сообщений в минуту по типам
+rate(meshtastic_messages_processed_total[1m]) * 60
+```
 
 ## Hook интеграция
 

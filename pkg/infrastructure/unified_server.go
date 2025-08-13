@@ -13,6 +13,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/zerolog"
 
+	"meshtastic-exporter/pkg/adapters"
 	"meshtastic-exporter/pkg/domain"
 	"meshtastic-exporter/pkg/logger"
 	"meshtastic-exporter/pkg/middleware"
@@ -25,12 +26,13 @@ type UnifiedServerConfig struct {
 }
 
 type UnifiedServer struct {
-	config    UnifiedServerConfig
-	collector domain.MetricsCollector
-	alerter   domain.AlertSender
-	server    *http.Server
-	logger    zerolog.Logger
-	mu        sync.RWMutex
+	config      UnifiedServerConfig
+	collector   domain.MetricsCollector
+	alerter     domain.AlertSender
+	alertConfig domain.AlertManagerConfig
+	server      *http.Server
+	logger      zerolog.Logger
+	mu          sync.RWMutex
 }
 
 type AlertPayload struct {
@@ -53,6 +55,20 @@ func NewUnifiedServer(config UnifiedServerConfig, collector domain.MetricsCollec
 		collector: collector,
 		alerter:   alerter,
 		logger:    logger.ComponentLogger("unified-server"),
+	}
+}
+
+func NewUnifiedServerWithAlertConfig(config UnifiedServerConfig, collector domain.MetricsCollector, alerter domain.AlertSender, alertConfig domain.AlertManagerConfig) *UnifiedServer {
+	if config.AlertPath == "" {
+		config.AlertPath = domain.DefaultAlertsPath
+	}
+
+	return &UnifiedServer{
+		config:      config,
+		collector:   collector,
+		alerter:     alerter,
+		alertConfig: alertConfig,
+		logger:      logger.ComponentLogger("unified-server"),
 	}
 }
 
@@ -158,11 +174,71 @@ func (s *UnifiedServer) convertToAlert(item AlertItem) domain.Alert {
 		msg += " - " + summary
 	}
 
-	return domain.Alert{
+	alert := domain.Alert{
 		Severity:  item.Labels["severity"],
 		Message:   msg,
 		Timestamp: time.Now(),
 	}
+
+	// Применяем routing настройки
+	if s.alertConfig != nil {
+		s.applyRoutingConfig(&alert)
+	}
+
+	return alert
+}
+
+func (s *UnifiedServer) applyRoutingConfig(alert *domain.Alert) {
+	routing := s.alertConfig.GetRouting()
+	if routing == nil {
+		return
+	}
+
+	// Приводим к типу AlertRoutingConfig
+	if routingConfig, ok := routing.(adapters.AlertRoutingConfig); ok {
+		var route *adapters.AlertRouteConfig
+
+		// Выбираем маршрут по severity
+		switch alert.Severity {
+		case "critical":
+			route = routingConfig.Critical
+		case "warning":
+			route = routingConfig.Warning
+		case "info":
+			route = routingConfig.Info
+		default:
+			route = routingConfig.Default
+		}
+
+		// Если маршрут не найден, используем default
+		if route == nil {
+			route = routingConfig.Default
+		}
+
+		// Применяем настройки маршрута
+		if route != nil {
+			alert.Mode = route.Mode
+			alert.TargetNodes = route.TargetNodes
+
+			// Для broadcast с show_on_sender добавляем отправителя в targets
+			if route.Mode == "broadcast" && route.ShowOnSender {
+				if fromNodeID := s.alertConfig.GetFromNodeID(); fromNodeID != 0 {
+					alert.TargetNodes = append(alert.TargetNodes, fromNodeID)
+					alert.Mode = "mixed" // Особый режим: broadcast + direct на отправителя
+				}
+			}
+
+			s.logger.Debug().Str("severity", alert.Severity).Str("mode", alert.Mode).Ints("targets", intSliceFromUint32(route.TargetNodes)).Bool("show_on_sender", route.ShowOnSender).Msg("applied routing config")
+		}
+	}
+}
+
+func intSliceFromUint32(nodes []uint32) []int {
+	result := make([]int, len(nodes))
+	for i, node := range nodes {
+		result[i] = int(node)
+	}
+	return result
 }
 
 func (s *UnifiedServer) Shutdown(ctx context.Context) error {

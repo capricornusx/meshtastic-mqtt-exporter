@@ -27,7 +27,6 @@ func TestNetworkResilience_MQTTReconnection(t *testing.T) {
 	mqttPort := findFreePort(t)
 	httpPort := findFreePort(t)
 
-	// Создаем MQTT сервер
 	server := mqtt.New(&mqtt.Options{InlineClient: false})
 
 	err := server.AddHook(new(auth.AllowHook), &auth.Options{
@@ -54,7 +53,6 @@ func TestNetworkResilience_MQTTReconnection(t *testing.T) {
 	err = server.AddListener(tcp)
 	require.NoError(t, err)
 
-	// Запускаем сервер
 	go func() {
 		if err := server.Serve(); err != nil {
 			t.Logf("MQTT server error: %v", err)
@@ -79,7 +77,6 @@ func TestNetworkResilience_MQTTReconnection(t *testing.T) {
 	require.True(t, token.WaitTimeout(5*time.Second))
 	require.NoError(t, token.Error())
 
-	// Отправляем сообщение
 	payload := `{"from": 123456789, "type": "telemetry", "payload": {"battery_level": 85.5}}`
 	token = client.Publish("msh/test", 0, false, payload)
 	require.True(t, token.WaitTimeout(5*time.Second))
@@ -139,11 +136,9 @@ func TestNetworkResilience_HTTPServerRestart(t *testing.T) {
 		EnableHealth: true,
 	}, f)
 
-	// Инициализируем хук
 	err := hook.Init(nil)
 	require.NoError(t, err)
 
-	// Ждем запуска HTTP сервера
 	waitForHTTPServer(t, httpPort)
 
 	// Проверяем, что сервер отвечает

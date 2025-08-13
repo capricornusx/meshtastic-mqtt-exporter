@@ -14,6 +14,9 @@
 - **AlertManager интеграция**: Отправка алертов в LoRa mesh сеть
 - **Персистентность**: Сохранение/восстановление метрик между перезапусками
 
+
+![Alt text](/path/to/img.jpg "Optional title")
+
 ## Быстрый старт
 
 ```bash
@@ -31,8 +34,9 @@ curl http://localhost:8100/metrics
 Полный пример конфигурации доступен в файле [`config.yaml`](config.yaml).
 
 ## Документация
+
 - [Быстрый старт](docs/src/ru/quick-start.md) — Установка и первый запуск
-- [Конфигурация](docs/src/ru/configuration.md) — Настройка YAML файла
+- [Конфигурация](docs/src/ru/configuration.md) — Настройки
 - [API](docs/src/ru/api.md) — REST API endpoints
 - [Pages](https://capricornusx.github.io/meshtastic-mqtt-exporter/)
 
@@ -51,12 +55,14 @@ curl http://localhost:8100/metrics
 Метрики автоматически сохраняются и восстанавливаются между перезапусками (json формат), каждые 5 минут и при завершении работы + восстановление при запуске. 
 
 ## TODO
-- [ ] настроить formatter через .golangci.yml
 - [ ] Отделить архитектурно Alertmanager от Exporter
 - [ ] добавить MQTT-специфичные метрики (обработано сообщений, uptime, расход памяти т.д.)
 - [ ] from_node vs node_id labels
 - [ ] синхронизация метрик с meshtastic .proto файлами
 - [ ] проверить код на избыточные функции, которые могут быть в стандартной библиотеке
+- [ ] настроить gofmt formatter через .golangci.yml
+- [ ] Graceful reload config
+- [ ] Возможно, пригодится тестовый эндпоинт для alertmanager `/alerts/ping` с заготовленными сообщениями (direct, broadcast).
 
 ## Благодарности
 

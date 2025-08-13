@@ -77,6 +77,7 @@ type AlertManagerConfig interface {
 	GetListen() string
 	GetPath() string
 	GetMQTTTopic() string
+	GetFromNodeID() uint32
 	GetRouting() interface{} // Используем interface{} для гибкости
 }
 

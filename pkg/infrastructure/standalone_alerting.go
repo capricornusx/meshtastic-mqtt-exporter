@@ -5,27 +5,15 @@ import (
 	"encoding/json"
 	"fmt"
 
-	mqtt "github.com/mochi-mqtt/server/v2"
+	mqtt "github.com/eclipse/paho.mqtt.golang"
 	"github.com/rs/zerolog"
 
 	"meshtastic-exporter/pkg/domain"
 	"meshtastic-exporter/pkg/logger"
 )
 
-const (
-	defaultChannel           = "LongFast"
-	defaultMode              = "broadcast"
-	defaultMessageType       = "sendtext"
-	defaultMQTTDownlinkTopic = "msh/MY_433/2/json/mqtt/"
-)
-
-// GetDefaultMQTTDownlinkTopic возвращает дефолтный MQTT топик для тестов
-func GetDefaultMQTTDownlinkTopic() string {
-	return defaultMQTTDownlinkTopic
-}
-
-type LoRaAlertSender struct {
-	mqttServer        *mqtt.Server
+type StandaloneLoRaAlertSender struct {
+	mqttClient        mqtt.Client
 	defaultChannel    string
 	defaultMode       string
 	targetNodes       []uint32
@@ -34,15 +22,7 @@ type LoRaAlertSender struct {
 	logger            zerolog.Logger
 }
 
-type LoRaConfig struct {
-	DefaultChannel    string
-	DefaultMode       string
-	TargetNodes       []uint32
-	FromNodeID        uint32
-	MQTTDownlinkTopic string
-}
-
-func NewLoRaAlertSender(server *mqtt.Server, config LoRaConfig) *LoRaAlertSender {
+func NewStandaloneLoRaAlertSender(mqttClient mqtt.Client, config LoRaConfig) *StandaloneLoRaAlertSender {
 	if config.DefaultChannel == "" {
 		config.DefaultChannel = defaultChannel
 	}
@@ -56,18 +36,22 @@ func NewLoRaAlertSender(server *mqtt.Server, config LoRaConfig) *LoRaAlertSender
 		config.MQTTDownlinkTopic = defaultMQTTDownlinkTopic
 	}
 
-	return &LoRaAlertSender{
-		mqttServer:        server,
+	return &StandaloneLoRaAlertSender{
+		mqttClient:        mqttClient,
 		defaultChannel:    config.DefaultChannel,
 		defaultMode:       config.DefaultMode,
 		targetNodes:       config.TargetNodes,
 		fromNodeID:        config.FromNodeID,
 		mqttDownlinkTopic: config.MQTTDownlinkTopic,
-		logger:            logger.ComponentLogger("lora-alerter"),
+		logger:            logger.ComponentLogger("standalone-lora-alerter"),
 	}
 }
 
-func (s *LoRaAlertSender) SendAlert(ctx context.Context, alert domain.Alert) error {
+func (s *StandaloneLoRaAlertSender) SendAlert(ctx context.Context, alert domain.Alert) error {
+	if s.mqttClient == nil || !s.mqttClient.IsConnected() {
+		return fmt.Errorf("mqtt client not connected")
+	}
+
 	mode := alert.Mode
 	if mode == "" {
 		mode = s.defaultMode
@@ -82,18 +66,10 @@ func (s *LoRaAlertSender) SendAlert(ctx context.Context, alert domain.Alert) err
 		return s.sendBroadcast(ctx, alert.Message)
 	}
 
-	if mode == "mixed" {
-		// Отправляем broadcast + direct на отправителя
-		if err := s.sendBroadcast(ctx, alert.Message); err != nil {
-			return err
-		}
-		return s.sendDirect(ctx, alert.Message, targets)
-	}
-
 	return s.sendDirect(ctx, alert.Message, targets)
 }
 
-func (s *LoRaAlertSender) sendBroadcast(_ context.Context, message string) error {
+func (s *StandaloneLoRaAlertSender) sendBroadcast(_ context.Context, message string) error {
 	payload := map[string]interface{}{
 		"type":    defaultMessageType,
 		"payload": message,
@@ -104,7 +80,7 @@ func (s *LoRaAlertSender) sendBroadcast(_ context.Context, message string) error
 	return s.publishMessage(s.mqttDownlinkTopic, payload)
 }
 
-func (s *LoRaAlertSender) sendDirect(_ context.Context, message string, targets []uint32) error {
+func (s *StandaloneLoRaAlertSender) sendDirect(_ context.Context, message string, targets []uint32) error {
 	for _, nodeID := range targets {
 		payload := map[string]interface{}{
 			"type":    defaultMessageType,
@@ -121,18 +97,17 @@ func (s *LoRaAlertSender) sendDirect(_ context.Context, message string, targets 
 	return nil
 }
 
-func (s *LoRaAlertSender) publishMessage(topic string, payload map[string]interface{}) error {
+func (s *StandaloneLoRaAlertSender) publishMessage(topic string, payload map[string]interface{}) error {
 	data, err := json.Marshal(payload)
 	if err != nil {
 		return fmt.Errorf("marshal payload: %w", err)
 	}
 
-	if s.mqttServer != nil {
-		if err := s.mqttServer.Publish(topic, data, false, 0); err != nil {
-			return fmt.Errorf("publish to topic %s: %w", topic, err)
-		}
-		s.logger.Info().Str("topic", topic).Msg("🔥 alert sent to MQTT->LoRa")
+	token := s.mqttClient.Publish(topic, 0, false, data)
+	if token.Wait() && token.Error() != nil {
+		return fmt.Errorf("publish to topic %s: %w", topic, token.Error())
 	}
 
+	s.logger.Info().Str("topic", topic).Msg("🔥 alert sent to MQTT->LoRa")
 	return nil
 }

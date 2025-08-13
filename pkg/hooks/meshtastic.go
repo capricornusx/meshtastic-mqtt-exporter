@@ -214,7 +214,17 @@ func (h *MeshtasticHook) startUnifiedServer() {
 		AlertPath:    h.config.AlertPath,
 	}
 
-	h.server = infrastructure.NewUnifiedServer(serverConfig, h.collector, h.alerter)
+	// Используем конструктор с AlertManagerConfig если доступен
+	if h.factory != nil {
+		if alertConfig := h.factory.GetAlertManagerConfig(); alertConfig != nil {
+			h.server = infrastructure.NewUnifiedServerWithAlertConfig(serverConfig, h.collector, h.alerter, alertConfig)
+		} else {
+			h.server = infrastructure.NewUnifiedServer(serverConfig, h.collector, h.alerter)
+		}
+	} else {
+		h.server = infrastructure.NewUnifiedServer(serverConfig, h.collector, h.alerter)
+	}
+
 	if err := h.server.Start(context.Background()); err != nil {
 		h.logger.Error().Err(err).Msg("failed to start unified server")
 	}

@@ -15,8 +15,9 @@ import (
 )
 
 type AlertRoute struct {
-	Mode        string   `yaml:"mode"`
-	TargetNodes []string `yaml:"target_nodes"`
+	Mode         string   `yaml:"mode"`
+	TargetNodes  []string `yaml:"target_nodes"`
+	ShowOnSender bool     `yaml:"show_on_sender"`
 }
 
 type UnifiedConfig struct {
@@ -69,9 +70,10 @@ type UnifiedConfig struct {
 			StateFile string `yaml:"state_file"`
 		} `yaml:"prometheus"`
 		AlertManager struct {
-			Path      string `yaml:"path"`
-			MQTTTopic string `yaml:"mqtt_topic"`
-			Routing   struct {
+			Path       string `yaml:"path"`
+			MQTTTopic  string `yaml:"mqtt_topic"`
+			FromNodeID string `yaml:"from_node_id"`
+			Routing    struct {
 				Default  *AlertRoute `yaml:"default"`
 				Critical *AlertRoute `yaml:"critical"`
 				Warning  *AlertRoute `yaml:"warning"`
@@ -200,11 +202,19 @@ func buildAlertManagerConfig(config *UnifiedConfig) adapters.AlertManagerConfigA
 		Info:     convertAlertRoute(config.Hook.AlertManager.Routing.Info),
 	}
 
+	var fromNodeID uint32
+	if config.Hook.AlertManager.FromNodeID != "" {
+		if nodeID, err := parseNodeID(config.Hook.AlertManager.FromNodeID); err == nil {
+			fromNodeID = nodeID
+		}
+	}
+
 	return adapters.AlertManagerConfigAdapter{
-		Listen:    config.Hook.Listen,
-		Path:      config.Hook.AlertManager.Path,
-		MQTTTopic: config.Hook.AlertManager.MQTTTopic,
-		Routing:   routingConfig,
+		Listen:     config.Hook.Listen,
+		Path:       config.Hook.AlertManager.Path,
+		MQTTTopic:  config.Hook.AlertManager.MQTTTopic,
+		FromNodeID: fromNodeID,
+		Routing:    routingConfig,
 	}
 }
 
@@ -261,8 +271,9 @@ func convertAlertRoute(route *AlertRoute) *adapters.AlertRouteConfig {
 	}
 
 	return &adapters.AlertRouteConfig{
-		Mode:        route.Mode,
-		TargetNodes: targetNodes,
+		Mode:         route.Mode,
+		TargetNodes:  targetNodes,
+		ShowOnSender: route.ShowOnSender,
 	}
 }
 

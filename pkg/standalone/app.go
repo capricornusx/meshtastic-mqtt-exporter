@@ -32,14 +32,14 @@ func NewApp(config domain.Config) *App {
 
 	f := factory.NewFactory(config)
 	collector := f.CreateMetricsCollectorWithMode("standalone")
-	alerter := f.CreateAlertSender()
+	// AlertSender будет создан после подключения MQTT клиента
 	processor := f.CreateMessageProcessor()
 
 	return &App{
 		config:    config,
 		processor: processor,
 		collector: collector,
-		alerter:   alerter,
+		alerter:   nil, // будет установлен позже
 		logger:    logger.ComponentLogger("standalone-app"),
 		ctx:       ctx,
 		cancel:    cancel,
@@ -57,6 +57,10 @@ func (a *App) Run() error {
 	if err := a.mqttClient.Connect(); err != nil {
 		return errors.NewNetworkError("failed to connect to mqtt", err)
 	}
+
+	// Create AlertSender after MQTT connection
+	f := factory.NewFactory(a.config)
+	a.alerter = f.CreateStandaloneAlertSender(a.mqttClient.GetClient())
 
 	// Start HTTP server for metrics
 	prometheusConfig := a.config.GetPrometheusConfig()

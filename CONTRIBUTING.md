@@ -15,6 +15,12 @@ make lint  # Run linter
 make test  # Run tests
 ```
 
+- All tests use `testify` for assertions
+- Tests should be parallel `t.Parallel()`
+- A table-driven approach is used for multiple scenarios
+- Mocks are located in `pkg/mocks/`
+
+
 ## Code Style
 
 - Use `gofmt` for formatting

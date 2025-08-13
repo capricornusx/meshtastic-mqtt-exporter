@@ -42,17 +42,19 @@ hook:
   alertmanager:
     path: "/alerts/webhook"
     # MQTT downlink topic pattern: msh/{region}/{hop_limit}/json/mqtt/
-    # Регионы: US (915MHz), EU_433, EU_868, MY_433, etc.
+    # Регионы: US, EU_433, EU_868, MY_433...
     mqtt_topic: "msh/MY_433/2/json/mqtt/"
+    from_node_id: "!f992bd54"  # bd54 - отправитель алертов
     routing:
       default: # for disable set null or {}
         mode: "broadcast"
       critical:
         mode: "broadcast"       # Send it to all nodes
+        show_on_sender: true     # Также отправить direct на отправителя
       warning:
         mode: "direct"          # Send it to admins only
         target_nodes:
-          - "4187143508"          # bd54
-          - "4187204132"          # aa24
+          - "!f992bd54"          # bd54
+          - "!f992aa24"          # aa24
       info:
         mode: "broadcast"       # Send it to all nodes

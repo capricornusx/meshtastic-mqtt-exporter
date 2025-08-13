@@ -3,6 +3,7 @@ package hooks
 import (
 	"context"
 	"encoding/json"
+	"meshtastic-exporter/pkg/domain"
 	"testing"
 	"time"
 
@@ -16,7 +17,7 @@ import (
 
 func TestNewMeshtasticHook(t *testing.T) {
 	t.Parallel()
-	f := factory.NewDefaultFactory() // Mock factory
+	f := factory.NewDefaultFactory()
 	hook := NewMeshtasticHook(MeshtasticHookConfig{
 		ServerAddr:  ":9090",
 		TopicPrefix: "test/",
@@ -27,9 +28,19 @@ func TestNewMeshtasticHook(t *testing.T) {
 	assert.Equal(t, 30*time.Minute, hook.config.MetricsTTL)
 }
 
+func TestNewMeshtasticHookSimple_ActualFunction(t *testing.T) {
+	t.Parallel()
+	f := factory.NewDefaultFactory()
+	hook := NewMeshtasticHookSimple(f)
+
+	assert.Equal(t, "localhost:8100", hook.config.ServerAddr)
+	assert.Equal(t, domain.DefaultTopicPrefix, hook.config.TopicPrefix)
+	assert.True(t, hook.config.EnableHealth)
+}
+
 func TestNewMeshtasticHookSimple(t *testing.T) {
 	t.Parallel()
-	f := factory.NewDefaultFactory() // Mock factory
+	f := factory.NewDefaultFactory()
 	hook := NewMeshtasticHook(MeshtasticHookConfig{
 		ServerAddr:   "", // Disabled for test
 		EnableHealth: true,
@@ -42,14 +53,14 @@ func TestNewMeshtasticHookSimple(t *testing.T) {
 
 func TestMeshtasticHook_ID(t *testing.T) {
 	t.Parallel()
-	f := factory.NewDefaultFactory() // Mock factory
+	f := factory.NewDefaultFactory()
 	hook := NewMeshtasticHook(MeshtasticHookConfig{ServerAddr: ""}, f)
 	assert.Equal(t, "meshtastic", hook.ID())
 }
 
 func TestMeshtasticHook_Provides(t *testing.T) {
 	t.Parallel()
-	f := factory.NewDefaultFactory() // Mock factory
+	f := factory.NewDefaultFactory()
 	hook := NewMeshtasticHook(MeshtasticHookConfig{ServerAddr: ""}, f)
 
 	assert.True(t, hook.Provides(mqtt.OnPublish))
@@ -60,7 +71,7 @@ func TestMeshtasticHook_Provides(t *testing.T) {
 
 func TestMeshtasticHook_OnPublish(t *testing.T) {
 	t.Parallel()
-	f := factory.NewDefaultFactory() // Mock factory
+	f := factory.NewDefaultFactory()
 	hook := NewMeshtasticHook(MeshtasticHookConfig{ServerAddr: ""}, f)
 
 	tests := []struct {
@@ -76,8 +87,8 @@ func TestMeshtasticHook_OnPublish(t *testing.T) {
 				"from": float64(123456),
 				"type": "telemetry",
 				"payload": map[string]interface{}{
-					"battery_level": float64(85.5),
-					"temperature":   float64(23.4),
+					"battery_level": 85.5,
+					"temperature":   23.4,
 				},
 			},
 			expected: true,
@@ -120,7 +131,7 @@ func TestMeshtasticHook_OnPublish(t *testing.T) {
 
 func TestMeshtasticHook_Init(t *testing.T) {
 	t.Parallel()
-	f := factory.NewDefaultFactory() // Mock factory
+	f := factory.NewDefaultFactory()
 	hook := NewMeshtasticHook(MeshtasticHookConfig{ServerAddr: ""}, f)
 	err := hook.Init(nil)
 	require.NoError(t, err)
@@ -135,7 +146,7 @@ func TestMeshtasticHook_Init_StateFileValidation(t *testing.T) {
 
 func TestOnConnect(t *testing.T) {
 	t.Parallel()
-	f := factory.NewDefaultFactory() // Mock factory
+	f := factory.NewDefaultFactory()
 	hook := NewMeshtasticHook(MeshtasticHookConfig{ServerAddr: ""}, f)
 
 	client := &mqtt.Client{ID: "test-client"}
@@ -145,7 +156,7 @@ func TestOnConnect(t *testing.T) {
 
 func TestOnDisconnect(t *testing.T) {
 	t.Parallel()
-	f := factory.NewDefaultFactory() // Mock factory
+	f := factory.NewDefaultFactory()
 	hook := NewMeshtasticHook(MeshtasticHookConfig{ServerAddr: ""}, f)
 
 	client := &mqtt.Client{ID: "test-client"}
@@ -156,7 +167,7 @@ func TestOnDisconnect(t *testing.T) {
 
 func TestMeshtasticHook_Shutdown(t *testing.T) {
 	t.Parallel()
-	f := factory.NewDefaultFactory() // Mock factory
+	f := factory.NewDefaultFactory()
 	hook := NewMeshtasticHook(MeshtasticHookConfig{ServerAddr: ""}, f)
 	err := hook.Shutdown(context.TODO())
 	require.NoError(t, err)

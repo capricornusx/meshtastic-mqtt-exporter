@@ -4,6 +4,9 @@ import (
 	"context"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"meshtastic-exporter/pkg/domain"
 )
 
@@ -16,26 +19,18 @@ func TestNewLoRaAlertSender(t *testing.T) {
 	}
 
 	sender := NewLoRaAlertSender(nil, config)
-	if sender == nil {
-		t.Fatal("Expected sender to be created")
-	}
-	if sender.defaultChannel != "TestChannel" {
-		t.Errorf("Expected channel 'TestChannel', got '%s'", sender.defaultChannel)
-	}
-	if sender.defaultMode != "direct" {
-		t.Errorf("Expected mode 'direct', got '%s'", sender.defaultMode)
-	}
+
+	require.NotNil(t, sender)
+	assert.Equal(t, "TestChannel", sender.defaultChannel)
+	assert.Equal(t, "direct", sender.defaultMode)
 }
 
 func TestNewLoRaAlertSender_Defaults(t *testing.T) {
 	t.Parallel()
 	sender := NewLoRaAlertSender(nil, LoRaConfig{})
-	if sender.defaultChannel != "LongFast" {
-		t.Errorf("Expected default channel 'LongFast', got '%s'", sender.defaultChannel)
-	}
-	if sender.defaultMode != "broadcast" {
-		t.Errorf("Expected default mode 'broadcast', got '%s'", sender.defaultMode)
-	}
+
+	assert.Equal(t, "LongFast", sender.defaultChannel)
+	assert.Equal(t, "broadcast", sender.defaultMode)
 }
 
 func TestSendAlert_Broadcast(t *testing.T) {
@@ -48,9 +43,8 @@ func TestSendAlert_Broadcast(t *testing.T) {
 	}
 
 	err := sender.SendAlert(context.Background(), alert)
-	if err != nil {
-		t.Errorf("Expected no error, got %v", err)
-	}
+
+	require.NoError(t, err)
 }
 
 func TestSendAlert_Direct(t *testing.T) {
@@ -64,9 +58,8 @@ func TestSendAlert_Direct(t *testing.T) {
 	}
 
 	err := sender.SendAlert(context.Background(), alert)
-	if err != nil {
-		t.Errorf("Expected no error, got %v", err)
-	}
+
+	require.NoError(t, err)
 }
 
 func TestSendAlert_UseDefaults(t *testing.T) {
@@ -81,9 +74,8 @@ func TestSendAlert_UseDefaults(t *testing.T) {
 	alert := domain.Alert{Message: "Test alert"}
 
 	err := sender.SendAlert(context.Background(), alert)
-	if err != nil {
-		t.Errorf("Expected no error, got %v", err)
-	}
+
+	require.NoError(t, err)
 }
 
 func TestPublishMessage(t *testing.T) {
@@ -95,9 +87,8 @@ func TestPublishMessage(t *testing.T) {
 	}
 
 	err := sender.publishMessage("test/topic", payload)
-	if err != nil {
-		t.Errorf("Expected no error, got %v", err)
-	}
+
+	require.NoError(t, err)
 }
 
 func TestPublishMessage_InvalidPayload(t *testing.T) {
@@ -108,7 +99,68 @@ func TestPublishMessage_InvalidPayload(t *testing.T) {
 	}
 
 	err := sender.publishMessage("test/topic", payload)
-	if err == nil {
-		t.Error("Expected error for invalid payload")
+
+	require.Error(t, err)
+}
+
+func TestGetDefaultMQTTDownlinkTopic(t *testing.T) {
+	topic := GetDefaultMQTTDownlinkTopic()
+
+	assert.NotEmpty(t, topic)
+	assert.Equal(t, "msh/MY_433/2/json/mqtt/", topic)
+}
+
+func TestLoRaAlertSender_sendDirect_EdgeCases(t *testing.T) {
+	t.Parallel()
+	sender := &LoRaAlertSender{
+		mqttDownlinkTopic: "test/topic",
+		fromNodeID:        123,
 	}
+
+	tests := []struct {
+		name        string
+		message     string
+		targetNodes []uint32
+	}{
+		{
+			name:        "empty_nodes",
+			message:     "test message",
+			targetNodes: []uint32{},
+		},
+		{
+			name:        "valid_nodes",
+			message:     "test message",
+			targetNodes: []uint32{456, 789},
+		},
+		{
+			name:        "single_node",
+			message:     "test message",
+			targetNodes: []uint32{456},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			err := sender.sendDirect(context.Background(), tt.message, tt.targetNodes)
+			assert.NoError(t, err)
+		})
+	}
+}
+
+func TestLoRaAlertSender_publishMessage_EdgeCases(t *testing.T) {
+	t.Parallel()
+	sender := &LoRaAlertSender{
+		mqttDownlinkTopic: "test/topic",
+	}
+
+	payload := map[string]interface{}{
+		"type":    "sendtext",
+		"payload": "test message",
+		"from":    123,
+		"to":      456,
+	}
+
+	err := sender.publishMessage("test/topic", payload)
+	assert.NoError(t, err)
 }

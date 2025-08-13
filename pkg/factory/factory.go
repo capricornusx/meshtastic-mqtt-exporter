@@ -1,6 +1,7 @@
 package factory
 
 import (
+	paho "github.com/eclipse/paho.mqtt.golang"
 	mqtt "github.com/mochi-mqtt/server/v2"
 
 	"meshtastic-exporter/pkg/application"
@@ -49,12 +50,25 @@ func (f *Factory) CreateAlertSender() domain.AlertSender {
 	return infrastructure.NewLoRaAlertSender(nil, infrastructure.LoRaConfig{})
 }
 
+func (f *Factory) CreateStandaloneAlertSender(mqttClient interface{}) domain.AlertSender {
+	if client, ok := mqttClient.(paho.Client); ok {
+		config := infrastructure.LoRaConfig{}
+		if f.config != nil {
+			alertConfig := f.config.GetAlertManagerConfig()
+			config.MQTTDownlinkTopic = alertConfig.GetMQTTTopic()
+		}
+		return infrastructure.NewStandaloneLoRaAlertSender(client, config)
+	}
+	return f.CreateAlertSender()
+}
+
 func (f *Factory) CreateAlertSenderWithMQTT(mqttServer interface{}) domain.AlertSender {
 	if server, ok := mqttServer.(*mqtt.Server); ok {
 		config := infrastructure.LoRaConfig{}
 		if f.config != nil {
 			alertConfig := f.config.GetAlertManagerConfig()
 			config.MQTTDownlinkTopic = alertConfig.GetMQTTTopic()
+			config.FromNodeID = alertConfig.GetFromNodeID()
 		}
 		return infrastructure.NewLoRaAlertSender(server, config)
 	}
